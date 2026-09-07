@@ -52,7 +52,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
 .brandline span{white-space:nowrap}
 .rule{flex:1;height:1px;background:var(--line)}
 
-.hero-copy{max-width:16ch;margin:6vh 0 0}
+.hero-copy{margin:6vh 0 0}
 .hero-copy h1{
   font-family:var(--serif);
   font-weight:400;
@@ -60,6 +60,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
   font-size:clamp(3rem,11vw,6.4rem);
   line-height:.92;
   margin:0;
+  max-width:16ch;
   letter-spacing:-.015em;
 }
 .hero-copy h1 em{font-style:normal;display:block;color:var(--mango)}
@@ -419,6 +420,64 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition-duration:.01ms!important}
 }
+
+/* ===== realtime: cursors, presence, shared bits ===== */
+.cursors{position:fixed;inset:0;pointer-events:none;z-index:200}
+.pcur{position:absolute;top:0;left:0;transition:transform .09s linear,opacity .3s;will-change:transform}
+.pcur svg{display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.pcur b{
+  display:block;margin:2px 0 0 12px;padding:2px 8px;border-radius:999px;
+  font-size:.68rem;font-weight:600;letter-spacing:.04em;white-space:nowrap;color:#101A3C
+}
+.pcur.idle{opacity:0}
+.ripple{
+  position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;
+  border:2px solid currentColor;animation:rip .55s ease-out forwards
+}
+@keyframes rip{from{transform:scale(.3);opacity:.9}to{transform:scale(3.4);opacity:0}}
+
+.presence{
+  position:fixed;top:14px;right:16px;z-index:70;max-width:calc(100vw - 32px);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:7px 14px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(16,26,60,.82);backdrop-filter:blur(10px);font-size:.75rem;letter-spacing:.04em
+}
+.presence #peerList{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+.presence .who{display:flex;align-items:center;gap:6px;color:var(--paper);white-space:nowrap}
+.presence .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.presence .state{color:var(--muted)}
+.presence .state.live{color:var(--teal)}
+.presence .state.down{color:var(--rose)}
+/* keep the stage's close button clear of the presence pill */
+.stage{padding-top:clamp(66px,8vw,92px)}
+@media (max-width:640px){
+  .presence{top:auto;bottom:16px;left:16px;right:76px;font-size:.7rem;max-width:none}
+  .stage{padding-top:clamp(18px,4vw,44px)}
+}
+
+.alone{
+  margin:0 0 22px;padding:12px 16px;border:1px dashed var(--line);border-radius:12px;
+  color:var(--muted);font-size:.85rem;line-height:1.5
+}
+.alone b{color:var(--mango);font-weight:600}
+.alone code{
+  display:inline-block;background:rgba(244,237,224,.08);padding:2px 7px;border-radius:6px;
+  font-size:.85em;word-break:break-all;color:var(--paper)
+}
+
+.pads{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.pads .padwrap{display:flex;flex-direction:column;gap:6px}
+.pads label{font-size:.75rem;letter-spacing:.06em;color:var(--muted)}
+.pads canvas{width:100%;height:auto;aspect-ratio:4/3;background:#F4EDE0;border-radius:12px;display:block;touch-action:none}
+.pads canvas.mine{cursor:crosshair;outline:2px solid var(--marigold);outline-offset:2px}
+@media (max-width:640px){ .pads{grid-template-columns:1fr} }
+
+.picked{font-size:.8rem;color:var(--mango);letter-spacing:.04em;margin-top:10px}
+.waiting{color:var(--muted);font-size:.85rem;margin-top:10px}
+.dish.theirs{border-style:dashed;border-color:var(--rose)}
+.turnbar.mine{color:var(--teal)}
+.hour.live{border-left:2px solid var(--marigold);padding-left:14px}
+.typing{color:var(--mango);font-size:.72rem;padding:0 18px 8px;min-height:1em}
 </style>
 </head>
 <body>
@@ -427,11 +486,18 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
   <div class="gate-inner">
     <p class="gate-eyebrow">before anything else</p>
     <h2>Who's there?</h2>
-    <p class="gate-line">Type your name so the day knows which side of it you're on.</p>
+    <p class="gate-line">Type your name so the day knows which side of it you're on. Whoever else is on this link sees you arrive.</p>
     <input type="text" id="gateName" placeholder="your name" autocomplete="off" spellcheck="false">
     <button class="btn" id="gateGo" disabled>Start the day</button>
   </div>
 </div>
+
+<div class="presence" id="presence" hidden>
+  <span class="state" id="connState">connecting</span>
+  <span id="peerList"></span>
+</div>
+
+<div class="cursors" id="cursors" aria-hidden="true"></div>
 
 <header class="sky">
   <div class="brandline">
@@ -449,7 +515,12 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 </header>
 
 <main class="day">
-  <p class="day-intro" id="dayIntro">Nine stops between ten in the morning and six in the evening. Some need a pen, one needs both of us to shut up and listen. Tap an hour to open it.</p>
+  <p class="alone" id="aloneNote" hidden>
+    <b>Nobody else is here yet.</b> Send this exact link to the other person and keep it open —
+    every click, every pick and both cursors show up on each other's screen.
+    <code id="shareLink"></code>
+  </p>
+  <p class="day-intro" id="dayIntro">Twelve stops between ten in the morning and six in the evening. Some need a pen, one needs both of us to shut up and listen. Open an hour and it opens on the other side too.</p>
   <div id="hours"></div>
 </main>
 
@@ -476,19 +547,19 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
     <p class="chat-empty" id="chatEmpty">Nothing yet. Type something.</p>
   </div>
 
+  <div class="typing" id="typing"></div>
   <div class="chat-foot">
     <input type="text" id="chatInput" placeholder="Say it here">
     <button class="send" id="chatSend" aria-label="Send">→</button>
   </div>
   <div class="chat-tools">
-    <button id="chatSwap">Hand the keyboard over</button>
     <button id="chatCopy">Copy the thread</button>
     <button id="chatClear">Clear</button>
   </div>
 </section>
 
 <div class="stage" id="stage" role="dialog" aria-modal="true" aria-labelledby="stageTitle">
-  <div class="stage-inner">
+  <div class="stage-inner" id="stageInner">
     <div class="stage-head">
       <div>
         <div class="when" id="stageWhen"></div>
@@ -676,7 +747,253 @@ const PLAN = [
 const $ = s => document.querySelector(s);
 const el = (tag, cls, html) => { const n = document.createElement(tag); if(cls) n.className = cls; if(html != null) n.innerHTML = html; return n; };
 const shuffle = a => a.map(v => [Math.random(), v]).sort((x,y) => x[0]-y[0]).map(v => v[1]);
-const done = new Set();
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const ME = { name:"", side:"guest", other:"" };
+
+/* =======================================================================
+   REALTIME. One room, two people, one shared copy of everything.
+   SYNC.get/set is the whole state model: every activity renders from it
+   and writes back to it, so a click on one screen lands on both.
+   ======================================================================= */
+const ROOM = (new URLSearchParams(location.search).get("r") || "same-sun");
+
+const SYNC = {
+  ws:null, id:null, kv:{}, peers:[], offset:0, live:false, tries:0,
+  subs:new Map(), evs:new Map(),
+
+  now(){ return Date.now() + SYNC.offset; },
+
+  connect(){
+    let ws;
+    try {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(proto + "//" + location.host + "/room?r=" + encodeURIComponent(ROOM));
+    } catch(e){ SYNC.retry(); return; }
+    SYNC.ws = ws;
+    ws.addEventListener("open", () => {
+      SYNC.tries = 0;
+      SYNC.hello();
+    });
+    ws.addEventListener("message", e => {
+      let m; try { m = JSON.parse(e.data); } catch(_){ return; }
+      SYNC.recv(m);
+    });
+    ws.addEventListener("close", () => {
+      SYNC.live = false; SYNC.id = null; SYNC.peers = [];
+      renderPresence(); SYNC.retry();
+    });
+    ws.addEventListener("error", () => { try { ws.close(); } catch(_){} });
+  },
+
+  retry(){
+    const wait = Math.min(15000, 1000 * Math.pow(2, SYNC.tries++));
+    setTimeout(() => SYNC.connect(), wait);
+  },
+
+  hello(){
+    if(!SYNC.ws || SYNC.ws.readyState !== 1) return;
+    SYNC.ws.send(JSON.stringify({ t:"hello", name: ME.name || "someone", side: ME.side }));
+  },
+
+  send(m){ if(SYNC.ws && SYNC.ws.readyState === 1) SYNC.ws.send(JSON.stringify(m)); },
+
+  recv(m){
+    switch(m.t){
+      case "init":
+        SYNC.id = m.id; SYNC.offset = m.now - Date.now();
+        SYNC.kv = m.kv || {}; SYNC.peers = m.peers || []; SYNC.live = true;
+        renderPresence(); SYNC.fireAll();
+        break;
+      case "peers":
+        SYNC.peers = m.peers || []; renderPresence();
+        break;
+      case "set":
+        SYNC.kv[m.k] = m.v; SYNC.fire(m.k);
+        break;
+      case "list":
+        SYNC.kv[m.k] = m.v; SYNC.fire(m.k);
+        break;
+      case "wipe":
+        Object.keys(SYNC.kv).forEach(k => {
+          if(!m.k || k === m.k || k.indexOf(m.k) === 0) delete SYNC.kv[k];
+        });
+        SYNC.fireAll();
+        break;
+      case "ev": {
+        const set = SYNC.evs.get(m.k);
+        if(set) set.forEach(fn => fn(m.v, m.by));
+        break;
+      }
+    }
+  },
+
+  get(k, d){ const v = SYNC.kv[k]; return v === undefined ? d : v; },
+
+  set(k, v){ SYNC.kv[k] = v; SYNC.send({t:"set", k, v}); SYNC.fire(k); },
+
+  /* append: the server owns the order and echoes the whole list back */
+  push(k, v, cap){ SYNC.send({t:"push", k, v, cap}); },
+
+  wipe(k){
+    Object.keys(SYNC.kv).forEach(key => {
+      if(!k || key === k || key.indexOf(k) === 0) delete SYNC.kv[key];
+    });
+    SYNC.send({t:"wipe", k}); SYNC.fireAll();
+  },
+
+  /* ephemeral, never stored: cursors, clicks, live pen strokes */
+  ev(k, v){ SYNC.send({t:"ev", k, v}); },
+
+  on(k, fn){
+    if(!SYNC.subs.has(k)) SYNC.subs.set(k, new Set());
+    SYNC.subs.get(k).add(fn);
+    return () => { const s = SYNC.subs.get(k); if(s) s.delete(fn); };
+  },
+  onEv(k, fn){
+    if(!SYNC.evs.has(k)) SYNC.evs.set(k, new Set());
+    SYNC.evs.get(k).add(fn);
+    return () => { const s = SYNC.evs.get(k); if(s) s.delete(fn); };
+  },
+  fire(k){ const s = SYNC.subs.get(k); if(s) s.forEach(fn => fn(SYNC.get(k))); },
+  fireAll(){ SYNC.subs.forEach((set, k) => set.forEach(fn => fn(SYNC.get(k)))); }
+};
+
+/* subscriptions owned by whatever activity is open; dropped when it closes */
+let stageSubs = [];
+const bind    = (k, fn) => { stageSubs.push(SYNC.on(k, fn)); };
+const bindEv  = (k, fn) => { stageSubs.push(SYNC.onEv(k, fn)); };
+const dropSubs = () => { stageSubs.forEach(f => f()); stageSubs = []; };
+
+/* ---- who is here ---- */
+function renderPresence(){
+  const bar = $("#presence"), state = $("#connState"), list = $("#peerList");
+  bar.hidden = !ME.name;
+  state.textContent = SYNC.live ? "live" : "reconnecting";
+  state.className = "state " + (SYNC.live ? "live" : "down");
+
+  list.innerHTML = "";
+  SYNC.peers.forEach(p => {
+    const w = el("span","who");
+    const d = el("span","dot"); d.style.background = p.color;
+    w.appendChild(d);
+    w.appendChild(document.createTextNode(p.id === SYNC.id ? p.name + " (you)" : p.name));
+    list.appendChild(w);
+  });
+
+  const others = SYNC.peers.filter(p => p.id !== SYNC.id).length;
+  const note = $("#aloneNote");
+  note.hidden = !(SYNC.live && others === 0);
+  $("#shareLink").textContent = location.origin + location.pathname + (ROOM === "same-sun" ? "" : "?r=" + ROOM);
+
+  const sub = $("#chatSub");
+  if(sub) sub.textContent = others ? "you and " + SYNC.peers.filter(p => p.id !== SYNC.id).map(p => p.name).join(", ")
+                                   : "just you so far";
+}
+
+/* =========================== live cursors =========================== */
+const CUR = {
+  nodes:new Map(),
+
+  /* Positions travel as fractions of a shared reference box so two
+     different screen sizes still land on the same thing. */
+  encode(clientX, clientY){
+    const st = $("#stage");
+    if(st.classList.contains("on")){
+      const r = $("#stageInner").getBoundingClientRect();
+      return { ref:"s", x:(clientX - r.left)/Math.max(1,r.width), y:(clientY - r.top)/Math.max(1,r.height) };
+    }
+    const de = document.documentElement;
+    return { ref:"d", x:(clientX + window.scrollX)/Math.max(1,de.scrollWidth),
+                      y:(clientY + window.scrollY)/Math.max(1,de.scrollHeight) };
+  },
+
+  decode(p){
+    if(!p) return null;
+    if(p.ref === "s"){
+      if(!$("#stage").classList.contains("on")) return null;
+      const r = $("#stageInner").getBoundingClientRect();
+      return [r.left + p.x*r.width, r.top + p.y*r.height];
+    }
+    const de = document.documentElement;
+    return [p.x*de.scrollWidth - window.scrollX, p.y*de.scrollHeight - window.scrollY];
+  },
+
+  peer(id){
+    return SYNC.peers.find(p => p.id === id) || { name:"someone", color:"#3FA396" };
+  },
+
+  show(id, p){
+    const at = CUR.decode(p);
+    let n = CUR.nodes.get(id);
+    if(!at){ if(n) n.node.classList.add("idle"); return; }
+    if(!n){
+      const who = CUR.peer(id);
+      const node = el("div","pcur");
+      node.innerHTML = '<svg width="20" height="22" viewBox="0 0 20 22"><path d="M2 1 L2 17 L6.4 13 L9.2 19.6 L12.4 18.2 L9.6 11.8 L15.4 11.6 Z" fill="' +
+        who.color + '" stroke="#101A3C" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+      const tag = el("b", null, esc(who.name));
+      tag.style.background = who.color;
+      node.appendChild(tag);
+      $("#cursors").appendChild(node);
+      n = { node, tag, t:0 };
+      CUR.nodes.set(id, n);
+    }
+    const who = CUR.peer(id);
+    if(n.tag.textContent !== who.name){ n.tag.textContent = who.name; n.tag.style.background = who.color; }
+    n.node.classList.remove("idle");
+    n.node.style.transform = "translate(" + at[0].toFixed(1) + "px," + at[1].toFixed(1) + "px)";
+    n.t = Date.now();
+  },
+
+  drop(id){
+    const n = CUR.nodes.get(id);
+    if(n){ n.node.remove(); CUR.nodes.delete(id); }
+  },
+
+  ripple(id, p){
+    const at = CUR.decode(p);
+    if(!at) return;
+    const r = el("div","ripple");
+    r.style.color = CUR.peer(id).color;
+    r.style.transform = "translate(" + at[0].toFixed(1) + "px," + at[1].toFixed(1) + "px)";
+    r.style.left = "0"; r.style.top = "0";
+    // ripple animates scale, so wrap it to keep the translate intact
+    const holder = el("div");
+    holder.style.cssText = "position:absolute;top:0;left:0;transform:translate(" + at[0].toFixed(1) + "px," + at[1].toFixed(1) + "px)";
+    r.style.transform = "";
+    holder.appendChild(r);
+    $("#cursors").appendChild(holder);
+    setTimeout(() => holder.remove(), 620);
+  },
+
+  start(){
+    let last = 0;
+    window.addEventListener("pointermove", e => {
+      const t = performance.now();
+      if(t - last < 50) return;
+      last = t;
+      SYNC.ev("cur", CUR.encode(e.clientX, e.clientY));
+    }, {passive:true});
+
+    window.addEventListener("pointerdown", e => {
+      SYNC.ev("tap", CUR.encode(e.clientX, e.clientY));
+    }, {passive:true});
+
+    window.addEventListener("pointerleave", () => SYNC.ev("cur", null), {passive:true});
+
+    SYNC.onEv("cur", (v, by) => CUR.show(by, v));
+    SYNC.onEv("tap", (v, by) => { CUR.show(by, v); CUR.ripple(by, v); });
+
+    /* fade out anyone who has stopped moving, and clean up leavers */
+    setInterval(() => {
+      const now = Date.now();
+      CUR.nodes.forEach((n, id) => {
+        if(!SYNC.peers.some(p => p.id === id)) return CUR.drop(id);
+        if(now - n.t > 6000) n.node.classList.add("idle");
+      });
+    }, 1500);
+  }
+};
 
 /* ---- header clock + date ---- */
 function tick(){
@@ -685,6 +1002,31 @@ function tick(){
   $("#clockline").textContent = d.toLocaleTimeString(undefined,{hour:"2-digit", minute:"2-digit"});
 }
 tick(); setInterval(tick, 20000);
+
+/* timers owned by the open activity */
+let stageTimers = [];
+const every = (ms, fn) => { fn(); const id = setInterval(fn, ms); stageTimers.push(id); return id; };
+const dropTimers = () => { stageTimers.forEach(clearInterval); stageTimers = []; };
+const mmss = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+
+/* A countdown both sides see identically: the end time lives in shared
+   state as server-clock milliseconds, so nobody's clock drift matters. */
+function sharedClock(node, key, endText, onEnd){
+  let ended = false;
+  const paint = () => {
+    const endsAt = SYNC.get(key, 0);
+    if(!endsAt){ ended = false; node.textContent = endText.idle; return; }
+    const left = (endsAt - SYNC.now())/1000;
+    if(left > 0){ ended = false; node.textContent = endText.fmt ? endText.fmt(left) : mmss(left); }
+    else {
+      node.textContent = endText.done;
+      if(!ended){ ended = true; if(onEnd) onEnd(); }
+    }
+  };
+  bind(key, paint);
+  every(250, paint);
+  return paint;
+}
 
 /* ---- sun arc ---- */
 function buildArc(){
@@ -725,7 +1067,6 @@ function buildArc(){
     svg.appendChild(g);
   });
 
-  // sun at current time between 10 and 18
   const now = new Date();
   const mins = now.getHours()*60 + now.getMinutes();
   let f = (mins - 600) / 480;
@@ -744,7 +1085,6 @@ function buildArc(){
   lab.style.opacity = 0; lab.style.transition = "opacity 1s 1.6s";
   svg.appendChild(lab);
 
-  // one page-load move
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if(reduce){ sun.setAttribute("cx",p.x); sun.setAttribute("cy",p.y); lab.style.opacity = 1; return; }
   const t0 = performance.now(), dur = 1700;
@@ -763,7 +1103,7 @@ function buildHours(){
   PLAN.forEach((h,i) => {
     const row = el("section","hour");
     row.id = "hour"+i;
-    row.appendChild(el("div","clock", h.t + "<small>stop " + (i+1) + " of 9</small>"));
+    row.appendChild(el("div","clock", h.t + "<small>stop " + (i+1) + " of " + PLAN.length + "</small>"));
     const right = el("div");
     right.appendChild(el("h2", null, h.title));
     right.appendChild(el("p", null, h.line));
@@ -773,47 +1113,93 @@ function buildHours(){
     row.appendChild(right);
     wrap.appendChild(row);
   });
+  SYNC.on("day.done", paintDone);
+  paintDone();
 }
 
-/* ---- stage ---- */
+function paintDone(){
+  const list = SYNC.get("day.done", []);
+  PLAN.forEach((h,i) => {
+    const row = document.getElementById("hour"+i);
+    if(row) row.classList.toggle("done", list.indexOf(i) !== -1);
+  });
+}
+
+/* ---- stage: opening an hour opens it on both screens ---- */
 let lastFocus = null;
+let openIndex = null;
+
 function open(i){
+  if(SYNC.get("stage.open", null) !== i) SYNC.set("stage.open", i);
+  else showStage(i);
+}
+
+function showStage(i){
+  if(openIndex === i) return;
   const h = PLAN[i];
   lastFocus = document.activeElement;
+  dropSubs(); dropTimers();
+  openIndex = i;
+
   $("#stageWhen").textContent = h.t;
   $("#stageTitle").textContent = h.title;
   const body = $("#stageBody");
   body.innerHTML = "";
   $("#stage").classList.remove("dusk");
   const sf = document.querySelector(".starfield"); if(sf) sf.remove();
+
   ACTS[h.k](body);
+
   $("#stage").classList.add("on");
   document.body.style.overflow = "hidden";
   $("#closeBtn").focus();
-  done.add(i);
-  document.getElementById("hour"+i).classList.add("done");
+
+  const list = SYNC.get("day.done", []);
+  if(list.indexOf(i) === -1) SYNC.set("day.done", list.concat([i]));
 }
-function close(){
+
+function hideStage(){
+  if(openIndex === null) return;
+  openIndex = null;
+  dropSubs(); dropTimers();
   $("#stage").classList.remove("on");
+  $("#stageBody").innerHTML = "";
   document.body.style.overflow = "";
   const sf = document.querySelector(".starfield"); if(sf) sf.remove();
-  if(lastFocus) lastFocus.focus();
+  if(lastFocus && lastFocus.focus) lastFocus.focus();
 }
+
+function close(){ SYNC.set("stage.open", null); }
+
+SYNC.on("stage.open", v => {
+  if(v === null || v === undefined) hideStage();
+  else if(PLAN[v]) showStage(v);
+});
+
 $("#closeBtn").addEventListener("click", close);
-document.addEventListener("keydown", e => { if(e.key === "Escape" && $("#stage").classList.contains("on")) close(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape" && openIndex !== null) close(); });
 $("#resetBtn").addEventListener("click", () => {
-  done.clear();
-  document.querySelectorAll(".hour").forEach(h => h.classList.remove("done"));
+  if(!confirm("Clear every mark, score and list for both of you?")) return;
+  SYNC.wipe("");
+  hideStage();
 });
 
 const lede = (b, txt) => b.appendChild(el("p","lede",txt));
+const note = (b, txt) => b.appendChild(el("p","note",txt));
 
-/* ======================= activities ======================= */
+/* ======================= activities =======================
+   Every one of these renders purely from SYNC state and writes back
+   to it, so both screens always agree. Guests share the second seat. */
 const ACTS = {};
+
+const mySide    = () => ME.side === "her" ? "her" : "you";
+const theirSide = () => mySide() === "her" ? "you" : "her";
+const nameOf    = s => s === "her" ? CFG.her : CFG.you;
+const ensure    = (k, make) => { let v = SYNC.get(k, null); if(v === null){ v = make(); SYNC.set(k, v); } return v; };
 
 /* --- 10:00 chai --- */
 ACTS.chai = b => {
-  lede(b, "Hold the button until your cup is full. Mine fills at the same speed. When both are done, hold the cup up to the camera and we drink at the same time.");
+  lede(b, "Hold the button until the cup is full. You're both pouring the same cup — hold together and it fills twice as fast. When it's full, hold yours up to the camera and drink at the same time.");
   const box = el("div","card");
   const c = el("div","chai");
   c.innerHTML = `
@@ -837,55 +1223,61 @@ ACTS.chai = b => {
   box.appendChild(wrapb);
   b.appendChild(box);
 
+  const talkbox = el("div","card"); talkbox.style.marginTop = "18px"; talkbox.hidden = true;
+  talkbox.appendChild(el("div","qnum","talk about this while it cools"));
+  const line = el("div","prompt-card","");
+  talkbox.appendChild(line);
+  const nb = el("button","btn ghost","Another one");
+  const rr = el("div","row"); rr.appendChild(nb); talkbox.appendChild(rr);
+  b.appendChild(talkbox);
+
+  const TALK = ["What's the first thing you did after waking up?",
+    "What's the one thing you're dreading this week?",
+    "Tell me something small that happened yesterday that I don't know about.",
+    "What did you dream about last night?",
+    "What's on your table right now, exactly?"];
+
   const tea = box.querySelector("#tea"), top = box.querySelector("#teatop");
   const bar = box.querySelector(".fill-bar"), steam = box.querySelector(".steam");
-  let v = 0, timer = null, full = false;
-  const draw = () => {
+
+  const render = () => {
+    const v = SYNC.get("chai.v", 0);
     const h = v*1.30;
     tea.setAttribute("height", h); tea.setAttribute("y", 198 - h);
     top.setAttribute("cy", 198 - h); top.setAttribute("opacity", v > 3 ? .9 : 0);
     bar.style.width = v + "%";
+    const full = v >= 100;
+    steam.classList.toggle("on", full);
+    btn.textContent = full ? "Cheers 🍵" : "Hold to pour";
+    btn.classList.toggle("ghost", full);
+    talkbox.hidden = !full;
+    if(full) line.textContent = SYNC.get("chai.talk", TALK[0]);
   };
+
+  let timer = null;
   const start = e => {
     e.preventDefault();
-    if(full) return;
+    if(SYNC.get("chai.v",0) >= 100) return;
+    clearInterval(timer);
     timer = setInterval(() => {
-      v = Math.min(100, v + 1.6); draw();
-      if(v >= 100 && !full){
-        full = true; clearInterval(timer);
-        steam.classList.add("on");
-        btn.textContent = "Cheers 🍵";
-        btn.classList.add("ghost");
-        after();
-      }
-    }, 26);
+      const v = Math.min(100, SYNC.get("chai.v", 0) + 5);
+      SYNC.set("chai.v", v);
+      if(v >= 100){ clearInterval(timer); ensure("chai.talk", () => shuffle(TALK)[0]); }
+    }, 100);
+    stageTimers.push(timer);
   };
   const stop = () => clearInterval(timer);
   ["mousedown","touchstart"].forEach(ev => btn.addEventListener(ev, start, {passive:false}));
   ["mouseup","mouseleave","touchend","touchcancel"].forEach(ev => btn.addEventListener(ev, stop));
+  nb.addEventListener("click", () => SYNC.set("chai.talk", shuffle(TALK)[0]));
 
-  function after(){
-    const talk = ["What's the first thing you did after waking up?",
-      "What's the one thing you're dreading this week?",
-      "Tell me something small that happened yesterday that I don't know about.",
-      "What did you dream about last night?",
-      "What's on your table right now, exactly?"];
-    const p = el("div","card");
-    p.style.marginTop = "18px";
-    const line = el("div","prompt-card", shuffle(talk)[0]);
-    const nb = el("button","btn ghost","Another one");
-    p.appendChild(el("div","qnum","talk about this while it cools"));
-    p.appendChild(line);
-    const r = el("div","row"); r.appendChild(nb); p.appendChild(r);
-    nb.addEventListener("click", () => { line.textContent = shuffle(talk)[0]; });
-    b.appendChild(p);
-    p.scrollIntoView({behavior:"smooth", block:"nearest"});
-  }
+  bind("chai.v", render); bind("chai.talk", render);
+  render();
 };
 
-/* --- 11:00 wheel --- */
+/* --- 10:30 question roulette --- */
 ACTS.wheel = b => {
-  lede(b, "Spin, then both of you answer the same question. She answers first. Two skips for the whole hour and they don't roll over.");
+  lede(b, "Spin, then both of you answer the same question. She answers first. Two skips for the whole hour and they don't roll over. Either of you can spin — the wheel turns on both screens.");
   const box = el("div","card");
   const w = el("div","wheelbox");
   const N = 10, colors = ["#F4A93C","#E2707E","#3FA396","#FFD79A","#2A3C78"];
@@ -904,194 +1296,319 @@ ACTS.wheel = b => {
     <div class="qout">Spin it.</div>`;
   box.appendChild(w);
   const r = el("div","row"); r.style.justifyContent = "center";
-  const spin = el("button","btn","Spin"), skip = el("button","btn ghost","Skip (2 left)");
+  const spin = el("button","btn","Spin"), skip = el("button","btn ghost","Skip");
   r.appendChild(spin); r.appendChild(skip); box.appendChild(r);
   b.appendChild(box);
 
   const wheel = box.querySelector(".wheel"), out = box.querySelector(".qout");
-  let rot = 0, pool = shuffle(CFG.questions.slice()), skips = 2, busy = false;
-  const pull = () => { if(!pool.length) pool = shuffle(CFG.questions.slice()); return pool.pop(); };
+
+  const pull = () => {
+    let pool = SYNC.get("wheel.pool", null);
+    if(!pool || !pool.length) pool = shuffle(CFG.questions.map((_,i) => i));
+    const q = pool.pop();
+    SYNC.set("wheel.pool", pool);
+    return q;
+  };
+
+  const render = () => {
+    const s = SYNC.get("wheel.spin", null);
+    const skips = SYNC.get("wheel.skips", 2);
+    skip.textContent = skips > 0 ? "Skip (" + skips + " left)" : "No skips left";
+    skip.disabled = skips <= 0;
+    if(!s){ out.textContent = "Spin it."; return; }
+    wheel.style.transform = "rotate(" + s.rot + "deg)";
+    const settled = SYNC.now() >= s.at + 4200;
+    spin.disabled = !settled;
+    out.textContent = settled ? CFG.questions[s.q] : "…";
+  };
+
   spin.addEventListener("click", () => {
-    if(busy) return; busy = true;
-    out.textContent = "…";
-    rot += 900 + Math.floor(Math.random()*720);
-    wheel.style.transform = "rotate(" + rot + "deg)";
-    setTimeout(() => { out.textContent = pull(); busy = false; }, 4200);
+    const prev = SYNC.get("wheel.spin", null);
+    const rot = (prev ? prev.rot : 0) + 900 + Math.floor(Math.random()*720);
+    SYNC.set("wheel.spin", { rot, q: pull(), at: SYNC.now() });
   });
   skip.addEventListener("click", () => {
-    if(skips <= 0 || busy) return;
-    skips--; skip.textContent = skips ? "Skip (1 left)" : "No skips left";
-    if(!skips) skip.disabled = true;
-    out.textContent = pull();
+    const skips = SYNC.get("wheel.skips", 2);
+    if(skips <= 0) return;
+    SYNC.set("wheel.skips", skips - 1);
+    const prev = SYNC.get("wheel.spin", null);
+    SYNC.set("wheel.spin", { rot: prev ? prev.rot : 0, q: pull(), at: 0 });
   });
+
+  bind("wheel.spin", render); bind("wheel.skips", render);
+  every(300, render);
 };
 
 /* --- 12:00 same order --- */
 ACTS.menu = b => {
-  lede(b, "Pick four each without looking at the other's screen. Whatever you both picked is what we actually order tonight, delivered to each other's address.");
+  lede(b, "Pick four each, on your own screen. You can't see the other list until you've both locked in — but you can see how far along they are. Whatever you both picked is what actually gets ordered.");
   const box = el("div","card");
-  const turn = el("div","turnbar", CFG.her + " picks first. " + CFG.you + ", look away.");
+  const turn = el("div","turnbar","");
   box.appendChild(turn);
   const grid = el("div","dishes");
-  CFG.dishes.forEach((d,i) => {
+  const tiles = CFG.dishes.map((d,i) => {
     const btn = el("button","dish", d);
     btn.dataset.i = i;
     btn.addEventListener("click", () => {
-      if(phase === 2) return;
-      const on = btn.classList.contains("sel");
-      const cur = grid.querySelectorAll(".dish.sel").length;
-      if(!on && cur >= 4) return;
-      btn.classList.toggle("sel");
-      lock.disabled = grid.querySelectorAll(".dish.sel").length !== 4;
+      if(SYNC.get("menu.phase", 0) === 1) return;
+      const k = "menu.pick." + mySide();
+      const cur = SYNC.get(k, []).slice();
+      const at = cur.indexOf(i);
+      if(at !== -1) cur.splice(at, 1);
+      else if(cur.length < 4) cur.push(i);
+      else return;
+      SYNC.set(k, cur);
+      if(SYNC.get("menu.ready." + mySide(), false)) SYNC.set("menu.ready." + mySide(), false);
     });
     grid.appendChild(btn);
+    return btn;
   });
   box.appendChild(grid);
   const r = el("div","row");
-  const lock = el("button","btn","Lock in " + CFG.her + "'s four");
-  lock.disabled = true;
-  r.appendChild(lock); box.appendChild(r);
+  const lock = el("button","btn","Lock in my four");
+  const again = el("button","btn ghost","Start over");
+  r.appendChild(lock); r.appendChild(again); box.appendChild(r);
+  const res = el("div"); box.appendChild(res);
   b.appendChild(box);
 
-  let phase = 0, hers = [], his = [];
-  lock.addEventListener("click", () => {
-    if(phase === 0){
-      hers = [...grid.querySelectorAll(".dish.sel")].map(x => +x.dataset.i);
-      grid.querySelectorAll(".dish").forEach(x => x.classList.remove("sel"));
-      phase = 1;
-      turn.textContent = "Locked. Hand it over — " + CFG.you + " picks now.";
-      lock.textContent = "Lock in " + CFG.you + "'s four";
-      lock.disabled = true;
-    } else if(phase === 1){
-      his = [...grid.querySelectorAll(".dish.sel")].map(x => +x.dataset.i);
-      phase = 2;
-      const both = hers.filter(i => his.includes(i));
-      grid.querySelectorAll(".dish").forEach(x => {
-        const i = +x.dataset.i;
-        x.classList.remove("sel");
-        if(both.includes(i)) x.classList.add("match");
-        else if(hers.includes(i) || his.includes(i)) x.classList.add("sel");
-      });
-      lock.remove();
+  const render = () => {
+    const phase  = SYNC.get("menu.phase", 0);
+    const mine   = SYNC.get("menu.pick." + mySide(), []);
+    const theirs = SYNC.get("menu.pick." + theirSide(), []);
+    const iReady = SYNC.get("menu.ready." + mySide(), false);
+    const tReady = SYNC.get("menu.ready." + theirSide(), false);
+
+    tiles.forEach((t,i) => {
+      t.className = "dish";
+      if(phase === 1){
+        const both = mine.indexOf(i) !== -1 && theirs.indexOf(i) !== -1;
+        if(both) t.classList.add("match");
+        else if(mine.indexOf(i) !== -1 || theirs.indexOf(i) !== -1) t.classList.add("sel");
+      } else if(mine.indexOf(i) !== -1) t.classList.add("sel");
+    });
+
+    lock.hidden = phase === 1;
+    again.hidden = phase !== 1;
+    lock.disabled = mine.length !== 4 || iReady;
+    lock.textContent = iReady ? "Locked — waiting for " + nameOf(theirSide()) : "Lock in my four";
+
+    if(phase === 1){
       turn.textContent = "Green means both of us. Orange means only one.";
+      const both = mine.filter(i => theirs.indexOf(i) !== -1);
       const verdict = ["Zero overlap. We are eating alone tonight and that's fine.",
         "One match. It's a start.","Two out of four. Respectable.",
-        "Three. Suspicious.","All four. Either we're perfect or you cheated."][both.length];
-      const res = el("div");
+        "Three. Suspicious.","All four. Either we're perfect or you cheated."][both.length] || "";
+      res.innerHTML = "";
       res.appendChild(el("div","tally", both.length + " of 4"));
       res.appendChild(el("p", null, verdict));
-      box.appendChild(res);
-      res.scrollIntoView({behavior:"smooth", block:"nearest"});
+    } else {
+      res.innerHTML = "";
+      turn.textContent = mine.length + " of 4 picked. " + nameOf(theirSide()) + " has picked " +
+        theirs.length + " of 4" + (tReady ? " and locked in." : ".");
+      turn.classList.toggle("mine", mine.length === 4);
     }
+  };
+
+  lock.addEventListener("click", () => {
+    if(SYNC.get("menu.pick." + mySide(), []).length !== 4) return;
+    SYNC.set("menu.ready." + mySide(), true);
+    if(SYNC.get("menu.ready." + theirSide(), false)) SYNC.set("menu.phase", 1);
   });
+  again.addEventListener("click", () => { SYNC.wipe("menu."); });
+
+  ["menu.phase","menu.pick.her","menu.pick.you","menu.ready.her","menu.ready.you"].forEach(k => bind(k, render));
+  render();
 };
 
-/* --- 13:00 draw --- */
+/* --- 13:00 ninety seconds to draw me --- */
 ACTS.draw = b => {
-  lede(b, "Ninety seconds. No reference, no erasing, no explaining while you draw. When the timer ends we both turn the screen around.");
+  lede(b, "Ninety seconds, no reference, no erasing. Both pads are live — you can watch the line move on the other side as it happens, which is the whole point.");
   const box = el("div","card");
-  const prompt = el("div","prompt-card", shuffle(CFG.drawPrompts)[0]);
   box.appendChild(el("div","qnum","draw this"));
+  const prompt = el("div","prompt-card","");
   box.appendChild(prompt);
-  const cv = el("canvas"); cv.id = "pad"; cv.width = 800; cv.height = 600;
-  cv.style.marginTop = "16px";
-  box.appendChild(cv);
+
+  const pads = el("div","pads");
+  const mk = (side) => {
+    const w = el("div","padwrap");
+    w.appendChild(el("label", null, side === mySide() ? "yours" : nameOf(side) + "'s"));
+    const cv = el("canvas"); cv.width = 800; cv.height = 600;
+    if(side === mySide()) cv.classList.add("mine");
+    w.appendChild(cv); pads.appendChild(w);
+    return cv;
+  };
+  const cvMine = mk(mySide()), cvTheirs = mk(theirSide());
+  box.appendChild(pads);
+
   const r = el("div","row");
   const t = el("div","timer","1:30");
   const go = el("button","btn","Start the 90 seconds");
-  const clr = el("button","btn ghost","Clear");
-  const sv = el("button","btn ghost","Save it");
+  const clr = el("button","btn ghost","Clear mine");
+  const sv = el("button","btn ghost","Save mine");
   const nw = el("button","btn ghost","New prompt");
   [t,go,clr,sv,nw].forEach(x => r.appendChild(x));
   box.appendChild(r);
   b.appendChild(box);
 
-  const ctx = cv.getContext("2d");
-  const wipe = () => { ctx.fillStyle = "#F4EDE0"; ctx.fillRect(0,0,cv.width,cv.height); };
-  wipe();
-  ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#1B2856";
-  let drawing = false;
-  const pos = e => {
-    const r2 = cv.getBoundingClientRect();
-    const p = e.touches ? e.touches[0] : e;
-    return [(p.clientX - r2.left) * cv.width / r2.width, (p.clientY - r2.top) * cv.height / r2.height];
+  const ctxOf = cv => {
+    const c = cv.getContext("2d");
+    c.lineWidth = 4; c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = "#1B2856";
+    return c;
   };
-  const down = e => { e.preventDefault(); drawing = true; const [x,y] = pos(e); ctx.beginPath(); ctx.moveTo(x,y); };
-  const move = e => { if(!drawing) return; e.preventDefault(); const [x,y] = pos(e); ctx.lineTo(x,y); ctx.stroke(); };
-  const up = () => drawing = false;
-  cv.addEventListener("pointerdown", down); cv.addEventListener("pointermove", move);
-  window.addEventListener("pointerup", up);
+  const cm = ctxOf(cvMine), ct = ctxOf(cvTheirs);
+  const wipe = (cv, c) => { c.fillStyle = "#F4EDE0"; c.fillRect(0,0,cv.width,cv.height); };
 
-  let iv = null;
-  go.addEventListener("click", () => {
-    clearInterval(iv);
-    let s = 90;
-    go.disabled = true;
-    t.textContent = "1:30";
-    iv = setInterval(() => {
-      s--;
-      t.textContent = Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
-      if(s <= 0){
-        clearInterval(iv); go.disabled = false;
-        t.textContent = "pens down";
-        drawing = false;
-      }
-    }, 1000);
+  const paint = (cv, c, strokes) => {
+    wipe(cv, c);
+    (strokes || []).forEach(s => {
+      if(!s || s.length < 1) return;
+      c.beginPath();
+      c.moveTo(s[0][0]*cv.width, s[0][1]*cv.height);
+      for(let i = 1; i < s.length; i++) c.lineTo(s[i][0]*cv.width, s[i][1]*cv.height);
+      if(s.length === 1) c.lineTo(s[0][0]*cv.width + .1, s[0][1]*cv.height);
+      c.stroke();
+    });
+  };
+
+  /* my pad */
+  let drawing = false, stroke = [];
+  const norm = e => {
+    const r2 = cvMine.getBoundingClientRect();
+    return [(e.clientX - r2.left)/r2.width, (e.clientY - r2.top)/r2.height];
+  };
+  cvMine.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    drawing = true; stroke = [norm(e)];
+    cm.beginPath(); cm.moveTo(stroke[0][0]*cvMine.width, stroke[0][1]*cvMine.height);
+    SYNC.ev("draw.pt", { s:mySide(), p:stroke[0], start:true });
   });
-  clr.addEventListener("click", wipe);
-  nw.addEventListener("click", () => prompt.textContent = shuffle(CFG.drawPrompts)[0]);
+  cvMine.addEventListener("pointermove", e => {
+    if(!drawing) return;
+    e.preventDefault();
+    const p = norm(e);
+    stroke.push(p);
+    cm.lineTo(p[0]*cvMine.width, p[1]*cvMine.height); cm.stroke();
+    SYNC.ev("draw.pt", { s:mySide(), p, start:false });
+  });
+  const endStroke = () => {
+    if(!drawing) return;
+    drawing = false;
+    if(stroke.length) SYNC.push("draw.strokes." + mySide(), stroke, 600);
+    stroke = [];
+  };
+  window.addEventListener("pointerup", endStroke);
+  stageSubs.push(() => window.removeEventListener("pointerup", endStroke));
+
+  /* their pad, drawn live then reconciled from state */
+  bindEv("draw.pt", v => {
+    if(!v || v.s === mySide()) return;
+    const x = v.p[0]*cvTheirs.width, y = v.p[1]*cvTheirs.height;
+    if(v.start){ ct.beginPath(); ct.moveTo(x,y); }
+    else { ct.lineTo(x,y); ct.stroke(); }
+  });
+
+  bind("draw.strokes." + mySide(),  v => paint(cvMine, cm, v));
+  bind("draw.strokes." + theirSide(), v => paint(cvTheirs, ct, v));
+  bind("draw.prompt", v => prompt.textContent = v || "");
+
+  clr.addEventListener("click", () => SYNC.set("draw.strokes." + mySide(), []));
+  nw.addEventListener("click", () => SYNC.set("draw.prompt", shuffle(CFG.drawPrompts)[0]));
   sv.addEventListener("click", () => {
     const a = document.createElement("a");
-    a.download = "for-ladoo.png"; a.href = cv.toDataURL("image/png"); a.click();
+    a.download = "for-" + CFG.her.toLowerCase() + ".png"; a.href = cvMine.toDataURL("image/png"); a.click();
   });
+  go.addEventListener("click", () => SYNC.set("draw.endsAt", SYNC.now() + 90000));
+
+  ensure("draw.prompt", () => shuffle(CFG.drawPrompts)[0]);
+  paint(cvMine, cm, SYNC.get("draw.strokes." + mySide(), []));
+  paint(cvTheirs, ct, SYNC.get("draw.strokes." + theirSide(), []));
+  prompt.textContent = SYNC.get("draw.prompt", "");
+  sharedClock(t, "draw.endsAt", { idle:"1:30", done:"pens down" });
 };
 
-/* --- 14:00 memory --- */
+/* --- 13:30 memory match --- */
 ACTS.match = b => {
-  lede(b, "Take turns. Two flips each. Whoever pairs the most gets to pick what we watch later.");
+  lede(b, "Take turns, two flips each. The board is the same board — whatever you flip, she watches flip.");
   const box = el("div","card");
-  const status = el("div","qnum","0 of 8 pairs found");
+  const status = el("div","turnbar","");
   box.appendChild(status);
   const grid = el("div","grid16");
-  const deck = shuffle(CFG.moments.concat(CFG.moments));
-  let up = [], found = 0, lock = false;
-  deck.forEach(word => {
+  const deck = ensure("match.deck", () => shuffle(CFG.moments.concat(CFG.moments)));
+  const cards = deck.map((word, idx) => {
     const c = el("button","mcard", word);
-    c.addEventListener("click", () => {
-      if(lock || c.classList.contains("up") || c.classList.contains("got")) return;
-      c.classList.add("up"); up.push(c);
-      if(up.length === 2){
-        lock = true;
-        const [a,b2] = up;
-        if(a.textContent === b2.textContent){
-          setTimeout(() => {
-            a.classList.add("got"); b2.classList.add("got");
-            a.classList.remove("up"); b2.classList.remove("up");
-            found++; status.textContent = found + " of 8 pairs found";
-            up = []; lock = false;
-            if(found === 8){
-              status.textContent = "All eight. That's the whole year, more or less.";
-              status.style.color = "var(--teal)";
-            }
-          }, 420);
-        } else {
-          setTimeout(() => { a.classList.remove("up"); b2.classList.remove("up"); up = []; lock = false; }, 850);
-        }
-      }
-    });
+    c.addEventListener("click", () => flip(idx));
     grid.appendChild(c);
+    return c;
   });
   box.appendChild(grid);
+  const r = el("div","row");
+  const again = el("button","btn ghost","New board");
+  r.appendChild(again); box.appendChild(r);
   b.appendChild(box);
+
+  const render = () => {
+    const d = SYNC.get("match.deck", deck);
+    const up = SYNC.get("match.up", []), got = SYNC.get("match.got", []);
+    const turn = SYNC.get("match.turn", "her");
+    const sc = SYNC.get("match.score", {her:0, you:0});
+    cards.forEach((c,i) => {
+      c.textContent = d[i];
+      c.className = "mcard" + (got.indexOf(i) !== -1 ? " got" : up.indexOf(i) !== -1 ? " up" : "");
+    });
+    if(got.length === 16){
+      status.textContent = "All eight. " + (sc.her === sc.you ? "Dead level." :
+        (sc.her > sc.you ? CFG.her : CFG.you) + " picks the film.") + "  " + CFG.her + " " + sc.her + " · " + CFG.you + " " + sc.you;
+      status.style.color = "var(--teal)";
+    } else {
+      status.style.color = "";
+      status.textContent = (turn === mySide() ? "Your turn" : nameOf(turn) + "'s turn") +
+        " · " + (got.length/2) + " of 8 pairs · " + CFG.her + " " + sc.her + " · " + CFG.you + " " + sc.you;
+    }
+    status.classList.toggle("mine", turn === mySide());
+  };
+
+  function flip(i){
+    const turn = SYNC.get("match.turn", "her");
+    if(turn !== mySide()) return;
+    const up = SYNC.get("match.up", []), got = SYNC.get("match.got", []);
+    if(up.length >= 2 || up.indexOf(i) !== -1 || got.indexOf(i) !== -1) return;
+    const next = up.concat([i]);
+    SYNC.set("match.up", next);
+    if(next.length < 2) return;
+
+    const d = SYNC.get("match.deck", deck);
+    const hit = d[next[0]] === d[next[1]];
+    const wait = setTimeout(() => {
+      if(hit){
+        SYNC.set("match.got", SYNC.get("match.got", []).concat(next));
+        const sc = Object.assign({her:0, you:0}, SYNC.get("match.score", {}));
+        sc[turn]++; SYNC.set("match.score", sc);
+      } else {
+        SYNC.set("match.turn", turn === "her" ? "you" : "her");
+      }
+      SYNC.set("match.up", []);
+    }, hit ? 420 : 900);
+    stageTimers.push(wait);
+  }
+
+  again.addEventListener("click", () => {
+    SYNC.set("match.deck", shuffle(CFG.moments.concat(CFG.moments)));
+    SYNC.set("match.up", []); SYNC.set("match.got", []);
+    SYNC.set("match.score", {her:0, you:0}); SYNC.set("match.turn", "her");
+  });
+
+  ["match.deck","match.up","match.got","match.turn","match.score"].forEach(k => bind(k, render));
+  render();
 };
 
-/* --- 15:00 quiz --- */
+/* --- 16:00 how well do you know me --- */
 ACTS.quiz = b => {
-  lede(b, "Eight about me. Answer out loud first so you can't pretend you knew it after.");
+  lede(b, "Eight about me. Either of you can tap the answer — the result lands on both screens at once, so no pretending you knew it after.");
   const box = el("div","card");
   b.appendChild(box);
-  let i = 0, score = 0;
+
   const render = () => {
+    const i = SYNC.get("quiz.i", 0), score = SYNC.get("quiz.score", 0), lock = SYNC.get("quiz.lock", null);
     box.innerHTML = "";
     if(i >= CFG.quiz.length){
       const verdict = score >= 7 ? "You know me better than I know myself. Slightly worrying."
@@ -1102,7 +1619,9 @@ ACTS.quiz = b => {
       box.appendChild(el("p", null, verdict));
       const r = el("div","row");
       const again = el("button","btn ghost","Run it again");
-      again.addEventListener("click", () => { i = 0; score = 0; render(); });
+      again.addEventListener("click", () => {
+        SYNC.set("quiz.i", 0); SYNC.set("quiz.score", 0); SYNC.set("quiz.lock", null);
+      });
       r.appendChild(again); box.appendChild(r);
       return;
     }
@@ -1112,26 +1631,32 @@ ACTS.quiz = b => {
     const opts = el("div","opts");
     q.o.forEach((text,j) => {
       const o = el("button","opt", text);
+      if(lock !== null){
+        if(j === q.a) o.classList.add("right");
+        else if(j === lock) o.classList.add("wrong");
+      }
       o.addEventListener("click", () => {
-        if(opts.dataset.locked) return;
-        opts.dataset.locked = "1";
-        [...opts.children].forEach((c,k) => {
-          if(k === q.a) c.classList.add("right");
-          else if(k === j) c.classList.add("wrong");
-        });
-        if(j === q.a) score++;
-        setTimeout(() => { i++; render(); }, 1100);
+        if(SYNC.get("quiz.lock", null) !== null) return;
+        SYNC.set("quiz.lock", j);
+        if(j === q.a) SYNC.set("quiz.score", SYNC.get("quiz.score", 0) + 1);
+        const w = setTimeout(() => {
+          SYNC.set("quiz.i", SYNC.get("quiz.i", 0) + 1);
+          SYNC.set("quiz.lock", null);
+        }, 1200);
+        stageTimers.push(w);
       });
       opts.appendChild(o);
     });
     box.appendChild(opts);
   };
+
+  ["quiz.i","quiz.score","quiz.lock"].forEach(k => bind(k, render));
   render();
 };
 
-/* --- 16:00 wish jar --- */
+/* --- 17:30 wish jar --- */
 ACTS.jar = b => {
-  lede(b, "One line each, taking turns, until the jar is full. Rule: nothing sensible, nothing about money, nothing that starts with 'maybe'.");
+  lede(b, "One line each, taking turns, until the jar is full. Nothing sensible, nothing about money, nothing that starts with 'maybe'. Both of you write into the same jar.");
   const box = el("div","card");
   const w = el("div","jarwrap");
   const left = el("div");
@@ -1149,41 +1674,56 @@ ACTS.jar = b => {
   const list = el("ul","slips"); list.style.marginTop = "18px"; right.appendChild(list);
   w.appendChild(left); w.appendChild(right);
   box.appendChild(w); b.appendChild(box);
-  box.appendChild(el("p","note","Nothing here is saved anywhere. Copy it out before you close the page."));
+  note(box, "Saved in the room, not on your phone. It's here when either of you comes back.");
 
   const art = left.querySelector("#slipart");
   const NS = "http://www.w3.org/2000/svg";
-  const wishes = [];
+
+  const render = () => {
+    const wishes = SYNC.get("jar.wishes", []);
+    list.innerHTML = "";
+    wishes.slice().reverse().forEach(x => {
+      const li = el("li", null, "<b style='color:var(--mango)'>" + esc(x.who) + "</b> — " + esc(x.v));
+      list.appendChild(li);
+    });
+    art.innerHTML = "";
+    wishes.forEach((x,i) => {
+      const n = document.createElementNS(NS,"rect");
+      const y = 148 - Math.min(80, (i+1)*7);
+      const seed = (i*97) % 100 / 100;
+      n.setAttribute("x", 26 + seed*50); n.setAttribute("y", y);
+      n.setAttribute("width", 14 + seed*16); n.setAttribute("height", 8);
+      n.setAttribute("rx","2"); n.setAttribute("fill","#FFD79A"); n.setAttribute("opacity",".85");
+      n.setAttribute("transform","rotate(" + (seed*50-25).toFixed(1) + " 60 " + y + ")");
+      art.appendChild(n);
+    });
+  };
+
   const push = () => {
     const v = inp.value.trim();
     if(!v) return;
-    wishes.push(v);
-    const li = el("li", null, v.replace(/</g,"&lt;"));
-    list.prepend(li);
+    SYNC.push("jar.wishes", { who: ME.name || nameOf(mySide()), v: v.slice(0,180) }, 200);
     inp.value = ""; inp.focus();
-    const n = document.createElementNS(NS,"rect");
-    const y = 148 - Math.min(80, wishes.length*7);
-    n.setAttribute("x", 26 + Math.random()*50); n.setAttribute("y", y);
-    n.setAttribute("width", 14 + Math.random()*16); n.setAttribute("height", 8);
-    n.setAttribute("rx","2"); n.setAttribute("fill","#FFD79A");
-    n.setAttribute("opacity",".85");
-    n.setAttribute("transform","rotate(" + (Math.random()*50-25) + " 60 " + y + ")");
-    art.appendChild(n);
   };
   add.addEventListener("click", push);
   inp.addEventListener("keydown", e => { if(e.key === "Enter") push(); });
   copy.addEventListener("click", () => {
+    const wishes = SYNC.get("jar.wishes", []);
     if(!wishes.length) return;
-    const txt = wishes.map((x,i) => (i+1) + ". " + x).join("\n");
-    navigator.clipboard && navigator.clipboard.writeText(txt);
+    const txt = wishes.map((x,i) => (i+1) + ". " + x.v + "  (" + x.who + ")").join("\n");
+    if(navigator.clipboard) navigator.clipboard.writeText(txt);
     copy.textContent = "Copied";
-    setTimeout(() => copy.textContent = "Copy the whole jar", 1600);
+    const w2 = setTimeout(() => copy.textContent = "Copy the whole jar", 1600);
+    stageTimers.push(w2);
   });
+
+  bind("jar.wishes", render);
+  render();
 };
 
 /* --- 17:00 one song each --- */
 ACTS.song = b => {
-  lede(b, "Type the song you're giving the other person. Press play at the same time on your own apps, then don't talk until it's over. The timer is just so nobody chickens out.");
+  lede(b, "Type the song you're giving the other person — they see it appear as you type. Then press play together and don't talk until it's over.");
   const box = el("div","card");
   box.innerHTML = `<svg class="record" viewBox="0 0 200 200">
     <circle cx="100" cy="100" r="96" fill="#141C3F" stroke="#F4EDE0" stroke-width="1.5" opacity=".9"/>
@@ -1196,43 +1736,48 @@ ACTS.song = b => {
     <text font-size="9" fill="#12203F" font-family="Optima,Candara,sans-serif"><textPath id="lab" href="#labelpath" startOffset="4%">side a — side b</textPath></text>
   </svg>`;
   const d = el("div","dedications");
-  const mk = (who, ph) => {
+  const mk = (side) => {
     const g = el("div","ded");
-    g.appendChild(el("label", null, who));
-    const i2 = el("input"); i2.type = "text"; i2.placeholder = ph;
+    g.appendChild(el("label", null, nameOf(side) + " is playing"));
+    const i2 = el("input"); i2.type = "text"; i2.placeholder = "song and artist";
+    if(side !== mySide()) i2.readOnly = true;
     g.appendChild(i2); d.appendChild(g); return i2;
   };
-  const a = mk(CFG.her + " is playing", "song and artist");
-  const c = mk(CFG.you + " is playing", "song and artist");
+  const inHer = mk("her"), inYou = mk("you");
   box.appendChild(d);
   const r = el("div","row");
   const play = el("button","btn","Both press play");
   const t = el("div","timer","3:00");
   r.appendChild(play); r.appendChild(t); box.appendChild(r);
   b.appendChild(box);
-  box.appendChild(el("p","note","Rule: whoever talks first over the other's song loses and has to explain why they picked it."));
+  note(box, "Whoever talks first over the other's song loses and has to explain why they picked it.");
 
   const rec = box.querySelector(".record"), lab = box.querySelector("#lab");
-  const sync = () => {
-    const s1 = a.value.trim() || "side a", s2 = c.value.trim() || "side b";
-    lab.textContent = s1 + " — " + s2;
+  const render = () => {
+    const a = SYNC.get("song.her", ""), c = SYNC.get("song.you", "");
+    if(document.activeElement !== inHer) inHer.value = a;
+    if(document.activeElement !== inYou) inYou.value = c;
+    lab.textContent = (a || "side a") + " — " + (c || "side b");
+    const endsAt = SYNC.get("song.endsAt", 0);
+    const running = endsAt && SYNC.now() < endsAt;
+    rec.classList.toggle("spin", !!running);
+    play.disabled = !!running;
   };
-  a.addEventListener("input", sync); c.addEventListener("input", sync);
-  let iv = null;
-  play.addEventListener("click", () => {
-    clearInterval(iv);
-    rec.classList.add("spin");
-    let s = 180;
-    play.disabled = true;
-    iv = setInterval(() => {
-      s--;
-      t.textContent = Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
-      if(s <= 0){
-        clearInterval(iv); rec.classList.remove("spin");
-        play.disabled = false; t.textContent = "now you can talk";
-      }
-    }, 1000);
-  });
+
+  const wire = (input, key) => {
+    let to = null;
+    input.addEventListener("input", () => {
+      clearTimeout(to);
+      to = setTimeout(() => SYNC.set(key, input.value.slice(0,80)), 220);
+      stageTimers.push(to);
+    });
+  };
+  wire(inHer, "song.her"); wire(inYou, "song.you");
+  play.addEventListener("click", () => SYNC.set("song.endsAt", SYNC.now() + 180000));
+
+  bind("song.her", render); bind("song.you", render); bind("song.endsAt", render);
+  sharedClock(t, "song.endsAt", { idle:"3:00", done:"now you can talk" }, render);
+  render();
 };
 
 /* --- 18:00 letter --- */
@@ -1240,7 +1785,6 @@ ACTS.letter = b => {
   const stage = $("#stage");
   stage.classList.add("dusk");
   const sf = el("div","starfield");
-  const NS = "http://www.w3.org/2000/svg";
   let dots = "";
   for(let i = 0; i < 90; i++){
     dots += `<circle cx="${(Math.random()*100).toFixed(2)}%" cy="${(Math.random()*100).toFixed(2)}%" r="${(Math.random()*1.3+.4).toFixed(2)}" fill="#F4EDE0" opacity="${(Math.random()*.7+.2).toFixed(2)}"/>`;
@@ -1253,62 +1797,74 @@ ACTS.letter = b => {
   CFG.letter.forEach(line => wrap.appendChild(el("p", null, line)));
   const ps = wrap.querySelectorAll("p");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  ps.forEach((p,i) => setTimeout(() => p.classList.add("in"), reduce ? 0 : 500 + i*1500));
-  setTimeout(() => sf.classList.add("on"), reduce ? 0 : 1200);
+  const play = (from) => {
+    ps.forEach(p => p.classList.remove("in"));
+    ps.forEach((p,i) => stageTimers.push(setTimeout(() => p.classList.add("in"), reduce ? 0 : from + i*1500)));
+  };
+  play(500);
+  stageTimers.push(setTimeout(() => sf.classList.add("on"), reduce ? 0 : 1200));
 
   const r = el("div","row"); r.style.marginTop = "40px"; r.style.justifyContent = "center";
   const again = el("button","btn ghost","Read it again");
-  again.addEventListener("click", () => {
-    ps.forEach(p => p.classList.remove("in"));
-    ps.forEach((p,i) => setTimeout(() => p.classList.add("in"), 200 + i*1400));
-  });
+  again.addEventListener("click", () => SYNC.set("letter.replay", SYNC.now()));
+  bind("letter.replay", v => { if(v) play(200); });
   r.appendChild(again);
-  setTimeout(() => b.appendChild(r), reduce ? 0 : 600 + ps.length*1500);
+  stageTimers.push(setTimeout(() => b.appendChild(r), reduce ? 0 : 600 + ps.length*1500));
 };
-
 
 /* --- 11:00 the arcade --- */
 ACTS.arcade = b => {
-  lede(b, "Five games. Easiest way: one of you shares the screen. Otherwise both open this page and call your moves out loud, it stays in sync fine.");
+  lede(b, "Five games, all shared. Whichever one you open, opens on her screen too, and every move lands on both boards.");
   const hub = el("div","tiles");
   const panel = el("div"); panel.style.marginTop = "10px";
   const GAMES = [
-    {n:"Connect four", d:"Seven columns, four in a row. Loser makes the next call.", f:c4},
+    {n:"Connect four", d:"Seven columns, four in a row. Proper turns, properly enforced.", f:c4},
     {n:"Emoji films", d:"Sixteen films in emoji. First to shout it gets the point.", f:emojiGame},
     {n:"Never have I ever", d:"Twenty of them, all about us. Ten fingers each.", f:nhieGame},
     {n:"Word chain", d:"Twenty seconds a turn, last letter starts the next word.", f:chainGame},
     {n:"Who's more likely", d:"Point at the screen at the same time. Argue about it after.", f:likelyGame}
   ];
-  GAMES.forEach(g => {
+
+  /* the open game owns its own subscriptions, dropped when you switch */
+  let gsubs = [], gtimers = [];
+  const gbind = (k, fn) => { gsubs.push(SYNC.on(k, fn)); };
+  const gevery = (ms, fn) => { fn(); const id = setInterval(fn, ms); gtimers.push(id); return id; };
+  const gclear = () => { gsubs.forEach(f => f()); gsubs = []; gtimers.forEach(clearInterval); gtimers = []; };
+  stageSubs.push(gclear);
+
+  const tiles = GAMES.map((g,i) => {
     const t = el("button","tile");
     t.appendChild(el("strong", null, g.n));
     t.appendChild(el("span", null, g.d));
-    t.addEventListener("click", () => {
-      hub.querySelectorAll(".tile").forEach(x => x.classList.remove("on"));
-      t.classList.add("on");
-      panel.innerHTML = "";
-      g.f(panel);
-      panel.scrollIntoView({behavior:"smooth", block:"nearest"});
-    });
+    t.addEventListener("click", () => SYNC.set("arcade.game", i));
     hub.appendChild(t);
+    return t;
   });
   b.appendChild(hub); b.appendChild(panel);
+
+  const render = () => {
+    gclear();
+    panel.innerHTML = "";
+    const gi = SYNC.get("arcade.game", null);
+    tiles.forEach((t,i) => t.classList.toggle("on", i === gi));
+    if(gi === null || !GAMES[gi]) return;
+    GAMES[gi].f(panel, gbind, gevery);
+  };
+  bind("arcade.game", render);
+  render();
 };
 
-function c4(host){
+function c4(host, gbind){
   const box = el("div","card");
-  const status = el("div","turnbar", CFG.her + " starts. Pick a column.");
+  const status = el("div","turnbar","");
   box.appendChild(status);
   const board = el("div","c4");
-  const grid = Array.from({length:6}, () => Array(7).fill(0));
-  let turn = 1, over = false;
   const cells = [];
   for(let r = 0; r < 6; r++){
     cells[r] = [];
     for(let c = 0; c < 7; c++){
       const d = el("button","cell");
-      d.dataset.c = c;
-      d.addEventListener("click", () => drop(+d.dataset.c));
+      d.addEventListener("click", () => drop(c));
       board.appendChild(d); cells[r][c] = d;
     }
   }
@@ -1316,49 +1872,69 @@ function c4(host){
   const r2 = el("div","row");
   const again = el("button","btn ghost","New board");
   again.addEventListener("click", () => {
-    for(let r = 0; r < 6; r++) for(let c = 0; c < 7; c++){ grid[r][c] = 0; cells[r][c].className = "cell"; }
-    turn = 1; over = false; status.textContent = CFG.her + " starts. Pick a column.";
+    SYNC.set("c4.grid", Array(42).fill(0));
+    SYNC.set("c4.turn", 1); SYNC.set("c4.over", "");
   });
   r2.appendChild(again); box.appendChild(r2);
   host.appendChild(box);
 
-  function drop(c){
-    if(over) return;
-    for(let r = 5; r >= 0; r--){
-      if(!grid[r][c]){
-        grid[r][c] = turn;
-        cells[r][c].classList.add(turn === 1 ? "p1" : "p2");
-        if(win(r,c,turn)){
-          over = true;
-          status.textContent = (turn === 1 ? CFG.her : CFG.you) + " wins. Say it out loud.";
-          status.style.color = "var(--teal)";
-          return;
-        }
-        if(grid.every(row => row.every(v => v))){ over = true; status.textContent = "Full board, nobody wins. Very us."; return; }
-        turn = turn === 1 ? 2 : 1;
-        status.style.color = "";
-        status.textContent = (turn === 1 ? CFG.her : CFG.you) + "'s turn.";
-        return;
-      }
+  const myPiece = () => mySide() === "her" ? 1 : 2;
+  const at = (g,r,c) => g[r*7+c];
+
+  const render = () => {
+    const g = SYNC.get("c4.grid", Array(42).fill(0));
+    const turn = SYNC.get("c4.turn", 1);
+    const over = SYNC.get("c4.over", "");
+    for(let r = 0; r < 6; r++) for(let c = 0; c < 7; c++){
+      const v = at(g,r,c);
+      cells[r][c].className = "cell" + (v === 1 ? " p1" : v === 2 ? " p2" : "");
     }
-  }
-  function win(r,c,p){
+    if(over){ status.textContent = over; status.style.color = "var(--teal)"; status.classList.remove("mine"); return; }
+    status.style.color = "";
+    const mine = turn === myPiece();
+    status.classList.toggle("mine", mine);
+    status.textContent = mine ? "Your turn. Pick a column." : (turn === 1 ? CFG.her : CFG.you) + " is thinking.";
+  };
+
+  function win(g, r, c, p){
     const dirs = [[0,1],[1,0],[1,1],[1,-1]];
     return dirs.some(([dr,dc]) => {
       let n = 1;
       for(const s of [1,-1]){
         let i = r + dr*s, j = c + dc*s;
-        while(i >= 0 && i < 6 && j >= 0 && j < 7 && grid[i][j] === p){ n++; i += dr*s; j += dc*s; }
+        while(i >= 0 && i < 6 && j >= 0 && j < 7 && at(g,i,j) === p){ n++; i += dr*s; j += dc*s; }
       }
       return n >= 4;
     });
   }
+
+  function drop(c){
+    if(SYNC.get("c4.over", "")) return;
+    const turn = SYNC.get("c4.turn", 1);
+    if(turn !== myPiece()) return;
+    const g = SYNC.get("c4.grid", Array(42).fill(0)).slice();
+    for(let r = 5; r >= 0; r--){
+      if(!at(g,r,c)){
+        g[r*7+c] = turn;
+        SYNC.set("c4.grid", g);
+        if(win(g,r,c,turn)){
+          SYNC.set("c4.over", (turn === 1 ? CFG.her : CFG.you) + " wins. Say it out loud.");
+        } else if(g.every(v => v)){
+          SYNC.set("c4.over", "Full board, nobody wins. Very us.");
+        } else {
+          SYNC.set("c4.turn", turn === 1 ? 2 : 1);
+        }
+        return;
+      }
+    }
+  }
+
+  ["c4.grid","c4.turn","c4.over"].forEach(k => gbind(k, render));
+  render();
 }
 
-function emojiGame(host){
+function emojiGame(host, gbind){
   const box = el("div","card");
-  const deck = shuffle(CFG.emoji.slice());
-  let i = 0;
   const face = el("div","emoji");
   const ans = el("div","prompt-card");
   const count = el("div","qnum");
@@ -1371,20 +1947,31 @@ function emojiGame(host){
   const tally = el("div","qnum"); tally.style.marginTop = "14px";
   box.appendChild(tally);
   host.appendChild(box);
-  let a = 0, c = 0;
-  const score = () => tally.textContent = CFG.her + " " + a + "  ·  " + CFG.you + " " + c;
-  const show = () => {
-    if(i >= deck.length){ face.textContent = "🎬"; ans.textContent = "That's all sixteen."; count.textContent = ""; return; }
-    face.textContent = deck[i].e; ans.textContent = ""; count.textContent = "Film " + (i+1) + " of " + deck.length;
+
+  const deck = ensure("emoji.deck", () => shuffle(CFG.emoji.map((_,i) => i)));
+
+  const render = () => {
+    const d = SYNC.get("emoji.deck", deck);
+    const i = SYNC.get("emoji.i", 0);
+    const shown = SYNC.get("emoji.rev", false);
+    tally.textContent = CFG.her + " " + SYNC.get("emoji.a", 0) + "  ·  " + CFG.you + " " + SYNC.get("emoji.c", 0);
+    if(i >= d.length){ face.textContent = "🎬"; ans.textContent = "That's all sixteen."; count.textContent = ""; return; }
+    const card = CFG.emoji[d[i]];
+    face.textContent = card.e;
+    ans.textContent = shown ? card.a : "";
+    count.textContent = "Film " + (i+1) + " of " + d.length;
   };
-  rev.addEventListener("click", () => { if(i < deck.length) ans.textContent = deck[i].a; });
-  nx.addEventListener("click", () => { i++; show(); });
-  s1.addEventListener("click", () => { a++; score(); });
-  s2.addEventListener("click", () => { c++; score(); });
-  show(); score();
+
+  rev.addEventListener("click", () => SYNC.set("emoji.rev", true));
+  nx.addEventListener("click", () => { SYNC.set("emoji.i", SYNC.get("emoji.i",0)+1); SYNC.set("emoji.rev", false); });
+  s1.addEventListener("click", () => SYNC.set("emoji.a", SYNC.get("emoji.a",0)+1));
+  s2.addEventListener("click", () => SYNC.set("emoji.c", SYNC.get("emoji.c",0)+1));
+
+  ["emoji.deck","emoji.i","emoji.rev","emoji.a","emoji.c"].forEach(k => gbind(k, render));
+  render();
 }
 
-function nhieGame(host){
+function nhieGame(host, gbind){
   const box = el("div","card");
   box.appendChild(el("div","qnum","ten fingers each, drop one if you've done it"));
   const line = el("div","prompt-card");
@@ -1392,31 +1979,39 @@ function nhieGame(host){
   box.appendChild(line);
   const r = el("div","row");
   const nx = el("button","btn","Next one");
-  const f1 = el("div","fingers"), f2 = el("div","fingers");
   r.appendChild(nx); box.appendChild(r);
   const counts = el("div"); counts.style.marginTop = "20px";
-  const mk = (who, node) => {
+  const nodes = {};
+  ["her","you"].forEach(side => {
     const g = el("div","fingerrow");
-    g.appendChild(el("span", null, who));
+    g.appendChild(el("span", null, nameOf(side)));
     const minus = el("button","btn ghost","−");
-    node.textContent = "10";
+    const node = el("div","fingers","10");
     const plus = el("button","btn ghost","+");
-    minus.addEventListener("click", () => node.textContent = Math.max(0, +node.textContent - 1));
-    plus.addEventListener("click", () => node.textContent = Math.min(10, +node.textContent + 1));
+    const key = "nhie.f." + side;
+    minus.addEventListener("click", () => SYNC.set(key, Math.max(0, SYNC.get(key, 10) - 1)));
+    plus.addEventListener("click", () => SYNC.set(key, Math.min(10, SYNC.get(key, 10) + 1)));
     g.appendChild(minus); g.appendChild(node); g.appendChild(plus);
     counts.appendChild(g);
-  };
-  mk(CFG.her, f1); mk(CFG.you, f2);
+    nodes[side] = node;
+  });
   box.appendChild(counts);
   host.appendChild(box);
-  const deck = shuffle(CFG.nhie.slice());
-  let i = 0;
-  const show = () => line.textContent = i < deck.length ? "Never have I ever " + deck[i] + "." : "Deck's done. Count what's left.";
-  nx.addEventListener("click", () => { i++; show(); });
-  show();
+
+  const deck = ensure("nhie.deck", () => shuffle(CFG.nhie.map((_,i) => i)));
+  const render = () => {
+    const d = SYNC.get("nhie.deck", deck), i = SYNC.get("nhie.i", 0);
+    line.textContent = i < d.length ? "Never have I ever " + CFG.nhie[d[i]] + "." : "Deck's done. Count what's left.";
+    nodes.her.textContent = SYNC.get("nhie.f.her", 10);
+    nodes.you.textContent = SYNC.get("nhie.f.you", 10);
+  };
+  nx.addEventListener("click", () => SYNC.set("nhie.i", SYNC.get("nhie.i", 0) + 1));
+
+  ["nhie.deck","nhie.i","nhie.f.her","nhie.f.you"].forEach(k => gbind(k, render));
+  render();
 }
 
-function chainGame(host){
+function chainGame(host, gbind, gevery){
   const box = el("div","card");
   box.appendChild(el("div","qnum","twenty seconds a turn, no repeats, no proper nouns"));
   const letter = el("div","bigletter","S");
@@ -1429,33 +2024,46 @@ function chainGame(host){
   r.appendChild(t); r.appendChild(rs); box.appendChild(r);
   const used = el("div","qnum"); used.style.marginTop = "16px";
   box.appendChild(used);
+  const flash = el("div","note"); box.appendChild(flash);
   host.appendChild(box);
-  const words = [];
-  let s = 20, iv = null;
-  const run = () => {
-    clearInterval(iv); s = 20; t.textContent = "0:20"; t.style.color = "var(--mango)";
-    iv = setInterval(() => {
-      s--; t.textContent = "0:" + String(Math.max(0,s)).padStart(2,"0");
-      if(s <= 5) t.style.color = "var(--rose)";
-      if(s <= 0){ clearInterval(iv); t.textContent = "out of time"; }
-    }, 1000);
+
+  const render = () => {
+    const words = SYNC.get("chain.words", []);
+    letter.textContent = SYNC.get("chain.letter", "S");
+    used.textContent = words.length + " words: " + words.join(", ");
   };
+
   inp.addEventListener("keydown", e => {
     if(e.key !== "Enter") return;
     const v = inp.value.trim().toLowerCase();
     if(!v) return;
-    if(v[0] !== letter.textContent.toLowerCase()){ inp.value = ""; t.textContent = "wrong letter"; return; }
-    if(words.includes(v)){ inp.value = ""; t.textContent = "already used"; return; }
-    words.push(v);
-    letter.textContent = v[v.length-1].toUpperCase();
-    used.textContent = words.length + " words: " + words.join(", ");
-    inp.value = ""; run();
+    const words = SYNC.get("chain.words", []);
+    const need = SYNC.get("chain.letter", "S").toLowerCase();
+    if(v[0] !== need){ inp.value = ""; flash.textContent = "Wrong letter — it has to start with " + need.toUpperCase() + "."; return; }
+    if(words.indexOf(v) !== -1){ inp.value = ""; flash.textContent = "Already used."; return; }
+    flash.textContent = "";
+    SYNC.set("chain.words", words.concat([v]));
+    SYNC.set("chain.letter", v[v.length-1].toUpperCase());
+    SYNC.set("chain.endsAt", SYNC.now() + 20000);
+    inp.value = "";
   });
-  rs.addEventListener("click", run);
-  run();
+  rs.addEventListener("click", () => SYNC.set("chain.endsAt", SYNC.now() + 20000));
+
+  const paint = () => {
+    const endsAt = SYNC.get("chain.endsAt", 0);
+    if(!endsAt){ t.textContent = "0:20"; t.style.color = "var(--mango)"; return; }
+    const left = (endsAt - SYNC.now())/1000;
+    if(left <= 0){ t.textContent = "out of time"; t.style.color = "var(--rose)"; return; }
+    t.textContent = "0:" + String(Math.ceil(left)).padStart(2,"0");
+    t.style.color = left <= 5 ? "var(--rose)" : "var(--mango)";
+  };
+  ["chain.words","chain.letter"].forEach(k => gbind(k, render));
+  gbind("chain.endsAt", paint);
+  gevery(250, paint);
+  render();
 }
 
-function likelyGame(host){
+function likelyGame(host, gbind){
   const box = el("div","card");
   box.appendChild(el("div","qnum","point at the same time, then tap who won it"));
   const line = el("div","prompt-card");
@@ -1468,36 +2076,46 @@ function likelyGame(host){
   const tally = el("div","qnum"); tally.style.marginTop = "14px";
   box.appendChild(tally);
   host.appendChild(box);
-  const deck = shuffle(CFG.likely.slice());
-  let i = 0, a = 0, c = 0;
-  const show = () => line.textContent = i < deck.length ? "Who's more likely to " + deck[i] + "?" : "That's the deck.";
-  const score = () => tally.textContent = CFG.her + " " + a + "  ·  " + CFG.you + " " + c;
-  b1.addEventListener("click", () => { if(i < deck.length){ a++; i++; show(); score(); } });
-  b2.addEventListener("click", () => { if(i < deck.length){ c++; i++; show(); score(); } });
-  nx.addEventListener("click", () => { i++; show(); });
-  show(); score();
+
+  const deck = ensure("likely.deck", () => shuffle(CFG.likely.map((_,i) => i)));
+  const render = () => {
+    const d = SYNC.get("likely.deck", deck), i = SYNC.get("likely.i", 0);
+    line.textContent = i < d.length ? "Who's more likely to " + CFG.likely[d[i]] + "?" : "That's the deck.";
+    tally.textContent = CFG.her + " " + SYNC.get("likely.a", 0) + "  ·  " + CFG.you + " " + SYNC.get("likely.c", 0);
+  };
+  const award = key => () => {
+    const d = SYNC.get("likely.deck", deck), i = SYNC.get("likely.i", 0);
+    if(i >= d.length) return;
+    SYNC.set(key, SYNC.get(key, 0) + 1);
+    SYNC.set("likely.i", i + 1);
+  };
+  b1.addEventListener("click", award("likely.a"));
+  b2.addEventListener("click", award("likely.c"));
+  nx.addEventListener("click", () => SYNC.set("likely.i", SYNC.get("likely.i", 0) + 1));
+
+  ["likely.deck","likely.i","likely.a","likely.c"].forEach(k => gbind(k, render));
+  render();
 }
 
 /* --- 14:00 watch party --- */
 ACTS.watch = b => {
-  lede(b, "This page can't play Netflix for you, and nothing that claims to is safe. What it does is pick the film and get both of you on the same frame. For actual synced playback use the Teleparty extension on Chrome, or just count down and press play together, which works fine.");
+  lede(b, "This page can't play Netflix for you, and nothing that claims to is safe. What it does is pick the film and get both of you on the same frame. For actual synced playback use the Teleparty extension on Chrome, or just count down together — the countdown below runs off the same clock on both screens, so it really is the same second.");
 
-  /* step 1 — shortlist */
   const s1 = el("div","card");
   s1.appendChild(el("div","qnum","step one — build the shortlist"));
   s1.appendChild(el("h4", null, "Six titles, three each, alternating.")).style.cssText = "font-family:var(--serif);font-weight:400;font-size:1.25rem;margin:0 0 14px";
-  const turnLbl = el("div","turnbar", CFG.her + " adds one.");
+  const turnLbl = el("div","turnbar","");
   s1.appendChild(turnLbl);
   const inp = el("input"); inp.type = "text"; inp.placeholder = "anything on Netflix, Prime, wherever";
   inp.style.marginTop = "12px";
   s1.appendChild(inp);
   const r1 = el("div","row");
   const add = el("button","btn","Add to the list");
-  r1.appendChild(add); s1.appendChild(r1);
+  const clr = el("button","btn ghost","Start the list over");
+  r1.appendChild(add); r1.appendChild(clr); s1.appendChild(r1);
   const list = el("ul","slips"); list.style.marginTop = "16px"; s1.appendChild(list);
   b.appendChild(s1);
 
-  /* step 2 — the pick */
   const s2 = el("div","card"); s2.style.marginTop = "18px";
   s2.appendChild(el("div","qnum","step two — let it decide"));
   const pickOut = el("div","pickout","nothing picked yet");
@@ -1508,10 +2126,9 @@ ACTS.watch = b => {
   const v2 = el("button","btn ghost", CFG.you + "'s veto");
   [pick,v1,v2].forEach(x => r2.appendChild(x));
   s2.appendChild(r2);
-  s2.appendChild(el("p","note","One veto each, then whatever comes up is what we watch. That's the whole point."));
+  note(s2, "One veto each, then whatever comes up is what we watch. That's the whole point.");
   b.appendChild(s2);
 
-  /* step 3 — sync */
   const s3 = el("div","card"); s3.style.marginTop = "18px";
   s3.appendChild(el("div","qnum","step three — same frame"));
   const cd = el("div","countdown","ready");
@@ -1525,73 +2142,96 @@ ACTS.watch = b => {
   s3.appendChild(rules);
   b.appendChild(s3);
 
-  const titles = [];
-  let who = 0;
+  const render = () => {
+    const titles = SYNC.get("watch.titles", []);
+    list.innerHTML = "";
+    titles.forEach(x => list.appendChild(el("li", null, "<b style='color:var(--mango)'>" + esc(nameOf(x.s)) + "</b>: " + esc(x.v))));
+    const nextSide = titles.length % 2 === 0 ? "her" : "you";
+    const full = titles.length >= 6;
+    turnLbl.textContent = full ? "Six on the list. Go to step two."
+      : (nextSide === mySide() ? "Your turn to add one." : nameOf(nextSide) + " adds one.");
+    turnLbl.classList.toggle("mine", !full && nextSide === mySide());
+    add.disabled = full || nextSide !== mySide();
+    inp.disabled = full || nextSide !== mySide();
+    inp.placeholder = add.disabled && !full ? "waiting for " + nameOf(nextSide) : "anything on Netflix, Prime, wherever";
+
+    const used = SYNC.get("watch.veto", {});
+    [[v1,"her"],[v2,"you"]].forEach(([btn,side]) => {
+      btn.disabled = !!used[side];
+      btn.textContent = used[side] ? nameOf(side) + " used their veto" : nameOf(side) + "'s veto";
+    });
+    pickOut.textContent = SYNC.get("watch.pick", "") || "nothing picked yet";
+  };
+
+  const roll = () => {
+    const titles = SYNC.get("watch.titles", []).map(x => x.v);
+    const vetoed = SYNC.get("watch.vetoed", []);
+    const pool = titles.filter(t => vetoed.indexOf(t) === -1);
+    if(!pool.length){ SYNC.set("watch.pick", "Add some titles first."); return; }
+    let n = 0;
+    const iv = setInterval(() => {
+      SYNC.set("watch.pick", pool[Math.floor(Math.random()*pool.length)]);
+      if(++n > 14){
+        clearInterval(iv);
+        pickOut.classList.add("locked");
+        stageTimers.push(setTimeout(() => pickOut.classList.remove("locked"), 700));
+      }
+    }, 110);
+    stageTimers.push(iv);
+  };
+
   const push = () => {
     const v = inp.value.trim();
+    const titles = SYNC.get("watch.titles", []);
     if(!v || titles.length >= 6) return;
-    titles.push(v);
-    const li = el("li", null, (who === 0 ? CFG.her : CFG.you) + ": " + v.replace(/</g,"&lt;"));
-    list.appendChild(li);
-    who = who ? 0 : 1;
+    if(titles.length % 2 === 0 ? mySide() !== "her" : mySide() !== "you") return;
+    SYNC.push("watch.titles", { s: mySide(), v: v.slice(0,90) }, 6);
     inp.value = ""; inp.focus();
-    turnLbl.textContent = titles.length >= 6 ? "Six on the list. Go to step two." : (who === 0 ? CFG.her : CFG.you) + " adds one.";
-    if(titles.length >= 6){ add.disabled = true; inp.disabled = true; }
   };
   add.addEventListener("click", push);
   inp.addEventListener("keydown", e => { if(e.key === "Enter") push(); });
-
-  let vetoed = [], usedV = {};
-  const roll = () => {
-    const pool = titles.filter(t => !vetoed.includes(t));
-    if(!pool.length){ pickOut.textContent = "Add some titles first."; return; }
-    let n = 0;
-    const iv = setInterval(() => {
-      pickOut.textContent = pool[Math.floor(Math.random()*pool.length)];
-      if(++n > 16){
-        clearInterval(iv);
-        pickOut.classList.add("locked");
-        setTimeout(() => pickOut.classList.remove("locked"), 700);
-      }
-    }, 90);
-  };
+  clr.addEventListener("click", () => SYNC.wipe("watch."));
   pick.addEventListener("click", roll);
-  const veto = (btn, key) => btn.addEventListener("click", () => {
-    if(usedV[key]) return;
-    const cur = pickOut.textContent;
-    if(!titles.includes(cur)) return;
-    usedV[key] = 1; vetoed.push(cur);
-    btn.disabled = true; btn.textContent = "veto used";
+
+  const veto = (btn, side) => btn.addEventListener("click", () => {
+    const used = Object.assign({}, SYNC.get("watch.veto", {}));
+    if(used[side]) return;
+    const cur = SYNC.get("watch.pick", "");
+    const titles = SYNC.get("watch.titles", []).map(x => x.v);
+    if(titles.indexOf(cur) === -1) return;
+    used[side] = 1;
+    SYNC.set("watch.veto", used);
+    SYNC.set("watch.vetoed", SYNC.get("watch.vetoed", []).concat([cur]));
     roll();
   });
-  veto(v1,"a"); veto(v2,"b");
+  veto(v1,"her"); veto(v2,"you");
 
-  let iv2 = null;
-  go.addEventListener("click", () => {
-    clearInterval(iv2);
-    let n = 5;
-    cd.textContent = n; cd.classList.add("big");
-    iv2 = setInterval(() => {
-      n--;
-      if(n > 0) cd.textContent = n;
-      else { clearInterval(iv2); cd.textContent = "play"; setTimeout(() => { cd.classList.remove("big"); cd.textContent = "watching"; }, 2500); }
-    }, 1000);
-  });
-  brk.addEventListener("click", () => {
-    clearInterval(iv2);
-    let s = 300;
-    cd.classList.remove("big");
-    iv2 = setInterval(() => {
-      s--;
-      cd.textContent = Math.floor(s/60) + ":" + String(s%60).padStart(2,"0") + " left";
-      if(s <= 0){ clearInterval(iv2); cd.textContent = "back to it"; }
-    }, 1000);
-  });
+  go.addEventListener("click", () => { SYNC.set("watch.mode","go"); SYNC.set("watch.cd", SYNC.now() + 5000); });
+  brk.addEventListener("click", () => { SYNC.set("watch.mode","break"); SYNC.set("watch.cd", SYNC.now() + 300000); });
+
+  const paintCd = () => {
+    const endsAt = SYNC.get("watch.cd", 0), mode = SYNC.get("watch.mode", "");
+    if(!endsAt){ cd.textContent = "ready"; cd.classList.remove("big"); return; }
+    const left = (endsAt - SYNC.now())/1000;
+    if(mode === "go"){
+      if(left > 0){ cd.classList.add("big"); cd.textContent = String(Math.ceil(left)); }
+      else if(left > -2.5){ cd.classList.add("big"); cd.textContent = "play"; }
+      else { cd.classList.remove("big"); cd.textContent = "watching"; }
+    } else {
+      cd.classList.remove("big");
+      cd.textContent = left > 0 ? mmss(left) + " left" : "back to it";
+    }
+  };
+
+  ["watch.titles","watch.veto","watch.vetoed","watch.pick"].forEach(k => bind(k, render));
+  bind("watch.cd", paintCd); bind("watch.mode", paintCd);
+  every(250, paintCd);
+  render();
 };
 
 /* --- 16:30 truth or dare --- */
 ACTS.dare = b => {
-  lede(b, "She goes first. You can't pick truth twice in a row, and a dare not done in five minutes counts as a forfeit. Forfeit means the other person picks your next three.");
+  lede(b, "She goes first. You can't pick truth twice in a row, and a dare not done in five minutes counts as a forfeit. Whichever card comes up, you both see it.");
   const box = el("div","card");
   const kind = el("div","qnum","pick one");
   const card2 = el("div","prompt-card");
@@ -1605,31 +2245,48 @@ ACTS.dare = b => {
   box.appendChild(done2);
   b.appendChild(box);
   bd.classList.add("dare-btn");
-  let tp = shuffle(CFG.truths.slice()), dp = shuffle(CFG.dares.slice());
-  let last = "", forfeits = 0;
-  const pull = arr => { if(!arr.length) return null; return arr.pop(); };
+
+  const render = () => {
+    kind.textContent = SYNC.get("dare.kind", "pick one");
+    card2.textContent = SYNC.get("dare.card", "");
+    const f = SYNC.get("dare.forfeits", 0);
+    done2.textContent = f ? f + " forfeit" + (f > 1 ? "s" : "") + " so far. Keeping count." : "";
+    bt.disabled = SYNC.get("dare.last", "") === "truth";
+  };
+
+  const pull = key => {
+    let pool = SYNC.get(key, null);
+    const src = key === "dare.tp" ? CFG.truths : CFG.dares;
+    if(!pool || !pool.length) pool = shuffle(src.map((_,i) => i));
+    const n = pool.pop();
+    SYNC.set(key, pool);
+    return src[n];
+  };
+
   bt.addEventListener("click", () => {
-    if(last === "truth"){ card2.textContent = "You took truth last time. Dare it is."; last = ""; return; }
-    const v = pull(tp); card2.textContent = v || "Out of truths. Make one up.";
-    kind.textContent = "truth"; last = "truth";
+    if(SYNC.get("dare.last","") === "truth"){
+      SYNC.set("dare.card", "You took truth last time. Dare it is."); SYNC.set("dare.last",""); return;
+    }
+    SYNC.set("dare.card", pull("dare.tp") || "Out of truths. Make one up.");
+    SYNC.set("dare.kind","truth"); SYNC.set("dare.last","truth");
   });
   bd.addEventListener("click", () => {
-    const v = pull(dp); card2.textContent = v || "Out of dares. Invent one, it has to be worse.";
-    kind.textContent = "dare"; last = "dare";
+    SYNC.set("dare.card", pull("dare.dp") || "Out of dares. Invent one, it has to be worse.");
+    SYNC.set("dare.kind","dare"); SYNC.set("dare.last","dare");
   });
   skip.addEventListener("click", () => {
-    forfeits++;
-    card2.textContent = "Forfeit. The other person picks your next three.";
-    kind.textContent = "forfeit " + forfeits;
-    done2.textContent = forfeits + " forfeit" + (forfeits > 1 ? "s" : "") + " so far. Keeping count.";
-    last = "";
+    const f = SYNC.get("dare.forfeits", 0) + 1;
+    SYNC.set("dare.forfeits", f);
+    SYNC.set("dare.card", "Forfeit. The other person picks your next three.");
+    SYNC.set("dare.kind", "forfeit " + f);
+    SYNC.set("dare.last","");
   });
+
+  ["dare.card","dare.kind","dare.forfeits","dare.last"].forEach(k => bind(k, render));
+  render();
 };
 
-
 /* ---- who is here ---- */
-const ME = { name:"", side:"guest", other:"" };
-
 function nameGate(){
   const gate = $("#gate"), inp = $("#gateName"), go = $("#gateGo");
   const check = () => go.disabled = !inp.value.trim();
@@ -1645,11 +2302,18 @@ function nameGate(){
     const low = v.toLowerCase();
     if(low === CFG.her.toLowerCase()){ ME.side = "her"; ME.other = CFG.you; }
     else if(low === CFG.you.toLowerCase()){ ME.side = "you"; ME.other = CFG.her; }
-    else { ME.side = "guest"; ME.other = low === CFG.her.toLowerCase() ? CFG.you : CFG.her; }
+    else { ME.side = "guest"; ME.other = CFG.her; }
+    try { localStorage.setItem("sameSunName", v); } catch(_){}
     onKnown();
     gate.classList.add("gone");
     setTimeout(() => gate.remove(), 800);
+    SYNC.connect();
   }
+
+  try {
+    const saved = localStorage.getItem("sameSunName");
+    if(saved){ inp.value = saved; check(); }
+  } catch(_){}
 }
 
 function onKnown(){
@@ -1657,46 +2321,76 @@ function onKnown(){
   const greet = ME.side === "guest"
     ? "Hello " + ME.name + ". You've walked into someone else's day, but stay."
     : "Hello " + ME.name + ".";
-  sub.innerHTML = '<span class="hello">' + greet + '</span> Same sun, two windows. Twelve stops between 10 in the morning and 6 in the evening, and not one of them works alone.';
-  $("#chatSub").textContent = "typing as " + ME.name;
+  sub.innerHTML = '<span class="hello">' + esc(greet) + '</span> Same sun, two windows, one page between them. Whatever you open, they see open. Whatever you pick, they watch you pick.';
+  renderPresence();
 }
 
-/* ---- chat ---- */
+/* ---- chat: one thread, both devices ---- */
 (function chat(){
   const box = $("#chatbox"), launch = $("#chatLaunch"), list = $("#msgs");
   const inp = $("#chatInput"), send = $("#chatSend"), badge = $("#chatCount");
-  const empty = $("#chatEmpty"), sub = $("#chatSub");
-  const thread = [];
-  let mine = true, unseen = 0;
+  const empty = $("#chatEmpty"), typing = $("#typing");
+  let seen = 0, unseen = 0;
 
-  const whoNow = () => mine ? (ME.name || "me") : (ME.other || "them");
-  const stamp = () => new Date().toLocaleTimeString(undefined,{hour:"2-digit", minute:"2-digit"});
-  const label = () => sub.textContent = "typing as " + whoNow();
+  const stamp = at => new Date(at).toLocaleTimeString(undefined,{hour:"2-digit", minute:"2-digit"});
+
+  const render = () => {
+    const msgs = SYNC.get("chat.msgs", []);
+    list.innerHTML = "";
+    if(!msgs.length){ list.appendChild(empty); }
+    else msgs.forEach(m => {
+      const mine = m.s === mySide();
+      const b = el("div","bubble " + (mine ? "mine" : "theirs"), esc(m.v));
+      b.appendChild(el("span","meta", esc(m.who) + " · " + stamp(m.at)));
+      list.appendChild(b);
+    });
+    list.scrollTop = list.scrollHeight;
+
+    if(box.classList.contains("on")){ seen = msgs.length; unseen = 0; }
+    else {
+      unseen = Math.max(0, msgs.length - seen);
+      badge.textContent = unseen;
+      badge.classList.toggle("on", unseen > 0);
+    }
+  };
 
   function push(){
     const v = inp.value.trim();
     if(!v) return;
-    if(empty.parentNode) empty.remove();
-    const b = el("div","bubble " + (mine ? "mine" : "theirs"), v.replace(/&/g,"&amp;").replace(/</g,"&lt;"));
-    b.appendChild(el("span","meta", whoNow() + " \u00b7 " + stamp()));
-    list.appendChild(b);
-    list.scrollTop = list.scrollHeight;
-    thread.push(whoNow() + " (" + stamp() + "): " + v);
+    SYNC.push("chat.msgs", { id: SYNC.id, who: ME.name || "me", s: mySide(), v: v.slice(0,500), at: Date.now() }, 400);
     inp.value = "";
-    if(!box.classList.contains("on")){ unseen++; badge.textContent = unseen; badge.classList.add("on"); }
+    SYNC.ev("typing", false);
   }
   send.addEventListener("click", push);
   inp.addEventListener("keydown", e => { if(e.key === "Enter") push(); });
 
-  $("#chatSwap").addEventListener("click", () => {
-    mine = !mine; label(); inp.focus();
+  let typeTo = null, typingOn = false;
+  inp.addEventListener("input", () => {
+    if(!typingOn){ typingOn = true; SYNC.ev("typing", true); }
+    clearTimeout(typeTo);
+    typeTo = setTimeout(() => { typingOn = false; SYNC.ev("typing", false); }, 1600);
   });
+
+  const typers = new Map();
+  SYNC.onEv("typing", (on, by) => {
+    if(on) typers.set(by, Date.now()); else typers.delete(by);
+    paintTyping();
+  });
+  const paintTyping = () => {
+    const now = Date.now();
+    typers.forEach((t,k) => { if(now - t > 4000) typers.delete(k); });
+    const names = [...typers.keys()]
+      .map(id => (SYNC.peers.find(p => p.id === id) || {}).name)
+      .filter(Boolean);
+    typing.textContent = names.length ? names.join(" and ") + (names.length > 1 ? " are" : " is") + " typing…" : "";
+  };
+  setInterval(paintTyping, 2000);
 
   const openChat = () => {
     box.classList.add("on"); launch.style.display = "none";
-    unseen = 0; badge.classList.remove("on");
-    label(); inp.focus();
-    list.scrollTop = list.scrollHeight;
+    seen = SYNC.get("chat.msgs", []).length; unseen = 0;
+    badge.classList.remove("on");
+    inp.focus(); list.scrollTop = list.scrollHeight;
   };
   const closeChat = () => { box.classList.remove("on"); launch.style.display = "flex"; };
   launch.addEventListener("click", openChat);
@@ -1706,20 +2400,28 @@ function onKnown(){
   }, true);
 
   $("#chatCopy").addEventListener("click", e => {
-    if(!thread.length) return;
-    navigator.clipboard && navigator.clipboard.writeText(thread.join("\n"));
+    const msgs = SYNC.get("chat.msgs", []);
+    if(!msgs.length) return;
+    const txt = msgs.map(m => m.who + " (" + stamp(m.at) + "): " + m.v).join("\n");
+    if(navigator.clipboard) navigator.clipboard.writeText(txt);
     e.target.textContent = "Copied";
     setTimeout(() => e.target.textContent = "Copy the thread", 1600);
   });
   $("#chatClear").addEventListener("click", () => {
-    thread.length = 0; list.innerHTML = ""; list.appendChild(empty);
+    if(!confirm("Clear the thread for both of you?")) return;
+    SYNC.set("chat.msgs", []);
   });
+
+  SYNC.on("chat.msgs", render);
+  render();
 })();
 
 /* ---- go ---- */
 buildArc();
 buildHours();
 nameGate();
+CUR.start();
+setInterval(() => SYNC.send({t:"ping"}), 25000);
 
 </script>
 </body>
