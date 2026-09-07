@@ -51,7 +51,21 @@ Or connect this repo to the Worker in the Cloudflare dashboard
 (**Workers & Pages → the Worker → Settings → Builds → Connect**) and every push
 to the branch deploys.
 
-Two things that will break a Git-connected build:
+### The first build has to be a `wrangler deploy` on the production branch
+
+This Worker declares a Durable Object with a `new_sqlite_classes` migration.
+Migrations are only applied by `wrangler deploy`. Workers Builds runs
+`wrangler deploy` on the **production branch** but defaults to
+`npx wrangler versions upload` on every other branch, and a version upload
+cannot create the `DayRoom` namespace. So a build on a feature branch will not
+succeed until the class exists — get one `wrangler deploy` through from the
+production branch first (merge, or run `npm run deploy` locally), after which
+branch builds work normally.
+
+Related: Cloudflare does not generate preview URLs for Workers that implement a
+Durable Object, so branch builds won't produce one here.
+
+### Two things that will break a Git-connected build:
 
 - The Worker's name in the dashboard must match `name` in `wrangler.jsonc`
   (currently `a-day`). Rename one or the other so they agree.
