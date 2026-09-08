@@ -4161,15 +4161,18 @@ ACTS.watch = b => {
   /* STUN only tells each side its own public address; when the two networks
      still won't let them meet, the picture needs a relay to bounce off. The
      Worker hands out short-lived credentials for one if it has been set up. */
-  let ICE = null, noRelay = false, iceAsked = null;
+  let ICE = null, noRelay = false, relayErr = "", iceAsked = null;
   const getIce = () => iceAsked || (iceAsked = fetch("/ice", { cache: "no-store" })
     .then(r => r.json())
     .then(j => {
       ICE = (j.iceServers && j.iceServers.length) ? j.iceServers : null;
       noRelay = !j.turn;
+      /* "not set up" and "set up but the credential call failed" need
+         different fixes, so keep them apart */
+      relayErr = j.error ? (j.error + (j.detail ? " — " + j.detail : "")).slice(0, 160) : "";
       return ICE;
     })
-    .catch(() => { noRelay = true; return null; }));
+    .catch(e => { noRelay = true; relayErr = "couldn't ask the server for one"; return null; }));
   const rtcConfig = () => ({ iceServers: (ICE || []).concat(STUN) });
   const pcs = new Map(), pend = new Map();
   let local = null, msg = "";
@@ -4232,8 +4235,10 @@ ACTS.watch = b => {
       if(st === "failed"){
         msg = !pc.__srflx
           ? "Couldn't get out to work out this connection's address. A strict network or a VPN will do that. Try again on another connection."
+          : (noRelay && relayErr)
+            ? ("The two browsers couldn't reach each other directly, and the relay refused: <b>" + esc(relayErr) + "</b>. The TURN secrets on the Worker are set but not working — check TURN_KEY_ID and TURN_KEY_API_TOKEN.")
           : noRelay
-            ? "The two browsers couldn't reach each other directly, and this room has no relay set up to bounce the picture off. Turning one on is a few minutes in the Cloudflare dashboard — the README has the steps under Watch party."
+            ? "The two browsers couldn't reach each other directly, and this room has no relay set up to bounce the picture off. Add TURN_KEY_ID and TURN_KEY_API_TOKEN to the Worker — the README has the steps under Watch party."
             : "The two browsers couldn't reach each other, even through the relay. Try again, or one of you on wifi rather than mobile data.";
       }
       paintShare();

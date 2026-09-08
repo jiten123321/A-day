@@ -272,9 +272,16 @@ it is on; leave them unset and the page falls back to STUN alone and says so
 when a connection fails.
 
 1. Cloudflare dashboard → **Realtime** → **TURN**, create a TURN key. Note the
-   **Turn Token ID** and the **API token**.
-2. `npx wrangler secret put TURN_KEY_ID`
-3. `npx wrangler secret put TURN_KEY_API_TOKEN`
+   **Turn Token ID** and the **API token** — the token is shown once.
+2. Add both as secrets on the Worker. Either in the dashboard, under
+   **Workers & Pages → a-day → Settings → Variables and Secrets → Add**, as
+   type *Secret*; or from a terminal with `npx wrangler secret put TURN_KEY_ID`
+   and `npx wrangler secret put TURN_KEY_API_TOKEN`.
+
+The names have to match exactly: `TURN_KEY_ID` and `TURN_KEY_API_TOKEN`. They
+take effect straight away — no redeploy. The panel tells the two cases apart:
+*no relay set up* means the secrets are missing, and *the relay refused*, with
+Cloudflare's own error, means they are there but wrong.
 
 The API token never leaves the Worker; the browser only ever sees a credential
 that expires in four hours. Cloudflare's free tier covers 1TB of relayed
