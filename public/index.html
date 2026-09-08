@@ -424,6 +424,60 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .chat-sub{color:var(--muted);font-size:.78rem;margin-top:3px}
 .chat-head .close{width:34px;height:34px;font-size:.9rem}
 
+.chat-acts{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.chat-head .ring{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+  background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;
+  transition:background .16s,color .16s,transform .16s;
+}
+.chat-head .ring:hover{background:var(--mint);color:#12203F;transform:translateY(-1px)}
+.chat-head .ring:disabled{opacity:.4;pointer-events:none}
+
+/* the call, folded into the top of the chat rather than over it */
+.callbar{border-bottom:1px solid var(--line);background:rgba(0,0,0,.14);padding:12px 14px 14px}
+.callbar[hidden]{display:none}
+.cstage{
+  position:relative;border-radius:14px;overflow:hidden;background:#0C1526;
+  /* capped, or on a phone the picture pushes the thread off the bottom */
+  aspect-ratio:16/10;max-height:min(230px, 30vh);display:none;
+}
+.callbar.seeing .cstage{display:block}
+.cstage video#callThem{width:100%;height:100%;object-fit:contain;background:#0C1526;display:block}
+.cstage video#callMe{
+  position:absolute;right:8px;bottom:8px;width:29%;max-width:110px;
+  border-radius:9px;border:1px solid rgba(255,255,255,.28);
+  object-fit:cover;background:#12203F;transform:scaleX(-1);
+}
+.callbar.novideo .cstage video#callMe{display:none}
+/* a voice call needs a face-sized band, not a widescreen hole */
+.callbar.voice .cstage{aspect-ratio:auto;height:104px}
+.cface{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
+.cface span{
+  width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(145deg,var(--rose),var(--marigold));
+  color:#2A0B12;font-family:var(--serif);font-size:1.7rem;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+.callbar.voice.seeing .cface{display:flex}
+.callbar.voice.seeing video#callThem{visibility:hidden}
+.cline{
+  font-size:.82rem;color:var(--muted);line-height:1.45;
+  margin:0 2px;padding-top:0;
+}
+.callbar.seeing .cline{padding-top:10px}
+.cline b{color:var(--ink)}
+.cbtns{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.cbtns button{
+  border:1px solid var(--line);background:none;border-radius:999px;
+  padding:7px 13px;font-size:.8rem;transition:all .16s;
+}
+.cbtns button:hover{border-color:var(--paper)}
+.cbtns button[hidden]{display:none}
+.cbtns button.on{background:var(--paper);color:#12203F;border-color:var(--paper);font-weight:600}
+.cbtns .yes{background:var(--mint);border-color:var(--mint);color:#12203F;font-weight:600}
+.cbtns .no{background:var(--rose);border-color:var(--rose);color:#2A0B12;font-weight:600}
+
 .who{display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--line)}
 .who button{
   flex:1;border:1px solid var(--line);background:none;border-radius:999px;
@@ -478,6 +532,8 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 
 @media (max-width:640px){
   .chatbox{right:0;left:0;bottom:0;width:100%;max-height:80vh;border-radius:20px 20px 0 0}
+  .callbar{padding:10px 12px 12px}
+  .callbar.seeing ~ .msgs{min-height:96px}
   .chat-launch{right:16px;bottom:16px}
 }
 
@@ -977,8 +1033,31 @@ input[type=text], .close, .open{
       <div class="chat-title">Today's chat</div>
       <div class="chat-sub" id="chatSub">checking who's here</div>
     </div>
-    <button class="close" id="chatClose" aria-label="Close the chat">✕</button>
+    <div class="chat-acts">
+      <button class="ring" id="callVoice" title="Call" aria-label="Start a call">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 3.5h3l1.5 3.7-1.9 1.4a12 12 0 0 0 5.6 5.6l1.4-1.9 3.7 1.5v3a1.7 1.7 0 0 1-1.9 1.7A15.6 15.6 0 0 1 4.5 5.4 1.7 1.7 0 0 1 6.2 3.5z"/></svg>
+      </button>
+      <button class="ring" id="callVideo" title="Video call" aria-label="Start a video call">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="12" height="12" rx="3"/><path d="m14.5 12 5.5-3.4v6.8L14.5 12z"/></svg>
+      </button>
+      <button class="close" id="chatClose" aria-label="Close the chat">✕</button>
+    </div>
   </header>
+
+  <div class="callbar" id="callbar" hidden>
+    <div class="cstage" id="cstage">
+      <video id="callThem" playsinline autoplay></video>
+      <video id="callMe" playsinline autoplay muted></video>
+      <div class="cface" id="callFace"><span></span></div>
+    </div>
+    <div class="cline" id="callLine"></div>
+    <div class="cbtns" id="callBtns">
+      <button class="yes" id="callAnswer">Answer</button>
+      <button id="callMute">Mute</button>
+      <button id="callCam">Camera off</button>
+      <button class="no" id="callEnd">Hang up</button>
+    </div>
+  </div>
 
   <div class="msgs" id="msgs">
     <p class="chat-empty" id="chatEmpty">Nothing yet. Type something.</p>
@@ -1309,6 +1388,102 @@ const SYNC = {
   },
   fire(k){ const s = SYNC.subs.get(k); if(s) s.forEach(fn => fn(SYNC.get(k))); },
   fireAll(){ SYNC.subs.forEach((set, k) => set.forEach(fn => fn(SYNC.get(k)))); }
+};
+
+/* =======================================================================
+   CARRYING PICTURES AND VOICES. The watch party and the chat both need the
+   same three awkward pieces of WebRTC, and getting any of them wrong looks
+   identical from the outside: "connecting…" forever. So they live here once.
+
+     1. a relay to bounce off when the two networks won't let the browsers
+        meet directly (the Worker hands out short-lived credentials for one),
+     2. candidates held back until the description they belong to has gone
+        out — sent first, the far side files them against a connection it
+        does not have yet,
+     3. a plain-English sentence for each way it can fail.
+   ======================================================================= */
+const NET = {
+  /* STUN only tells each side its own public address. */
+  stun: [{ urls: ["stun:stun.l.google.com:19302",
+                  "stun:stun1.l.google.com:19302",
+                  "stun:stun2.l.google.com:19302",
+                  "stun:stun.cloudflare.com:3478"] }],
+  ice:null, noRelay:false, relayErr:"", asked:null, pend:new Map(),
+
+  /* asked once per page, shared by everything that needs it */
+  relay(){
+    return NET.asked || (NET.asked = fetch("/ice", { cache:"no-store" })
+      .then(r => r.json())
+      .then(j => {
+        NET.ice = (j.iceServers && j.iceServers.length) ? j.iceServers : null;
+        NET.noRelay = !j.turn;
+        /* "no relay set up" and "set up but the credential call failed" need
+           different fixes, so keep them apart */
+        NET.relayErr = j.error ? (j.error + (j.detail ? " — " + j.detail : "")).slice(0, 160) : "";
+        return NET.ice;
+      })
+      .catch(() => { NET.noRelay = true; NET.relayErr = "couldn't ask the server for one"; return null; }));
+  },
+
+  config(){ return { iceServers: (NET.ice || []).concat(NET.stun) }; },
+
+  /* o = { key, send(kind, extra), track(stream), state(st, pc) } */
+  make(o){
+    const pc = new RTCPeerConnection(NET.config());
+    pc.__key  = o.key;
+    pc.__send = o.send;
+    pc.__sent = false;      // has our offer or answer gone out yet?
+    pc.__out  = [];         // candidates gathered before it did
+    pc.__srflx = false;     // did STUN ever tell us our public address?
+    pc.onicecandidate = e => {
+      if(!e.candidate) return;
+      const c = e.candidate.toJSON();
+      if(/ typ (srflx|relay)/.test(c.candidate || "")) pc.__srflx = true;
+      if(pc.__sent) o.send("ice", { cand:c });
+      else pc.__out.push(c);
+    };
+    if(o.track) pc.ontrack = e => o.track(e.streams[0], e);
+    if(o.state) pc.onconnectionstatechange = () => o.state(NET.state(pc), pc);
+    return pc;
+  },
+
+  /* description signalled: let the held candidates go */
+  open(pc){
+    pc.__sent = true;
+    pc.__out.forEach(c => pc.__send("ice", { cand:c }));
+    pc.__out = [];
+  },
+
+  /* Candidates can arrive before the offer they answer. They are parked
+     under the key rather than on the connection, because a fresh offer
+     replaces the connection and would throw away the ones that matter. */
+  take(key, pc, cand){
+    if(pc && pc.remoteDescription){ pc.addIceCandidate(cand).catch(()=>{}); return; }
+    if(!NET.pend.has(key)) NET.pend.set(key, []);
+    NET.pend.get(key).push(cand);
+  },
+  flush(key, pc){
+    (NET.pend.get(key) || []).forEach(c => pc.addIceCandidate(c).catch(()=>{}));
+    NET.pend.delete(key);
+  },
+  forget(key){ NET.pend.delete(key); },
+
+  state(pc){ return pc ? (pc.connectionState || pc.iceConnectionState || "") : ""; },
+  up(pc){ const s = NET.state(pc); return s === "connected" || s === "completed"; },
+  down(pc){ const s = NET.state(pc); return !pc || s === "failed" || s === "closed" || s === "disconnected"; },
+
+  /* thing: what the connection was carrying, for the sentence */
+  why(pc, thing){
+    if(pc && !pc.__srflx)
+      return "Couldn't get out to work out this connection's address. A strict network or a VPN will do that. Try again on another connection.";
+    if(NET.noRelay && NET.relayErr)
+      return "The two browsers couldn't reach each other directly, and the relay refused: <b>" + esc(NET.relayErr) +
+             "</b>. The TURN secrets on the Worker are set but not working — check TURN_KEY_ID and TURN_KEY_API_TOKEN.";
+    if(NET.noRelay)
+      return "The two browsers couldn't reach each other directly, and this room has no relay set up to bounce the " + thing +
+             " off. Add TURN_KEY_ID and TURN_KEY_API_TOKEN to the Worker — the README has the steps under Watch party.";
+    return "The two browsers couldn't reach each other, even through the relay. Try again, or one of you on wifi rather than mobile data.";
+  }
 };
 
 /* subscriptions owned by whatever activity is open; dropped when it closes */
@@ -4154,27 +4329,7 @@ ACTS.watch = b => {
     makePlayer(id);
   };
 
-  const STUN = [{ urls: ["stun:stun.l.google.com:19302",
-                         "stun:stun1.l.google.com:19302",
-                         "stun:stun2.l.google.com:19302",
-                         "stun:stun.cloudflare.com:3478"] }];
-  /* STUN only tells each side its own public address; when the two networks
-     still won't let them meet, the picture needs a relay to bounce off. The
-     Worker hands out short-lived credentials for one if it has been set up. */
-  let ICE = null, noRelay = false, relayErr = "", iceAsked = null;
-  const getIce = () => iceAsked || (iceAsked = fetch("/ice", { cache: "no-store" })
-    .then(r => r.json())
-    .then(j => {
-      ICE = (j.iceServers && j.iceServers.length) ? j.iceServers : null;
-      noRelay = !j.turn;
-      /* "not set up" and "set up but the credential call failed" need
-         different fixes, so keep them apart */
-      relayErr = j.error ? (j.error + (j.detail ? " — " + j.detail : "")).slice(0, 160) : "";
-      return ICE;
-    })
-    .catch(e => { noRelay = true; relayErr = "couldn't ask the server for one"; return null; }));
-  const rtcConfig = () => ({ iceServers: (ICE || []).concat(STUN) });
-  const pcs = new Map(), pend = new Map();
+  const pcs = new Map();
   let local = null, msg = "";
   let askedFor = "", askedAt = 0;      // which share we asked to see, and when
   /* paintShare runs on a poll, so a message written straight into the bar is
@@ -4191,15 +4346,17 @@ ACTS.watch = b => {
     return sh;
   };
 
+  const key = id => "share:" + id;
   const dropPc = id => {
     const pc = pcs.get(id);
     if(pc){ try { pc.close(); } catch(_){} pcs.delete(id); }
-    /* the buffered candidates are NOT dropped here: a fresh offer arrives with
-       its own candidates already in flight, and throwing them away was losing
-       the ones that matter */
+    /* the buffered candidates are NOT dropped here (see NET.take): a fresh
+       offer arrives with its own candidates already in flight, and throwing
+       them away was losing the ones that matter */
   };
-  const dropAll = () => { Array.from(pcs.keys()).forEach(dropPc); pend.clear(); };
-  const stateOf = pc => pc ? (pc.connectionState || pc.iceConnectionState || "") : "";
+  const dropAll = () => {
+    Array.from(pcs.keys()).forEach(id => { dropPc(id); NET.forget(key(id)); });
+  };
 
   const showStream = st => {
     vid.srcObject = st;
@@ -4213,58 +4370,29 @@ ACTS.watch = b => {
   });
 
   const makePc = id => {
-    const pc = new RTCPeerConnection(rtcConfig());
-    pcs.set(id, pc);
-    pc.__sent = false;      // has our offer or answer gone out yet?
-    pc.__out  = [];         // candidates gathered before it did
-    pc.__srflx = false;     // did STUN ever tell us our public address?
-    /* Candidates start arriving during setLocalDescription, which is before
-       the offer itself goes out — sending them first meant the far side filed
-       them against a connection it did not have yet. Hold them behind the
-       description. */
-    pc.onicecandidate = e => {
-      if(!e.candidate) return;
-      const c = e.candidate.toJSON();
-      if(/ typ (srflx|relay)/.test(c.candidate || "")) pc.__srflx = true;
-      if(pc.__sent) sig(id, "ice", { cand: c });
-      else pc.__out.push(c);
-    };
-    pc.ontrack = e => showStream(e.streams[0]);
-    pc.onconnectionstatechange = () => {
-      const st = stateOf(pc);
-      if(st === "failed"){
-        msg = !pc.__srflx
-          ? "Couldn't get out to work out this connection's address. A strict network or a VPN will do that. Try again on another connection."
-          : (noRelay && relayErr)
-            ? ("The two browsers couldn't reach each other directly, and the relay refused: <b>" + esc(relayErr) + "</b>. The TURN secrets on the Worker are set but not working — check TURN_KEY_ID and TURN_KEY_API_TOKEN.")
-          : noRelay
-            ? "The two browsers couldn't reach each other directly, and this room has no relay set up to bounce the picture off. Add TURN_KEY_ID and TURN_KEY_API_TOKEN to the Worker — the README has the steps under Watch party."
-            : "The two browsers couldn't reach each other, even through the relay. Try again, or one of you on wifi rather than mobile data.";
+    const pc = NET.make({
+      key: key(id),
+      send: (kind, extra) => sig(id, kind, extra),
+      track: st => showStream(st),
+      state: (st, self) => {
+        if(st === "failed") msg = NET.why(self, "picture");
+        paintShare();
       }
-      paintShare();
-    };
+    });
+    pcs.set(id, pc);
     return pc;
-  };
-  const opened = (id, pc) => {                 // description signalled: let the candidates go
-    pc.__sent = true;
-    pc.__out.forEach(c => sig(id, "ice", { cand: c }));
-    pc.__out = [];
-  };
-  const flush = (id, pc) => {
-    (pend.get(id) || []).forEach(c => pc.addIceCandidate(c).catch(()=>{}));
-    pend.delete(id);
   };
 
   const offerTo = async id => {
     if(!local) return;
-    await getIce();                     // a relay is no use once the pc exists
+    await NET.relay();                  // a relay is no use once the pc exists
     dropPc(id);
     const pc = makePc(id);
     local.getTracks().forEach(t => pc.addTrack(t, local));
     try {
       await pc.setLocalDescription(await pc.createOffer());
       sig(id, "offer", { sdp: pc.localDescription });
-      opened(id, pc);
+      NET.open(pc);
     } catch(_){ say("Couldn't start the stream."); }
   };
 
@@ -4276,7 +4404,7 @@ ACTS.watch = b => {
     paintShare();
   };
 
-  getIce();                            // fetched once, before anyone presses anything
+  NET.relay();                         // fetched once, before anyone presses anything
   const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
   if(!canShare){
     shareGo.disabled = true;
@@ -4320,27 +4448,25 @@ ACTS.watch = b => {
       /* A viewer that is still connecting asks again every few seconds. Answering
          each one tore down a negotiation that was halfway through and started
          over, so on any connection slower than a loopback it never finished. */
-      const cur = pcs.get(by), st = stateOf(cur);
-      if(cur && st !== "failed" && st !== "closed" && st !== "disconnected") return;
+      if(pcs.get(by) && !NET.down(pcs.get(by))) return;
       offerTo(by);
       return;
     }
     let pc = pcs.get(by);
     try {
       if(m.kind === "offer"){
-        await getIce();
+        await NET.relay();
         dropPc(by); pc = makePc(by);
         await pc.setRemoteDescription(m.sdp);
         await pc.setLocalDescription(await pc.createAnswer());
         sig(by, "answer", { sdp: pc.localDescription });
-        opened(by, pc);
-        flush(by, pc);
+        NET.open(pc);
+        NET.flush(key(by), pc);
       } else if(m.kind === "answer" && pc){
         await pc.setRemoteDescription(m.sdp);
-        flush(by, pc);
+        NET.flush(key(by), pc);
       } else if(m.kind === "ice"){
-        if(pc && pc.remoteDescription) await pc.addIceCandidate(m.cand);
-        else { if(!pend.has(by)) pend.set(by, []); pend.get(by).push(m.cand); }
+        NET.take(key(by), pc, m.cand);
       }
     } catch(_){}
   });
@@ -4367,9 +4493,8 @@ ACTS.watch = b => {
       bar.innerHTML = msg || "You are sharing. This is what they see.";
       shareGo.textContent = "Sharing…";
     } else {
-      const pc = pcs.get(sh.id), st = stateOf(pc);
-      const on = st === "connected" || st === "completed";
-      const dead = !pc || st === "failed" || st === "closed" || st === "disconnected";
+      const pc = pcs.get(sh.id), st = NET.state(pc);
+      const on = NET.up(pc), dead = NET.down(pc);
       /* Ask once per share, and again only if it actually died or has been
          quiet far too long — not on every repaint. */
       if(askedFor !== sh.id || (dead && SYNC.now() - askedAt > 9000)){
@@ -4910,6 +5035,284 @@ const PICS = {
     if(!confirm("Clear the thread and its pictures for both of you?")) return;
     SYNC.wipe("chat.msgs");
   });
+
+  /* ---- calling: the chat, with voices in it ----
+     Lives inside the chat rather than an activity, so a call keeps going
+     while you wander between the hours of the day. */
+  (function calling(){
+    const bar = $("#callbar"), face = $("#callFace"), stage = $("#cstage");
+    const vThem = $("#callThem"), vMe = $("#callMe"), line = $("#callLine");
+    const bAns = $("#callAnswer"), bMute = $("#callMute"), bCam = $("#callCam"), bEnd = $("#callEnd");
+    const bVoice = $("#callVoice"), bVideo = $("#callVideo");
+
+    const can = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.RTCPeerConnection);
+    const pcs = new Map();
+    let local = null, joined = false, answered = false;
+    let msg = "", msgTo = null, upAt = 0, ringTo = null, waitTo = null;
+
+    const key = id => "call:" + id;
+    const sig = (to, kind, extra) => SYNC.ev("call.rtc", Object.assign({ to, kind }, extra || {}));
+    const others = () => SYNC.peers.filter(p => p.id !== SYNC.id);
+    const nameOfId = id => (SYNC.peers.find(p => p.id === id) || {}).name || "";
+
+    /* A tab that closed mid-call leaves the key behind; the peer list is truth. */
+    const liveCall = () => {
+      const c = SYNC.get("call.on", null);
+      if(!c || !c.by) return null;
+      if(c.by !== SYNC.id && !SYNC.peers.some(p => p.id === c.by)) return null;
+      return c;
+    };
+
+    /* Failures have to outlast the next repaint or they are never read. */
+    const say = (t, keep) => {
+      msg = t; clearTimeout(msgTo);
+      if(!keep) msgTo = setTimeout(() => { msg = ""; paint(); }, 8000);
+      paint();
+    };
+
+    const grab = async video => {
+      const audio = { echoCancellation:true, noiseSuppression:true, autoGainControl:true };
+      try {
+        return await navigator.mediaDevices.getUserMedia(video
+          ? { audio, video: { width:{ideal:640}, height:{ideal:480}, facingMode:"user" } }
+          : { audio });
+      } catch(err){
+        const n = (err && err.name) || "";
+        // no camera is not a reason to lose the call — drop to voice and carry on
+        if(video && n !== "NotAllowedError"){
+          try {
+            const st = await navigator.mediaDevices.getUserMedia({ audio });
+            say("No camera on this one, so it's voice only.");
+            return st;
+          } catch(_){}
+        }
+        say(n === "NotAllowedError"
+          ? ("The browser wouldn't let the page use your " + (video ? "camera and microphone" : "microphone") +
+             ". Allow it from the address bar, then try again.")
+          : ("Couldn't get hold of your " + (video ? "camera or microphone" : "microphone") +
+             " (" + esc(n || "unknown error") + ")."), true);
+        return null;
+      }
+    };
+
+    const drop = () => {
+      pcs.forEach((pc, id) => { try { pc.close(); } catch(_){} NET.forget(key(id)); });
+      pcs.clear();
+      if(local){ local.getTracks().forEach(t => t.stop()); local = null; }
+      vThem.srcObject = null; vMe.srcObject = null;
+      joined = false; answered = false; upAt = 0;
+      clearInterval(ringTo); ringTo = null;
+      clearTimeout(waitTo); waitTo = null;
+      bMute.textContent = "Mute"; bMute.classList.remove("on");
+      bCam.textContent = "Camera off"; bCam.classList.remove("on");
+    };
+
+    const hang = why => {
+      const c = SYNC.get("call.on", null);
+      if(c && c.by && (c.by === SYNC.id || joined)) SYNC.set("call.on", null);
+      drop();
+      if(why) say(why); else paint();
+    };
+
+    const makePc = id => {
+      const pc = NET.make({
+        key: key(id),
+        send: (kind, extra) => sig(id, kind, extra),
+        track: st => {
+          vThem.srcObject = st;
+          vThem.play().catch(() => say("Tap the picture to let the sound through.", true));
+          paint();
+        },
+        state: (st, self) => {
+          if(st === "failed") say(NET.why(self, "call"), true);
+          if((st === "connected" || st === "completed") && !upAt){ upAt = SYNC.now(); msg = ""; }
+          paint();
+        }
+      });
+      pcs.set(id, pc);
+      return pc;
+    };
+
+    const offerTo = async id => {
+      if(!local) return;
+      await NET.relay();                  // a relay is no use once the pc exists
+      const old = pcs.get(id);
+      if(old){ try { old.close(); } catch(_){} pcs.delete(id); }
+      const pc = makePc(id);
+      local.getTracks().forEach(t => pc.addTrack(t, local));
+      try {
+        await pc.setLocalDescription(await pc.createOffer());
+        sig(id, "offer", { sdp: pc.localDescription });
+        NET.open(pc);
+      } catch(_){ say("Couldn't start the call."); }
+    };
+
+    const start = async video => {
+      if(!can) return say("This browser can't make calls. Chrome, Edge, Firefox or Safari will.", true);
+      if(liveCall() || joined) return;
+      if(!others().length) return say("Nobody else is here yet. Send them the link first.");
+      const st = await grab(video);
+      if(!st) return;
+      if(liveCall()){ st.getTracks().forEach(t => t.stop()); return; }   // they rang while we asked
+      local = st; joined = true; answered = false; upAt = 0;
+      vMe.srcObject = local; vMe.play().catch(()=>{});
+      SYNC.set("call.on", {
+        by: SYNC.id,
+        name: ME.name || nameOf(mySide()),
+        at: SYNC.now(),
+        video: !!local.getVideoTracks().length
+      });
+      NET.relay();
+      waitTo = setTimeout(() => { if(!answered) hang("No answer."); }, 45000);
+      paint();
+    };
+
+    const answer = async () => {
+      const c = liveCall();
+      if(!c || c.by === SYNC.id || joined) return;
+      clearInterval(ringTo); ringTo = null;
+      const st = await grab(c.video);
+      if(!st) return;
+      if(!liveCall()){ st.getTracks().forEach(t => t.stop()); return; }  // gave up while we fumbled
+      local = st; joined = true;
+      vMe.srcObject = local; vMe.play().catch(()=>{});
+      await NET.relay();
+      sig(c.by, "want", {});
+      paint();
+    };
+
+    SYNC.onEv("call.rtc", async (m, by) => {
+      if(!m || m.to !== SYNC.id) return;
+      if(m.kind === "want"){
+        /* Their side said yes. Asking again while a negotiation is halfway
+           through starts it over, so answer only a dead one. */
+        answered = true; clearTimeout(waitTo); waitTo = null;
+        const cur = pcs.get(by);
+        if(cur && !NET.down(cur)){ paint(); return; }
+        offerTo(by); paint(); return;
+      }
+      if(m.kind === "no"){ hang((nameOfId(by) || "They") + " can't talk right now."); return; }
+      let pc = pcs.get(by);
+      try {
+        if(m.kind === "offer"){
+          if(!joined || !local) return;       // nobody answered here; ignore it
+          await NET.relay();
+          if(pc){ try { pc.close(); } catch(_){} pcs.delete(by); }
+          pc = makePc(by);
+          local.getTracks().forEach(t => pc.addTrack(t, local));
+          await pc.setRemoteDescription(m.sdp);
+          await pc.setLocalDescription(await pc.createAnswer());
+          sig(by, "answer", { sdp: pc.localDescription });
+          NET.open(pc);
+          NET.flush(key(by), pc);
+        } else if(m.kind === "answer" && pc){
+          await pc.setRemoteDescription(m.sdp);
+          NET.flush(key(by), pc);
+        } else if(m.kind === "ice"){
+          NET.take(key(by), pc, m.cand);
+        }
+      } catch(_){}
+    });
+
+    const clock = () => {
+      const s = Math.max(0, Math.round((SYNC.now() - upAt) / 1000));
+      return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    };
+
+    function paint(){
+      const c = liveCall();
+      const mine = !!c && c.by === SYNC.id;
+      bVoice.disabled = bVideo.disabled = !can || !!c;
+
+      if(!c){
+        if(joined || local || pcs.size) drop();
+        bar.className = "callbar";
+        bar.hidden = !msg;
+        line.innerHTML = msg;
+        bAns.hidden = bMute.hidden = bCam.hidden = bEnd.hidden = true;
+        return;
+      }
+
+      const pc = pcs.values().next().value;
+      const on = NET.up(pc);
+      const vid = !!c.video;
+      /* Name the one we are actually talking to. Before anyone picks up there
+         is no connection to ask, so only a room of two can be sure who. */
+      const pcId = pcs.size ? pcs.keys().next().value
+                 : (others().length === 1 ? others()[0].id : null);
+      const who = mine ? (nameOfId(pcId) || "them") : (c.name || "They");
+      const ringing = !mine && !joined;
+
+      bar.hidden = false;
+      bar.className = "callbar"
+        + (vid ? "" : " voice")
+        + (local ? " seeing" : "")
+        + (local && !local.getVideoTracks().length ? " novideo" : "");
+      face.firstElementChild.textContent = (who || "?").trim().charAt(0).toUpperCase();
+
+      bAns.hidden  = !ringing;
+      bMute.hidden = !joined;
+      bCam.hidden  = !joined || !local || !local.getVideoTracks().length;
+      bEnd.hidden  = false;
+      bEnd.textContent = ringing ? "Decline" : "Hang up";
+
+      line.innerHTML = msg || (
+        ringing            ? ("<b>" + esc(who) + "</b> is " + (vid ? "video calling" : "calling") + " you.")
+        : on               ? ("<b>" + esc(who) + "</b> · " + clock())
+        : (mine && !answered) ? ("Calling <b>" + esc(who) + "</b>…")
+                             : "Connecting…"
+      );
+    }
+
+    bVoice.addEventListener("click", () => start(false));
+    bVideo.addEventListener("click", () => start(true));
+    bAns.addEventListener("click", answer);
+    bEnd.addEventListener("click", () => {
+      const c = liveCall();
+      if(c && c.by !== SYNC.id && !joined){
+        sig(c.by, "no", {}); SYNC.set("call.on", null); drop(); paint(); return;
+      }
+      hang();
+    });
+    bMute.addEventListener("click", () => {
+      const t = local && local.getAudioTracks()[0];
+      if(!t) return;
+      t.enabled = !t.enabled;
+      bMute.textContent = t.enabled ? "Mute" : "Unmute";
+      bMute.classList.toggle("on", !t.enabled);
+    });
+    bCam.addEventListener("click", () => {
+      const t = local && local.getVideoTracks()[0];
+      if(!t) return;
+      t.enabled = !t.enabled;
+      bCam.textContent = t.enabled ? "Camera off" : "Camera on";
+      bCam.classList.toggle("on", !t.enabled);
+    });
+    stage.addEventListener("click", () => { vThem.muted = false; vThem.play().catch(()=>{}); });
+
+    SYNC.on("call.on", () => {
+      const c = liveCall();
+      if(c && c.by !== SYNC.id && !joined){
+        if(!box.classList.contains("on")) openChat();
+        if(!ringTo){ CHIME.warm(); ringTo = setInterval(() => CHIME.warm(), 2800); }
+      } else if(ringTo){ clearInterval(ringTo); ringTo = null; }
+      paint();
+    });
+    setInterval(() => {
+      const c = liveCall();
+      /* If the caller's tab simply vanished, nothing will ever clear this:
+         the room only learns a tab has gone when its socket closes, and that
+         can be late or never. A minute of ringing is enough for anyone. */
+      if(c && !joined && c.by !== SYNC.id && SYNC.now() - (c.at || 0) > 60000){
+        SYNC.set("call.on", null); drop();
+      }
+      /* The clock, and whatever is still on screen after the call itself. */
+      if(upAt || liveCall() || !bar.hidden) paint();
+    }, 1000);
+    window.addEventListener("beforeunload", () => hang());
+    if(!can){ bVoice.disabled = bVideo.disabled = true; }
+    paint();
+  })();
 
   CHIME.init();
   paintSound();
