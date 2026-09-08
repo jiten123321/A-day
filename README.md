@@ -44,6 +44,43 @@ your own. **Sound on / Sound off** in the chat toolbar toggles it, and the
 choice is remembered per browser. Browsers only allow audio after a click or
 keypress, so the first gesture on the page arms it.
 
+### Calling
+
+Two buttons at the top of the chat: a handset for voice, a camera for video.
+The call folds into the top of the chat panel rather than covering it, so the
+thread stays there and you can type through it. A voice call is a band with
+their initial in it; a video call is their picture with yours in the corner.
+Under it: the other person's name and how long you have been on, then **Mute**,
+**Camera off** and **Hang up**.
+
+On the other side the chat opens itself, a chime repeats, and it offers
+**Answer** or **Decline**. Declining says so in words on the caller's side
+rather than just stopping. Nobody picking up gives up after 45 seconds, and a
+call left ringing stops on its own after a minute — which is what covers the
+caller closing their tab, since the room can be slow to notice a socket has
+gone.
+
+The call lives in the chat, not in an activity, so it keeps going while you
+move between the hours of the day.
+
+A video call with no camera on one side quietly becomes a voice call rather
+than failing. A refused microphone says which permission to grant and where.
+Mute and camera-off flip the track rather than renegotiating, so neither one
+interrupts the call.
+
+The connection itself is the same machinery as the screen share, and both now
+use one helper (`NET` in `public/index.html`) — the relay lookup, the trick of
+holding ICE candidates back until the description they belong to has gone out,
+and the sentences explaining each way it can fail. If two browsers can share a
+screen they can call, and if they cannot, both fail in the same way and say the
+same thing. See **When they still can't reach each other** under Watch party.
+
+**Not verified against real hardware.** There is no camera or microphone in the
+sandbox this was built in, so the tests stand a canvas and an oscillator in for
+`getUserMedia`. Everything downstream of that — the ringing, the negotiation
+between two real browsers, the media actually arriving, the toggles, the
+failure paths — runs for real in the suite.
+
 ## The arcade games
 
 Twelve games, all shared — every move lands on both boards.
