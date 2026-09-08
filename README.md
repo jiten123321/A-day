@@ -68,6 +68,25 @@ more likely.
 Ladoo plays white, X, and moves first; Jitendra and any guest take the other
 seat.
 
+## Look
+
+The whole thing is a doodle: pen on paper rather than the old night theme.
+
+- **Handwriting throughout** — Caveat for headings, Patrick Hand for everything
+  else, both self-hosted from `public/fonts/` so there is no font-CDN
+  dependency and the page can never render half-styled while one is slow.
+- **Hand-drawn outlines.** Every component's border is a `::before` overlay run
+  through an SVG turbulence filter (`#wob1`/`#wob2`/`#wob3` in the page). Only
+  the line is distorted, never the text inside it — which is why the filter is
+  on an overlay rather than on the element.
+- Uneven corner radii, a fraction of a degree of rotation on cards and message
+  bubbles, and a scribbled underline beneath each hour's heading.
+- Faint ruled-and-squared paper under everything, and the glitter falls as
+  little pen marks — asterisks, crosses and dots — rather than round specks.
+
+The palette tokens kept their names, so `--paper` is the ink and `--night` is
+the page. Every existing rule therefore keeps meaning what it meant.
+
 ## The page
 
 The header carries an analog watch rather than a digital clock, and the hour
