@@ -154,10 +154,16 @@ as machinery, so the whole thing is two drawings and a handful of transforms:
   front of the other.
 - **The picture pushes in** on the moment they take hold: the pair scales up
   9%, and 11% at the squeeze.
-- **The arms cross fade.** Arms-down seams fade out, the wrapped pair fades in:
-  her clasped hands come up between them under her chin, his sleeve comes round
-  her waist drawn over both of them, and both his hands reappear past her far
-  side — which is what says his arms are round her rather than beside her.
+- **The arms cross fade, and then they cross.** Arms-down seams fade out and
+  the wrapped pair fades in: his sleeve sweeps down from his right shoulder to
+  her far side, hers sweeps up from her left shoulder to his, and the two make
+  an X across the middle. Each hand comes back into view past the far side of
+  the other's body — that is what says they are holding each other rather than
+  standing arm in arm. His sleeve is drawn last, so it passes in front of hers
+  where they meet.
+- **They face each other.** Both heads are drawn three-quarter with the nose on
+  the silhouette — hers on the right, his on the left — so they are looking at
+  each other rather than at the camera, apart as well as together.
 - **Their heads tip toward each other** — he by 19°, she by 18° — and her head
   is drawn a little smaller than his.
 - Then a squeeze, hearts up the empty side of the frame, a hold, and they let
