@@ -355,6 +355,13 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 }
 .screen.needtap .tap{display:flex}
 .sharebar{font-size:.9rem;color:var(--muted);margin:0 0 10px;min-height:1.3em}
+.qbar{
+  font-size:.82rem;color:var(--muted);line-height:1.55;margin:10px 0 0;
+  padding:9px 12px;border-radius:11px 9px 12px 8px;
+  background:rgba(207,62,87,.07);border:1px solid rgba(207,62,87,.25)
+}
+.qbar b{color:var(--rose);font-weight:400}
+.qbar[hidden]{display:none}
 .sharebar b{color:var(--mango);font-weight:400}
 
 /* the room: one big screen, everyone down the side */
@@ -1803,6 +1810,15 @@ const GLITTER = {
 
   stop(){ if(GLITTER.raf){ cancelAnimationFrame(GLITTER.raf); GLITTER.raf = 0; } },
   start(){ if(!GLITTER.raf){ GLITTER.last = performance.now(); GLITTER.raf = requestAnimationFrame(GLITTER.frame); } },
+
+  /* A hundred-odd bits repainted across the whole window every frame is a
+     real bill on a phone or a thin laptop, and it comes out of the same
+     budget as decoding someone's screen. Nobody is looking at the confetti
+     during a film. pause/resume rather than stop/start, so a page that never
+     had it running (reduced motion) does not gain it here. */
+  paused:false,
+  pause(){ if(GLITTER.raf){ GLITTER.paused = true; GLITTER.stop(); } },
+  resume(){ if(GLITTER.paused){ GLITTER.paused = false; GLITTER.start(); } },
 
   init(){
     GLITTER.cv = $("#glitter");
@@ -4183,6 +4199,8 @@ ACTS.watch = b => {
 
   room.appendChild(screen); room.appendChild(rail);
   s4.appendChild(room);
+  const qbar = el("div","qbar",""); qbar.hidden = true;
+  s4.appendChild(qbar);
 
   /* Big picture. The whole room goes up, not just the screen, so the chat
      beside it comes along — the panel that floats over the page covers the
@@ -4423,12 +4441,89 @@ ACTS.watch = b => {
       await pc.setLocalDescription(await pc.createOffer());
       sig(id, "offer", { sdp: pc.localDescription });
       NET.open(pc);
+      tune(pc);
     } catch(_){ say("Couldn't start the stream."); }
+  };
+
+  /* When the link tightens, WebRTC's default is to hold the resolution and
+     drop frames. For a film that is the wrong way round: a softer picture
+     that moves beats a sharp one that jerks. */
+  const tune = async pc => {
+    const snd = pc.getSenders().find(x => x.track && x.track.kind === "video");
+    if(!snd || !snd.getParameters) return;
+    try {
+      const p = snd.getParameters();
+      if(!p.encodings || !p.encodings.length) p.encodings = [{}];
+      p.degradationPreference = "maintain-framerate";
+      p.encodings[0].maxFramerate = 30;
+      p.encodings[0].maxBitrate = 3000000;   // the default cap is meaner than most home links
+      await snd.setParameters(p);
+    } catch(_){}
+  };
+
+  /* "It's laggy" has four different causes and four different answers. The
+     connection knows which one it is, so ask it rather than leaving them to
+     guess. Only speaks up when something is actually wrong. */
+  const setQual = t => { qbar.innerHTML = t; qbar.hidden = !t; };
+  let qPrev = null;
+  const readQual = async () => {
+    const sh = liveShare();
+    const mine = !!sh && sh.id === SYNC.id;
+    const pc = !sh ? null : (mine ? pcs.values().next().value : pcs.get(sh.id));
+    if(!pc || !NET.up(pc) || !pc.getStats){ qPrev = null; return setQual(""); }
+
+    let relay = false, tcp = false, dur = null, ts = 0, fps = null;
+    try {
+      const rep = await pc.getStats();
+      let pair = null;
+      rep.forEach(r => {
+        if(r.type === "candidate-pair" && r.state === "succeeded" && (r.nominated || r.selected || !pair)) pair = r;
+        if(r.type === "outbound-rtp" && r.kind === "video"){
+          dur = r.qualityLimitationDurations || null; ts = r.timestamp || 0;
+        }
+        if(r.type === "inbound-rtp" && r.kind === "video" && typeof r.framesPerSecond === "number") fps = r.framesPerSecond;
+      });
+      if(pair) [rep.get(pair.localCandidateId), rep.get(pair.remoteCandidateId)].forEach(c => {
+        if(!c) return;
+        if(c.candidateType === "relay") relay = true;
+        if(String(c.protocol || "").toLowerCase() === "tcp") tcp = true;
+      });
+    } catch(_){ qPrev = null; return setQual(""); }
+
+    /* One sample proves nothing — Chrome reports "bandwidth" for the first
+       few seconds of every connection while it works out how fast the line
+       is, at a perfectly good frame rate. What matters is how much of the
+       last stretch was actually spent held back, and whether it is still
+       slow the next time we look. */
+    const was = qPrev;
+    let cpu = 0, band = 0;
+    if(dur && was && was.dur && ts > was.ts){
+      const span = (ts - was.ts) / 1000;
+      if(span > 0.5){
+        cpu  = ((dur.cpu       || 0) - (was.dur.cpu       || 0)) / span;
+        band = ((dur.bandwidth || 0) - (was.dur.bandwidth || 0)) / span;
+      }
+    }
+    const slow = fps !== null && fps > 0 && fps < 12;
+    qPrev = { dur, ts, slow };
+
+    const thru = relay ? " through the relay" : "";
+    let t = "";
+    if(relay && tcp)
+      t = "This is going <b>through the relay over TCP</b>, which stutters however fast the line is — it only falls back to that when nothing else gets through. Try again with one of you on wifi rather than mobile data.";
+    if(mine && cpu > 0.6)
+      t = "This computer can't encode fast enough to keep up. Share <b>a single tab</b> rather than the whole screen, and close what you aren't using.";
+    else if(mine && band > 0.6)
+      t = "Your upload can't carry this" + thru + ". The picture will go soft or jump on their side.";
+    else if(!mine && slow && was && was.slow)
+      t = "Only " + Math.round(fps) + " frames a second are arriving" + thru + ". That is the line between you, not the film.";
+    setQual(t);
   };
 
   const stopShare = () => {
     if(local){ local.getTracks().forEach(t => t.stop()); local = null; }
     dropAll();
+    setQual("");
     vid.srcObject = null; screen.classList.remove("on","needtap");
     if((SYNC.get("watch.share", null) || {}).id === SYNC.id) SYNC.set("watch.share", null);
     paintShare();
@@ -4446,7 +4541,10 @@ ACTS.watch = b => {
     say("Pick the tab you're playing it in…");
     try {
       local = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 30, max: 30 } },
+        /* Uncapped, a 1440p or 4K monitor is captured at full size and the
+           encoder spends its whole budget on pixels nobody can see at the
+           other end. 1080p is more than the far side's window. */
+        video: { frameRate: { ideal: 30, max: 30 }, width: { max: 1920 }, height: { max: 1080 } },
         audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
       });
     } catch(err){
@@ -4458,7 +4556,12 @@ ACTS.watch = b => {
     }
     msg = "";
     SYNC.set("yt.v", "");                                              // the screen takes the stage
-    local.getVideoTracks()[0].addEventListener("ended", stopShare);   // the browser's own stop button
+    const track = local.getVideoTracks()[0];
+    /* The default for a captured screen is "detail" — sharp text, and frames
+       dropped to pay for it. That is right for a spreadsheet and wrong for a
+       film, where it reads as constant stutter on the far side. */
+    track.contentHint = "motion";
+    track.addEventListener("ended", stopShare);                       // the browser's own stop button
     vid.muted = true;                                                  // never echo your own audio back
     showStream(local);
 
@@ -4504,7 +4607,11 @@ ACTS.watch = b => {
   /* On a phone the chat is a sheet across the bottom, and at 80vh it buried
      the picture. While something is actually playing it takes half. */
   const onAir = () => screen.classList.contains("on") || screen.classList.contains("mode-yt");
-  const markAir = () => document.body.classList.toggle("watching", onAir());
+  const markAir = () => {
+    const air = onAir();
+    document.body.classList.toggle("watching", air);
+    air ? GLITTER.pause() : GLITTER.resume();
+  };
 
   const paintShare = () => {
     const sh = liveShare();
@@ -4555,12 +4662,14 @@ ACTS.watch = b => {
   onClose(() => {
     stopShare();
     document.body.classList.remove("watching");
+    GLITTER.resume();
     if(player){ try { player.destroy(); } catch(_){} player = null; }
   });
   window.addEventListener("beforeunload", stopShare);
   paintWho(); paintChat(); paintYt();
 
   every(1500, paintShare);          // the peer list decides whether a share is still live
+  every(4000, readQual);
   paintShare();
 };
 
