@@ -770,16 +770,16 @@ input[type=text], .close, .open{
 }
 .hugscene .pair{ transform-box:view-box; transform-origin:214px 206px;
   transition:transform .66s cubic-bezier(.34,.9,.3,1) }
-.hugscene .figL{ transform:translate(-36px, 10px) }
+.hugscene .figL{ transform:translate(-36px, -12px) }
 .hugscene .figR{ transform:translate(42px, -4px) }
 /* Nested, not adjacent: she ends up inside his silhouette, and the picture
    pushes in on them. Two figures in their own columns is a side hug however
    far their heads lean. */
 .hugwrap.near .pair{ transform:scale(1.09) }
-.hugwrap.near .figL{ transform:translate(17px,-4px) }
+.hugwrap.near .figL{ transform:translate(3px,-18px) }
 .hugwrap.near .figR{ transform:translate(-8px,0) }
 .hugwrap.squeeze .pair{ transform:scale(1.11) }
-.hugwrap.squeeze .figL{ transform:translate(20px,-5px) }
+.hugwrap.squeeze .figL{ transform:translate(6px,-19px) }
 .hugwrap.squeeze .figR{ transform:translate(-11px,0) }
 
 /* he tips his head down over hers, she turns hers up into him */
@@ -1860,7 +1860,7 @@ ACTS.hug = b => {
         <g class="pair" filter="url(#hugLift)">
         <!-- him, behind -->
         <g class="fig figR">
-          <path class="ln" fill="url(#hisLeg)" d="M176,262 L306,262 L306,322 L174,322 Z"/>
+          <path class="ln" fill="url(#hisLeg)" d="M176,262 L306,262 L306,348 L174,348 Z"/>
           <path class="ln" fill="url(#hisSkin)" d="M226,122 h28 v16 a14,13 0 0 1 -28,0 Z"/>
           <path class="shade" d="M226,122 h28 v5 a14,9 0 0 1 -28,0 Z"/>
           <path class="ln" fill="url(#hisCoat)"
@@ -1879,9 +1879,9 @@ ACTS.hug = b => {
           <g class="head headHim">
             <ellipse class="ln" fill="url(#hisHair)" cx="240" cy="90" rx="36" ry="37"/>
             <path class="ln" fill="url(#hisSkin)"
-                  d="M240,68 C256,68 269,82 269,100 C269,119 256,132 240,132
-                     C227,132 215,122 212,107 C207,105 206,98 211,95
-                     C214,79 226,68 240,68 Z"/>
+                  d="M240,68 C256,68 269,81 269,98 C269,116 256,128 240,128
+                     C227,128 215,119 212,105 C207,103 206,96 211,93
+                     C214,78 226,68 240,68 Z"/>
             <path class="ln2" fill="url(#hisSkin)" d="M264,96 C273,94 277,102 274,110 C271,117 264,116 262,110 Z"/>
             <path class="shade" d="M266,100 q6,2 5,9 q-4,-6 -6,-6 Z"/>
             <path fill="url(#hisHair)"
@@ -1905,11 +1905,11 @@ ACTS.hug = b => {
               <path class="lash" d="M215,97 l-3,-2"/>
               <path class="lash" d="M241,95 l-3,-2"/>
             </g>
-            <ellipse class="blush" cx="216" cy="111" rx="7.5" ry="4.2"/>
-            <ellipse class="blush" cx="254" cy="109" rx="8" ry="4.4"/>
-            <path class="nose" d="M214,106 C218,108 220,108 222,106"/>
-            <circle class="mole" cx="246" cy="116" r="1.4"/>
-            <path class="mouth" d="M225,118 C229,125 237,125 241,117"/>
+            <ellipse class="blush" cx="216" cy="108" rx="7.5" ry="4.2"/>
+            <ellipse class="blush" cx="254" cy="106" rx="8" ry="4.4"/>
+            <path class="nose" d="M214,103 C218,105 220,105 222,103"/>
+            <circle class="mole" cx="246" cy="111" r="1.4"/>
+            <path class="mouth" d="M225,113 C229,120 237,120 241,112"/>
           </g>
         </g>
 
@@ -1921,7 +1921,7 @@ ACTS.hug = b => {
 
         <!-- her, in front and tucked in under his chin -->
         <g class="fig figL">
-          <path class="ln" fill="url(#herLeg)" d="M148,286 L244,286 L244,326 L146,326 Z"/>
+          <path class="ln" fill="url(#herLeg)" d="M148,286 L244,286 L244,350 L146,350 Z"/>
           <path class="ln" fill="url(#herKnit)"
                 d="M146,290 C144,262 145,242 149,230 C154,212 168,201 196,201
                    C224,201 239,212 243,230 C247,243 246,264 243,290
@@ -1932,7 +1932,7 @@ ACTS.hug = b => {
           <path class="ln" fill="url(#herSkin)" d="M186,182 h24 v16 a12,11 0 0 1 -24,0 Z"/>
           <path class="shade" d="M186,182 h24 v5 a12,8 0 0 1 -24,0 Z"/>
           <g class="head headHer">
-            <ellipse class="ln" fill="url(#herHair)" cx="200" cy="158" rx="38" ry="38"/>
+            <ellipse class="ln" fill="url(#herHair)" cx="200" cy="163" rx="38" ry="33"/>
             <path class="ln" fill="url(#herHair)"
                   d="M164,156 C157,175 156,194 162,206 C167,215 179,214 182,204
                      C176,189 175,171 178,154 Z"/>
@@ -1944,11 +1944,11 @@ ACTS.hug = b => {
                      C226,192 214,200 200,200 C185,200 174,188 174,172
                      C174,156 186,144 200,144 Z"/>
             <path fill="url(#herHair)"
-                  d="M175,170 C174,142 186,130 201,130 C218,130 228,142 227,168
-                     C221,150 210,144 198,147 C186,150 178,158 175,170 Z"/>
-            <path class="strand" d="M186,138 C196,132 210,133 219,141"/>
-            <path class="strand" d="M179,156 C183,145 190,138 198,135"/>
-            <path class="shade" d="M176,168 C176,146 185,133 196,129 C184,138 178,152 178,172 Z"/>
+                  d="M175,170 C174,147 186,137 201,137 C218,137 228,147 227,168
+                     C221,153 210,148 198,151 C186,154 178,161 175,170 Z"/>
+            <path class="strand" d="M186,145 C196,139 210,140 219,148"/>
+            <path class="strand" d="M179,160 C183,151 190,145 198,142"/>
+            <path class="shade" d="M176,168 C176,150 185,139 196,135 C184,144 178,156 178,172 Z"/>
             <path class="brow" d="M184,166 C188,161 195,160 200,163"/>
             <path class="brow" d="M208,163 C213,159 219,161 222,166"/>
             <g class="eyes-open">
@@ -1974,20 +1974,20 @@ ACTS.hug = b => {
              so the two arms make an X across the middle -->
         <g class="fig figL arm-wrap">
           <path class="ln" fill="url(#herKnit)"
-                d="M148,219 C160,247 192,261 222,262 C238,262 251,259 257,254
-                   L264,267 C252,275 236,279 219,278 C188,277 150,257 140,229 Z"/>
-          <path class="hi" d="M154,226 C166,248 194,257 222,258 C196,260 168,252 154,228 Z"/>
-          <path class="fold" d="M196,257 q-2,8 -1,18"/>
-          <path class="fold" d="M236,258 q-1,8 0,18"/>
-          <path class="cuff" d="M249,262 C253,268 256,272 259,274"/>
+                d="M154,230 C164,256 192,270 222,271 C238,271 251,268 257,263
+                   L264,276 C252,284 236,288 219,287 C190,286 156,268 147,240 Z"/>
+          <path class="hi" d="M159,236 C170,258 196,266 222,267 C198,269 172,262 159,238 Z"/>
+          <path class="fold" d="M196,266 q-2,8 -1,18"/>
+          <path class="fold" d="M236,267 q-1,8 0,18"/>
+          <path class="cuff" d="M249,271 C253,277 256,281 259,283"/>
           <path class="ln2" fill="url(#herSkin)"
-                d="M257,261 C250,260 245,266 247,273 C249,280 258,283 264,279
-                   C270,276 271,268 267,263 C264,260 260,260 257,261 Z"/>
+                d="M257,270 C250,269 245,275 247,282 C249,289 258,292 264,288
+                   C270,285 271,277 267,272 C264,269 260,269 257,270 Z"/>
           <path class="ln2" fill="url(#herSkin)"
-                d="M257,260 C256,255 250,254 248,258 C246,261 248,264 251,264 Z"/>
-          <path class="seam" d="M252,267 q7,1 11,-2"/>
-          <path class="seam" d="M254,272 q6,1 10,-2"/>
-          <path class="seam" d="M256,277 q5,1 8,-2"/>
+                d="M257,269 C256,264 250,263 248,267 C246,270 248,273 251,273 Z"/>
+          <path class="seam" d="M252,276 q7,1 11,-2"/>
+          <path class="seam" d="M254,281 q6,1 10,-2"/>
+          <path class="seam" d="M256,286 q5,1 8,-2"/>
         </g>
 
         <!-- what his arm casts on her top, under the sleeve itself -->
