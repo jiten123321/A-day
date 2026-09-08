@@ -3982,7 +3982,11 @@ ACTS.watch = b => {
   const RTC = { iceServers: [{ urls: ["stun:stun.l.google.com:19302",
                                       "stun:stun1.l.google.com:19302"] }] };
   const pcs = new Map(), pend = new Map();
-  let local = null, wanted = false;
+  let local = null, wanted = false, msg = "";
+  /* paintShare runs on a poll, so a message written straight into the bar is
+     gone within a second and a half — every failure looked like nothing
+     happening at all. Failures go here and stay until something replaces them. */
+  const say = t => { msg = t; paintShare(); };
 
   const sig = (to, kind, extra) => SYNC.ev("watch.rtc", Object.assign({ to, kind }, extra || {}));
   const liveShare = () => {
@@ -4018,7 +4022,7 @@ ACTS.watch = b => {
     pc.ontrack = e => showStream(e.streams[0]);
     pc.onconnectionstatechange = () => {
       if(pc.connectionState === "failed"){
-        bar.innerHTML = "The connection wouldn't hold. One of you press share again.";
+        msg = "The connection wouldn't hold — some networks won't let two browsers talk directly. Try again, or try one of you on wifi.";
       }
       paintShare();
     };
@@ -4037,7 +4041,7 @@ ACTS.watch = b => {
     try {
       await pc.setLocalDescription(await pc.createOffer());
       sig(id, "offer", { sdp: pc.localDescription });
-    } catch(_){ bar.innerHTML = "Couldn't start the stream."; }
+    } catch(_){ say("Couldn't start the stream."); }
   };
 
   const stopShare = () => {
@@ -4048,21 +4052,28 @@ ACTS.watch = b => {
     paintShare();
   };
 
+  const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  if(!canShare){
+    shareGo.disabled = true;
+    msg = "This browser can't share a screen — no phone can, and Safari on a Mac won't either. Open the day on a computer in Chrome, Edge or Firefox to be the one sharing. Watching what the other one shares works fine here.";
+  }
+
   shareGo.addEventListener("click", async () => {
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
-      bar.innerHTML = "This browser won't share a screen. Phones cannot do it at all — it needs Chrome, Edge or Firefox on a computer.";
-      return;
-    }
+    if(!canShare) return;
+    say("Pick the tab you're playing it in…");
     try {
       local = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: 30, max: 30 } },
         audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
       });
     } catch(err){
-      bar.innerHTML = (err && err.name === "NotAllowedError")
-        ? "You cancelled the share." : "The browser wouldn't hand over a screen.";
+      const n = (err && err.name) || "";
+      say(n === "NotAllowedError"
+            ? "You closed the picker without choosing anything, so nothing is being shared."
+            : "The browser wouldn't hand over a screen (" + esc(n || "unknown error") + "). On a computer, Chrome or Edge is the safest bet.");
       return;
     }
+    msg = "";
     local.getVideoTracks()[0].addEventListener("ended", stopShare);   // the browser's own stop button
     vid.muted = true;                                                  // never echo your own audio back
     showStream(local);
@@ -4107,18 +4118,19 @@ ACTS.watch = b => {
     sound.textContent  = vid.muted ? "Sound on" : "Sound off";
     if(!sh){
       if(vid.srcObject){ vid.srcObject = null; vid.muted = true; screen.classList.remove("on","needtap"); }
-      bar.innerHTML = "";
+      bar.innerHTML = msg;                     // whatever went wrong stays readable
+      shareGo.disabled = !canShare;
       shareGo.textContent = "Share my screen";
       hint.textContent = "Nothing on yet. Whoever has the film open presses share and picks that tab.";
       return;
     }
     if(mine){
-      bar.innerHTML = "You are sharing. This is what they see.";
+      bar.innerHTML = msg || "You are sharing. This is what they see.";
       shareGo.textContent = "Sharing…";
     } else {
       const st = pcs.size ? Array.from(pcs.values())[0].connectionState : "";
-      bar.innerHTML = "<b>" + esc(sh.name || "They") + "</b> is sharing" +
-        (st === "connected" ? "." : " — connecting…");
+      bar.innerHTML = msg || ("<b>" + esc(sh.name || "They") + "</b> is sharing" +
+        (st === "connected" ? "." : " — connecting…"));
       hint.textContent = "Connecting to " + (sh.name || "them") + "…";
       if(!wanted){ wanted = true; sig(sh.id, "want", {}); setTimeout(() => { wanted = false; }, 4000); }
     }
