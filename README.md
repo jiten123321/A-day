@@ -166,6 +166,13 @@ as machinery, so the whole thing is two drawings and a handful of transforms:
   each other rather than at the camera, apart as well as together.
 - **Their heads tip toward each other** — he by 19°, she by 18° — and her head
   is drawn a little smaller than his.
+
+The two of them stand at a believable difference in height rather than an
+adult-and-child one, which took three things rather than one: she is raised in
+both states, his chin and mouth ride higher in his face so they stay clear of
+her as she comes up, and her hair is a flatter crown — a tall head of hair was
+what covered his mouth every time she moved up, and flattening it bought the
+room without shrinking her face.
 - Then a squeeze, hearts up the empty side of the frame, a hold, and they let
   go in reverse order.
 
