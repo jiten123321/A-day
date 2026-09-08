@@ -1878,7 +1878,10 @@ ACTS.hug = b => {
           <path class="seam arm-down" d="M196,170 C190,200 189,232 192,270"/>
           <g class="head headHim">
             <ellipse class="ln" fill="url(#hisHair)" cx="240" cy="90" rx="36" ry="37"/>
-            <ellipse class="ln" fill="url(#hisSkin)" cx="240" cy="100" rx="29" ry="32"/>
+            <path class="ln" fill="url(#hisSkin)"
+                  d="M240,68 C256,68 269,82 269,100 C269,119 256,132 240,132
+                     C227,132 215,122 212,107 C207,105 206,98 211,95
+                     C214,79 226,68 240,68 Z"/>
             <path class="ln2" fill="url(#hisSkin)" d="M264,96 C273,94 277,102 274,110 C271,117 264,116 262,110 Z"/>
             <path class="shade" d="M266,100 q6,2 5,9 q-4,-6 -6,-6 Z"/>
             <path fill="url(#hisHair)"
@@ -1888,25 +1891,25 @@ ACTS.hug = b => {
             <path class="strand" d="M224,68 C234,60 248,58 260,64"/>
             <path class="strand" d="M216,84 C220,74 228,68 236,66"/>
             <path class="shade" d="M211,94 C213,70 222,58 234,52 C220,62 214,78 214,98 Z"/>
-            <path class="brow" d="M218,86 C222,81 230,80 235,83"/>
-            <path class="brow" d="M246,84 C251,80 259,81 263,86"/>
+            <path class="brow" d="M214,87 C218,82 226,81 231,84"/>
+            <path class="brow" d="M242,84 C247,80 255,81 259,86"/>
             <g class="eyes-open">
-              <ellipse class="ink-f" cx="227" cy="98" rx="2.6" ry="3.3"/>
-              <ellipse class="ink-f" cx="253" cy="97" rx="2.6" ry="3.3"/>
-              <circle fill="#fff" cx="228" cy="97" r="1"/>
-              <circle fill="#fff" cx="254" cy="96" r="1"/>
+              <ellipse class="ink-f" cx="223" cy="99" rx="2.4" ry="3.1"/>
+              <ellipse class="ink-f" cx="249" cy="97" rx="2.6" ry="3.3"/>
+              <circle fill="#fff" cx="224" cy="98" r="1"/>
+              <circle fill="#fff" cx="250" cy="96" r="1"/>
             </g>
             <g class="eyes-shut">
-              <path class="lash" d="M219,96 C223,102 230,102 234,97"/>
-              <path class="lash" d="M245,95 C249,101 256,101 260,96"/>
-              <path class="lash" d="M234,97 l4,-2"/>
-              <path class="lash" d="M260,96 l4,-2"/>
+              <path class="lash" d="M215,97 C219,103 226,103 230,98"/>
+              <path class="lash" d="M241,95 C245,101 252,101 256,96"/>
+              <path class="lash" d="M215,97 l-3,-2"/>
+              <path class="lash" d="M241,95 l-3,-2"/>
             </g>
-            <ellipse class="blush" cx="218" cy="110" rx="8" ry="4.4"/>
-            <ellipse class="blush" cx="258" cy="109" rx="8" ry="4.4"/>
-            <path class="nose" d="M239,103 C243,106 243,109 239,110"/>
-            <circle class="mole" cx="250" cy="115" r="1.4"/>
-            <path class="mouth" d="M232,117 C236,124 244,124 248,116"/>
+            <ellipse class="blush" cx="216" cy="111" rx="7.5" ry="4.2"/>
+            <ellipse class="blush" cx="254" cy="109" rx="8" ry="4.4"/>
+            <path class="nose" d="M214,106 C218,108 220,108 222,106"/>
+            <circle class="mole" cx="246" cy="116" r="1.4"/>
+            <path class="mouth" d="M225,118 C229,125 237,125 241,117"/>
           </g>
         </g>
 
@@ -1936,82 +1939,80 @@ ACTS.hug = b => {
             <path class="ln" fill="url(#herHair)"
                   d="M236,156 C243,174 244,192 238,204 C233,213 221,212 218,202
                      C224,188 225,170 222,154 Z"/>
-            <ellipse class="ln" fill="url(#herSkin)" cx="200" cy="172" rx="26" ry="28"/>
+            <path class="ln" fill="url(#herSkin)"
+                  d="M200,144 C214,144 226,156 227,171 C231,173 232,179 228,181
+                     C226,192 214,200 200,200 C185,200 174,188 174,172
+                     C174,156 186,144 200,144 Z"/>
             <path fill="url(#herHair)"
                   d="M175,170 C174,142 186,130 201,130 C218,130 228,142 227,168
                      C221,150 210,144 198,147 C186,150 178,158 175,170 Z"/>
             <path class="strand" d="M186,138 C196,132 210,133 219,141"/>
             <path class="strand" d="M179,156 C183,145 190,138 198,135"/>
             <path class="shade" d="M176,168 C176,146 185,133 196,129 C184,138 178,152 178,172 Z"/>
-            <path class="brow" d="M180,166 C184,161 191,160 196,163"/>
-            <path class="brow" d="M204,164 C209,160 216,161 220,166"/>
+            <path class="brow" d="M184,166 C188,161 195,160 200,163"/>
+            <path class="brow" d="M208,163 C213,159 219,161 222,166"/>
             <g class="eyes-open">
-              <ellipse class="ink-f" cx="188" cy="177" rx="2.5" ry="3.2"/>
-              <ellipse class="ink-f" cx="212" cy="176" rx="2.5" ry="3.2"/>
-              <circle fill="#fff" cx="189" cy="176" r="1"/>
-              <circle fill="#fff" cx="213" cy="175" r="1"/>
+              <ellipse class="ink-f" cx="192" cy="177" rx="2.3" ry="3"/>
+              <ellipse class="ink-f" cx="215" cy="176" rx="2.5" ry="3.2"/>
+              <circle fill="#fff" cx="193" cy="176" r="1"/>
+              <circle fill="#fff" cx="216" cy="175" r="1"/>
             </g>
             <g class="eyes-shut">
-              <path class="lash" d="M180,175 C184,181 191,181 195,176"/>
-              <path class="lash" d="M204,174 C208,180 215,180 219,175"/>
-              <path class="lash" d="M195,176 l4,-2"/>
-              <path class="lash" d="M219,175 l4,-2"/>
+              <path class="lash" d="M184,175 C188,181 195,181 199,176"/>
+              <path class="lash" d="M207,174 C211,180 218,180 222,175"/>
+              <path class="lash" d="M199,176 l3,-3"/>
+              <path class="lash" d="M222,175 l3,-3"/>
             </g>
-            <ellipse class="blush" cx="182" cy="188" rx="8" ry="4.4"/>
-            <ellipse class="blush" cx="216" cy="187" rx="8" ry="4.4"/>
-            <path class="nose" d="M197,181 C201,184 201,187 197,188"/>
-            <path class="mouth" d="M191,193 C195,200 203,200 207,192"/>
+            <ellipse class="blush" cx="186" cy="189" rx="7.5" ry="4.2"/>
+            <ellipse class="blush" cx="219" cy="186" rx="8" ry="4.4"/>
+            <path class="nose" d="M223,183 C221,185 219,185 217,183"/>
+            <path class="mouth" d="M199,193 C203,200 211,200 215,191"/>
           </g>
         </g>
 
-        <!-- her arms come up between them, hands together -->
+        <!-- her arm goes the other way, out from her shoulder and round him,
+             so the two arms make an X across the middle -->
         <g class="fig figL arm-wrap">
           <path class="ln" fill="url(#herKnit)"
-                d="M184,292 C182,268 190,248 204,236 L217,248
-                   C204,257 197,274 197,292 Z"/>
-          <path class="fold" d="M194,250 q8,-6 14,-8"/>
-          <path class="ln" fill="url(#herSkin)"
-                d="M197,227 C190,231 189,239 195,244 C202,249 213,247 217,240
-                   C221,234 217,226 209,225 Z"/>
+                d="M148,219 C160,247 192,261 222,262 C238,262 251,259 257,254
+                   L264,267 C252,275 236,279 219,278 C188,277 150,257 140,229 Z"/>
+          <path class="hi" d="M154,226 C166,248 194,257 222,258 C196,260 168,252 154,228 Z"/>
+          <path class="fold" d="M196,257 q-2,8 -1,18"/>
+          <path class="fold" d="M236,258 q-1,8 0,18"/>
+          <path class="cuff" d="M249,262 C253,268 256,272 259,274"/>
           <path class="ln2" fill="url(#herSkin)"
-                d="M197,226 C193,222 187,224 187,229 C187,233 191,235 195,233 Z"/>
-          <path class="hi" d="M200,228 C206,226 212,227 216,231 C210,229 204,229 200,231 Z"/>
-          <path class="seam" d="M199,233 q7,3 13,-1"/>
-          <path class="seam" d="M200,238 q6,2 11,-1"/>
-          <path class="seam" d="M202,243 q5,2 9,-1"/>
+                d="M257,261 C250,260 245,266 247,273 C249,280 258,283 264,279
+                   C270,276 271,268 267,263 C264,260 260,260 257,261 Z"/>
+          <path class="ln2" fill="url(#herSkin)"
+                d="M257,260 C256,255 250,254 248,258 C246,261 248,264 251,264 Z"/>
+          <path class="seam" d="M252,267 q7,1 11,-2"/>
+          <path class="seam" d="M254,272 q6,1 10,-2"/>
+          <path class="seam" d="M256,277 q5,1 8,-2"/>
         </g>
 
         <!-- what his arm casts on her top, under the sleeve itself -->
         <g class="contactshade" filter="url(#hugSoft)">
-          <path class="shade" d="M172,266 C200,276 230,274 254,262 L258,274
-                                  C230,288 198,290 170,280 Z"/>
+          <path class="shade" d="M172,254 C200,264 230,262 254,250 L258,262
+                                  C230,276 198,278 170,268 Z"/>
         </g>
 
         <!-- his arm comes round her waist, outside both of them -->
         <g class="fig figR arm-wrap">
           <path class="ln" fill="url(#hisCoat)"
-                d="M308,208 C304,248 284,276 250,288 C224,297 194,298 172,292
-                   L170,272 C196,280 224,279 246,269 C272,257 288,236 292,202 Z"/>
-          <path class="hi" d="M304,214 C300,246 282,270 252,281 C280,266 296,244 300,212 Z"/>
-          <path class="fold" d="M236,275 q4,8 2,14"/>
-          <path class="fold" d="M266,264 q5,7 4,13"/>
-          <path class="cuff" d="M192,276 C192,286 191,292 190,295"/>
+                d="M308,196 C304,236 284,264 250,276 C224,285 194,286 172,280
+                   L170,260 C196,268 224,267 246,257 C272,245 288,224 292,190 Z"/>
+          <path class="hi" d="M304,202 C300,234 282,258 252,269 C280,254 296,232 300,200 Z"/>
+          <path class="fold" d="M236,263 q4,8 2,14"/>
+          <path class="fold" d="M266,252 q5,7 4,13"/>
+          <path class="cuff" d="M192,264 C192,274 191,280 190,283"/>
           <path class="ln2" fill="url(#hisSkin)"
-                d="M177,272 C170,273 166,279 168,285 C170,292 179,295 185,291
-                   C190,288 191,281 188,276 C186,272 182,271 177,272 Z"/>
+                d="M177,260 C170,261 166,267 168,273 C170,280 179,283 185,279
+                   C190,276 191,269 188,264 C186,260 182,259 177,260 Z"/>
           <path class="ln2" fill="url(#hisSkin)"
-                d="M177,271 C173,268 168,270 168,274 C168,277 171,279 174,278 Z"/>
-          <path class="seam" d="M172,278 q7,2 12,-1"/>
-          <path class="seam" d="M173,283 q6,2 11,-1"/>
-          <path class="seam" d="M175,288 q5,2 9,-1"/>
-          <path class="ln2" fill="url(#hisSkin)"
-                d="M170,216 C163,217 159,223 161,229 C163,236 172,239 178,235
-                   C183,232 184,225 181,220 C179,216 175,215 170,216 Z"/>
-          <path class="ln2" fill="url(#hisSkin)"
-                d="M170,215 C166,212 161,214 161,218 C161,221 164,223 167,222 Z"/>
-          <path class="seam" d="M165,222 q7,2 12,-1"/>
-          <path class="seam" d="M166,227 q6,2 11,-1"/>
-          <path class="seam" d="M168,232 q5,2 9,-1"/>
+                d="M177,259 C173,256 168,258 168,262 C168,265 171,267 174,266 Z"/>
+          <path class="seam" d="M172,266 q7,2 12,-1"/>
+          <path class="seam" d="M173,271 q6,2 11,-1"/>
+          <path class="seam" d="M175,276 q5,2 9,-1"/>
         </g>
         </g>
 
