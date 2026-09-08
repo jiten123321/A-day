@@ -120,41 +120,33 @@ A **hug** button sits above the chat, available at any hour rather than being
 one of the twelve stops. It opens on both screens, and whoever presses it, the
 hug plays on both at once.
 
-A girl and a boy, drawn at about seven heads tall rather than the five that
-makes a figure read as a toy. Limbs taper from shoulder to wrist and hip to
-ankle; every form is filled with a two-stop gradient so it has a lit and a
-shaded side; they cast soft contact shadows that slide together as they close
-in, and a blurred shape darkens him where she stands in front. Faces carry
-brows, a nose, a mouth and a little blush — and the eyes close for the hug,
-which is most of what sells it.
+It is a framed picture rather than a stage: a warm paper sky going cream to
+coral, film grain over the top, and the two of them cropped at the thigh and
+drawn as flat shapes with one soft brown outline. Long dark hair, a pale knit,
+teal trousers; a green jumper over a shirt collar, round glasses. Faces are
+four marks each — brows, a nose, a mouth, blush — and the eyes close for the
+hug, which is most of what sells it.
 
-Both are built from rotating joints — shoulder, elbow, hip, knee, neck, waist
-— rather than a canned animation, so the limbs genuinely travel and the timing
-can be eased: step in, wrap, **lift**, squeeze, hold, set down, let go. Every
-angle is written once for the left figure and mirrored by a `--dir` custom
-property, and a negative angle always means "toward the other person".
+Nothing here is a jointed rig. This close in, limbs that swing on hinges read
+as machinery, so the whole thing is two drawings and a handful of transforms:
 
-It is a lifting hug: he stays planted with both feet on the ground and leans
-back against her weight, she comes clean off it. Five things carry it, and it
-does not read without them:
+- **They start apart**, side by side, arms at their sides and eyes open — a
+  photo of the two of them standing together.
+- **They close the gap.** Each figure translates in; she ends up in front of
+  his chest with her head under his chin, not beside him.
+- **The arms cross fade.** Arms-down seams fade out, the wrapped pair fades in:
+  her forearm and clasped hands come up between them, his sleeve comes round
+  her waist and is drawn over both of them, so it reads as an arm going round
+  rather than an arm lying on top.
+- **Their heads tip toward each other** — he by 14°, she by 16° — and her head
+  is drawn a little smaller than his.
+- Then a squeeze, hearts up the empty side of the frame, a hold, and they let
+  go in reverse order.
 
-- **She actually leaves the ground.** Her whole figure translates up and her
-  ground shadow fades out; his stays and his feet never move.
-- **Her legs fold.** Hip and knee are separate joints so her legs bend up and
-  back behind her, each leg at a slightly different angle. Straight legs
-  hanging in the air read as floating, not as being carried.
-- **Her arms go up over his shoulders**, not round his waist — from above him
-  they come down onto his shoulders and the forearms drop behind his neck.
-- **They turn and overlap.** Both squash horizontally into a three-quarter
-  view, and he steps further along than she does so she sits in front of his
-  chest with his head clear beside hers rather than blanketed by her.
-- **Only two arms show.** The far arms are behind the bodies and fade out.
-  Four wrapping arms at this overlap is just a knot; the forearms that do show
-  foreshorten as they pass behind the other body, so the hands disappear round
-  the back instead of poking out the far side.
-
-She is drawn a little smaller than him once she is up, which is both true to
-the pose and what keeps his face visible.
+Two class names to avoid here, learned the hard way: `close` and `wrap` are
+already used by the page (the stage's close button is a 42px square), and
+putting either on the hug container collapsed the whole picture to 42×42. The
+states are called `near` and `hold`.
 
 ## Rooms
 

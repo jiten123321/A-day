@@ -728,112 +728,59 @@ input[type=text], .close, .open{
 .hug-launch svg{display:block}
 
 .hugwrap{margin:6px 0 4px}
-.hugscene{width:100%;height:auto;display:block;overflow:visible}
-.hugscene .ground{stroke:var(--line);stroke-width:2;stroke-dasharray:5 8}
-.hugscene .ink-f{fill:var(--ink)}
-.hugscene path[fill^="url"], .hugscene ellipse[fill^="url"]{stroke:none}
-.hugscene .blush{fill:rgba(206,86,96,.3)}
-.hugscene .brow{stroke:rgba(40,26,18,.75);stroke-width:1.5;fill:none;stroke-linecap:round}
-.hugscene .lash{stroke:var(--ink);stroke-width:1.7;fill:none;stroke-linecap:round}
-.hugscene .nose{stroke:rgba(120,74,48,.55);stroke-width:1.3;fill:none;stroke-linecap:round}
-.hugscene .mouth{stroke:rgba(90,40,40,.8);stroke-width:1.6;fill:none;stroke-linecap:round}
-.hugscene .neckshade{fill:rgba(60,36,22,.22)}
-/* contact shadows on the ground, and the shading where he is behind her */
-.hugscene .contact{fill:rgba(48,40,30,.30);
-  transition:transform .62s cubic-bezier(.34,.9,.3,1), opacity .5s}
-.hugscene .depth{fill:rgba(40,28,18,.0);transition:fill .5s}
-.hugwrap.hugging .hugscene .depth{fill:rgba(40,28,18,.30)}
-.hugwrap.stepping .contact.figL{transform:translateX(56px)}
-.hugwrap.stepping .contact.figR{transform:translateX(-56px)}
-.hugwrap.hugging  .contact.figL{transform:translateX(62px)}
-.hugwrap.hugging  .contact.figR{transform:translateX(-84px)}
-/* once she is off the ground her shadow goes with her — his takes the weight */
-.hugwrap.lifting  .contact.figL{transform:translateX(62px);opacity:0}
-.hugwrap.lifting  .contact.figR{transform:translateX(-86px)}
+.hugscene{width:100%;max-width:360px;height:auto;display:block;margin:0 auto;overflow:visible}
+.hugscene .frameline{fill:none;stroke:var(--ink);stroke-width:2.4;opacity:.9}
+.hugscene .grain{opacity:.14;mix-blend-mode:multiply;pointer-events:none}
+.hugscene .ink-f{fill:#3E2C24}
+/* every filled shape carries the same soft warm outline; the gradient fills
+   themselves are drawn on top of an outlined copy, so .ln is the outline */
+.hugscene .ln{stroke:#42302A;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.hugscene .seam{fill:none;stroke:#42302A;stroke-width:1.6;opacity:.45;stroke-linecap:round}
+.hugscene .blush{fill:rgba(207,96,86,.34);stroke:none}
+.hugscene .brow{stroke:rgba(52,34,24,.7);stroke-width:1.6;fill:none;stroke-linecap:round}
+.hugscene .lash{stroke:#3E2C24;stroke-width:2;fill:none;stroke-linecap:round}
+.hugscene .nose{stroke:rgba(120,74,48,.6);stroke-width:1.5;fill:none;stroke-linecap:round}
+.hugscene .mouth{stroke:rgba(90,42,38,.8);stroke-width:1.7;fill:none;stroke-linecap:round}
+.hugscene .specs{fill:none;stroke:#42302A;stroke-width:1.8;opacity:.85}
+
 /* eyes close for the hug, which is most of what sells it */
 .hugscene .eyes-shut{opacity:0}
-.hugwrap.hugging .hugscene .eyes-open{opacity:0}
-.hugwrap.hugging .hugscene .eyes-shut{opacity:1}
-.hugscene .eyes-open,.hugscene .eyes-shut{transition:opacity .25s}
-/* hair lags a beat behind the head — secondary motion, and it reads */
-.hugscene .hairback .head, .hugscene .hairback{transition-delay:.07s}
+.hugwrap.hold .eyes-open{opacity:0}
+.hugwrap.hold .eyes-shut{opacity:1}
+.hugscene .eyes-open,.hugscene .eyes-shut{transition:opacity .3s}
 
-/* Joints. Every angle is written for the left figure; --dir mirrors it. */
-.hugscene .up, .hugscene .fore, .hugscene .thigh, .hugscene .shin,
-.hugscene .torso, .hugscene .head, .hugscene .fig{
+/* Two poses, not a rig: they stand apart with their arms down, then they are
+   holding on. What moves is where each of them is, how their heads tip, and
+   which pair of arms is showing. */
+.hugscene .fig, .hugscene .head{
   transform-box:view-box;
-  transition:transform .62s cubic-bezier(.34,.9,.3,1)
+  transition:transform .66s cubic-bezier(.34,.9,.3,1)
 }
-.hugwrap{ --farUp:10deg; --farFore:6deg;  --nearUp:-9deg; --nearFore:-6deg;
-          --lean:0deg;   --tilt:0deg;  --step:0px; --turn:1; --lift:0px;
-          --thigh:0deg;  --shin:0deg;  --thigh2:0deg; --shin2:0deg;
-          --spin:0deg;   --sz:1;       --sq:0px }
-/* Close the gap first, then overlap. He ends up further along than she does,
-   so she sits in front of his chest with his head clear beside hers rather
-   than blanketed by her. */
-.hugwrap.stepping{ --step:56px }
-.hugwrap.hugging{ --turn:.72 }          /* both turn to face each other */
-.hugwrap.squeeze{ --sq:5px }
+.hugscene .figL{ transform:translate(-36px, 10px) }
+.hugscene .figR{ transform:translate(42px, -4px) }
+.hugwrap.near .figL{ transform:translate(0,0) }
+.hugwrap.near .figR{ transform:translate(0,0) }
+.hugwrap.squeeze .figL{ transform:translate(3px,1px) }
+.hugwrap.squeeze .figR{ transform:translate(-3px,0) }
 
-/* Two arms, not four. His far arm is behind her; once he has her off the
-   ground hers goes behind him too, and what is left is the one arm over his
-   shoulder that the whole pose hangs on. */
-.hugscene .arm-far{ transition:opacity .3s }
-.hugwrap.hugging .arm-far.figR{ opacity:0 }
-.hugwrap.lifting .arm-far{ opacity:0 }
+/* he tips his head down over hers, she turns hers up into him */
+.hugscene .headHim{ transform-origin:240px 132px }
+.hugscene .headHer{ transform-origin:200px 202px; transform:scale(.94) }
+.hugwrap.hold .headHim{ transform:rotate(-14deg) }
+.hugwrap.hold .headHer{ transform:rotate(16deg) scale(.94) }
 
-/* Step one: they close in and wrap. Her arms reach up over his shoulders,
-   his come round her back. Forearms shrink as they pass behind the other
-   body so the hands disappear rather than poking out the far side. */
-.hugwrap.hugging .figL{
-  --step:62px;
-  --nearUp:-16deg; --nearFore:-50deg; --farUp:-26deg; --farFore:-18deg;
-  --upScale:.92;   --foreScale:.42;
-  --lean:8deg;     --tilt:14deg
-}
-.hugwrap.hugging .figR{
-  --step:84px;
-  --nearUp:-52deg; --nearFore:-40deg; --farUp:-46deg; --farFore:-34deg;
-  --upScale:.55;   --foreScale:.45;
-  --lean:-5deg;    --tilt:-10deg
-}
-/* Step two — the lift. He stays planted and leans back against her weight;
-   she comes clean off the ground, her legs folding up behind her. */
-.hugwrap.lifting .figL{
-  --step:62px;     --lift:-38px;      --spin:-3deg;   --sz:.82;
-  --thigh:16deg;   --shin:112deg;     --thigh2:-9deg; --shin2:18deg;
-  --nearUp:-46deg; --nearFore:34deg;  --farUp:-30deg; --farFore:-18deg;
-  --upScale:.9;    --foreScale:.4;
-  --lean:6deg;     --tilt:16deg
-}
-.hugwrap.lifting .figR{
-  --step:86px;
-  --nearUp:-52deg; --nearFore:-40deg; --farUp:-62deg; --farFore:-40deg;
-  --upScale:.45;   --foreScale:.3;
-  --lean:-9deg;    --tilt:-15deg
-}
-.hugscene .armFar  .up   { transform:rotate(calc(var(--dir) * var(--farUp))) scale(var(--upScale,1)) }
-.hugscene .armFar  .fore { transform:rotate(calc(var(--dir) * var(--farFore))) scale(var(--foreScale,1)) }
-.hugscene .armNear .up   { transform:rotate(calc(var(--dir) * var(--nearUp))) scale(var(--upScale,1)) }
-.hugscene .armNear .fore { transform:rotate(calc(var(--dir) * var(--nearFore))) scale(var(--foreScale,1)) }
-.hugscene .thigh         { transform:rotate(calc(var(--dir) * var(--thigh))) }
-.hugscene .shin          { transform:rotate(calc(var(--dir) * var(--shin))) }
-.hugscene .leg2 .thigh   { transform:rotate(calc(var(--dir) * (var(--thigh) + var(--thigh2)))) }
-.hugscene .leg2 .shin    { transform:rotate(calc(var(--dir) * (var(--shin) + var(--shin2)))) }
-.hugscene .torso{ transform:rotate(calc(var(--dir) * var(--lean))) }
-.hugscene .head { transform:rotate(var(--tilt)) }
-.hugscene .figL { transform:translate(calc(var(--step) + var(--sq)), var(--lift))
-                            rotate(var(--spin)) scale(var(--sz)) scaleX(var(--turn)) }
-.hugscene .figR { transform:translate(calc(-1 * (var(--step) + var(--sq))), var(--lift))
-                            rotate(var(--spin)) scale(var(--sz)) scaleX(var(--turn)) }
-.hugwrap.squeeze .hugscene .torso{ transform:rotate(calc(var(--dir) * (var(--lean) + 2deg))) }
+/* the arms cross fade: down at their sides, then wrapped */
+.hugscene .arm-wrap{ opacity:0; transition:opacity .42s }
+.hugscene .arm-down{ opacity:1; transition:opacity .3s }
+.hugwrap.hold .arm-wrap{ opacity:1 }
+.hugwrap.hold .arm-down{ opacity:0 }
 
 /* a little life before anything happens */
-@keyframes breathe{0%,100%{transform:rotate(calc(var(--dir) * var(--lean)))}
-                   50%{transform:rotate(calc(var(--dir) * (var(--lean) + .8deg)))}}
-.hugwrap:not(.stepping) .hugscene .torso{animation:breathe 4.2s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:translateY(0)} 50%{transform:translateY(-1.2px)}}
+.hugwrap:not(.near) .hugscene .figR{animation:breathe 4.2s ease-in-out infinite}
 
-.hugscene .heart{fill:var(--rose);opacity:0;animation:rise 2.4s ease-out forwards}
+.hugscene .heart{fill:#FFF4E9;stroke:rgba(120,70,50,.25);stroke-width:1;
+  opacity:0;animation:rise 2.4s ease-out forwards}
 @keyframes rise{
   0%{opacity:0;transform:translateY(0) translateX(0) scale(.6)}
   18%{opacity:.95}
@@ -842,7 +789,7 @@ input[type=text], .close, .open{
 .hug-btn{background:var(--rose);color:#FFF6EE;font-size:1.15rem;padding:13px 40px}
 
 @media (prefers-reduced-motion:reduce){
-  .hugscene .up,.hugscene .fore,.hugscene .torso,.hugscene .head,.hugscene .fig{transition:none}
+  .hugscene .fig,.hugscene .head{transition:none;animation:none}
   .hugscene .heart{animation-duration:.01ms}
 }
 
@@ -1828,144 +1775,145 @@ ACTS.hug = b => {
   const box = el("div","card");
   const wrap = el("div","hugwrap");
 
-  const W = 420, GROUND = 300;
-  const HIP = 196, SH = 148, NECK = 140, HEADY = 112;   // ~6.8 heads tall
-  const UP = 38, FORE = 36;
-
-  /* A limb that narrows from one end to the other — a uniform capsule is the
-     main thing that makes a figure read as a toy rather than a person. */
-  const taper = (x, y0, y1, r0, r1) =>
-    `M${x-r0},${y0} A${r0},${r0} 0 0 1 ${x+r0},${y0} L${x+r1},${y1} A${r1},${r1} 0 0 1 ${x-r1},${y1} Z`;
-
-  const person = (o) => {
-    const x = o.x, dir = o.dir, girl = o.girl, g = (n) => `url(#${o.id}-${n})`;
-
-    const arm = (cls, dx) => { const ax = x + dx; return `
-      <g class="${cls}">
-        <g class="up" style="transform-origin:${ax}px ${SH}px">
-          <path class="ink-f" d="${taper(ax, SH, SH+UP, 8.4, 6.6)}" stroke-width="3.2" stroke="var(--ink)"/>
-          <path fill="${g('cloth')}" d="${taper(ax, SH, SH+UP, 7.6, 5.8)}"/>
-          <g class="fore" style="transform-origin:${ax}px ${SH+UP}px">
-            <path class="ink-f" d="${taper(ax, SH+UP, SH+UP+FORE, 6.4, 4.6)}" stroke-width="3.2" stroke="var(--ink)"/>
-            <path fill="${g('skin')}" d="${taper(ax, SH+UP, SH+UP+FORE, 5.6, 3.8)}"/>
-            <ellipse class="ink-f" cx="${ax}" cy="${SH+UP+FORE+4}" rx="6.2" ry="7.4"/>
-            <ellipse fill="${g('skin')}" cx="${ax}" cy="${SH+UP+FORE+3.4}" rx="5" ry="6.2"/>
-          </g>
-        </g>
-      </g>`; };
-
-    const legTop = girl ? HIP + 24 : HIP + 4;
-    const KNEE = Math.round(legTop + (GROUND - 10 - legTop) * (girl ? 0.5 : 0.55));
-    /* hip and knee are real joints — she has to fold her legs up behind her
-       when he lifts her, and a straight peg leg cannot do that */
-    const leg = (sd, second) => { const lx = x + sd*10, kx = lx + sd*1.5; return `
-      <g class="leg${second ? " leg2" : ""}">
-       <g class="thigh" style="transform-origin:${lx}px ${legTop}px">
-        <path class="ink-f" d="${taper(lx, legTop, KNEE, girl?10:11.5, girl?7.4:8.6)}" stroke-width="3.2" stroke="var(--ink)"/>
-        <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(lx, legTop, KNEE, girl?9.2:10.7, girl?6.6:7.8)}"/>
-        <g class="shin" style="transform-origin:${kx}px ${KNEE}px">
-          <circle class="ink-f" cx="${kx}" cy="${KNEE}" r="${girl?7.4:8.6}"/>
-          <path class="ink-f" d="${taper(kx, KNEE, GROUND-10, girl?7.2:8.4, girl?5.6:6.6)}" stroke-width="3.2" stroke="var(--ink)"/>
-          <circle fill="${girl ? g('skin') : g('trouser')}" cx="${kx}" cy="${KNEE}" r="${girl?6.6:7.8}"/>
-          <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(kx, KNEE, GROUND-10, girl?6.4:7.6, girl?4.8:5.8)}"/>
-          <path class="ink-f" d="M${kx-8},${GROUND-12} h16 a6,6 0 0 1 6,6 v3 a4,4 0 0 1-4,4 h-20 a4,4 0 0 1-4,-4 v-3 a6,6 0 0 1 6,-6 z"/>
-          <path fill="${g('shoe')}" d="M${kx-6.5},${GROUND-11} h13 a5,5 0 0 1 5,5 v2 a3,3 0 0 1-3,3 h-17 a3,3 0 0 1-3,-3 v-2 a5,5 0 0 1 5,-5 z"/>
-        </g>
-       </g>
-      </g>`; };
-
-    // shoulders taper to a waist, then a skirt or a hip
-    const top = girl
-      ? `M${x-15},${SH-3} Q${x},${SH-10} ${x+15},${SH-3} Q${x+13},${HIP-30} ${x+10},${HIP-20} L${x+25},${HIP+26} Q${x},${HIP+34} ${x-25},${HIP+26} L${x-10},${HIP-20} Q${x-13},${HIP-30} ${x-15},${SH-3} Z`
-      : `M${x-17},${SH-3} Q${x},${SH-11} ${x+17},${SH-3} Q${x+15},${HIP-26} ${x+14},${HIP-8} Q${x},${HIP-3} ${x-14},${HIP-8} Q${x-15},${HIP-26} ${x-17},${SH-3} Z`;
-    const hips = girl ? "" : `
-      <path class="ink-f" d="M${x-15},${HIP-12} L${x+15},${HIP-12} L${x+13},${HIP+10} L${x-13},${HIP+10} Z"/>
-      <path fill="${g('trouser')}" d="M${x-13.5},${HIP-11} L${x+13.5},${HIP-11} L${x+11.5},${HIP+9} L${x-11.5},${HIP+9} Z"/>`;
-
-    const hairBack = girl
-      ? `<path class="ink-f"  d="M${x-16},${HEADY-3} Q${x-24},${HEADY+26} ${x-17},${HEADY+56} Q${x},${HEADY+62} ${x+17},${HEADY+56} Q${x+24},${HEADY+26} ${x+16},${HEADY-3} Z"/>
-         <path fill="${g('hair')}" d="M${x-14.5},${HEADY-3} Q${x-22},${HEADY+26} ${x-15.5},${HEADY+54} Q${x},${HEADY+60} ${x+15.5},${HEADY+54} Q${x+22},${HEADY+26} ${x+14.5},${HEADY-3} Z"/>`
-      : "";
-    const hairFront = girl
-      ? `<path class="ink-f"  d="M${x-14.6},${HEADY-1} Q${x-14},${HEADY-19} ${x},${HEADY-18.5} Q${x+14},${HEADY-19} ${x+14.6},${HEADY-1} Q${x+7},${HEADY-10} ${x-2},${HEADY-6.5} Q${x-9},${HEADY-4} ${x-14.6},${HEADY-1} Z"/>
-         <path fill="${g('hair')}" d="M${x-13.6},${HEADY-2} Q${x-13},${HEADY-18} ${x},${HEADY-17.5} Q${x+13},${HEADY-18} ${x+13.6},${HEADY-2} Q${x+7},${HEADY-10} ${x-2},${HEADY-7} Q${x-9},${HEADY-4.6} ${x-13.6},${HEADY-2} Z"/>`
-      : `<path class="ink-f"  d="M${x-14},${HEADY-3} Q${x-13.4},${HEADY-20} ${x},${HEADY-19.5} Q${x+13.4},${HEADY-20} ${x+14},${HEADY-3} Q${x+8},${HEADY-11} ${x-1.5},${HEADY-8.6} Q${x-8.6},${HEADY-7} ${x-14},${HEADY-3} Z"/>
-         <path fill="${g('hair')}" d="M${x-13},${HEADY-4} Q${x-12.6},${HEADY-19} ${x},${HEADY-18.6} Q${x+12.6},${HEADY-19} ${x+13},${HEADY-4} Q${x+8},${HEADY-11} ${x-1.5},${HEADY-9.2} Q${x-8.6},${HEADY-7.6} ${x-13},${HEADY-4} Z"/>`;
-
-    const face = (sd) => `
-      <path class="brow" d="M${x+sd*5.6-3},${HEADY-3.6} q3,-2.2 6,-.2"/>
-      <g class="eyes-open">
-        <ellipse class="ink-f" cx="${x+sd*5.6}" cy="${HEADY+1}" rx="1.9" ry="2.5"/>
-        <circle fill="#fff" cx="${x+sd*5.6+0.7}" cy="${HEADY+0.2}" r="0.7"/>
-      </g>
-      <g class="eyes-shut"><path class="lash" d="M${x+sd*5.6-3.2},${HEADY+1.6} q3.2,-3.4 6.4,0"/></g>`;
-
-    return {
-      defs: `
-        <linearGradient id="${o.id}-skin" x1="0" y1="0" x2="1" y2="0.2">
-          <stop offset="0" stop-color="${o.skin}"/><stop offset="1" stop-color="${o.skinDark}"/></linearGradient>
-        <linearGradient id="${o.id}-cloth" x1="0" y1="0" x2="1" y2="0.25">
-          <stop offset="0" stop-color="${o.cloth}"/><stop offset="1" stop-color="${o.clothDark}"/></linearGradient>
-        <linearGradient id="${o.id}-hair" x1="0.15" y1="0" x2="1" y2="0.4">
-          <stop offset="0" stop-color="${o.hair2}"/><stop offset="1" stop-color="${o.hair}"/></linearGradient>
-        <linearGradient id="${o.id}-trouser" x1="0" y1="0" x2="1" y2="0.25">
-          <stop offset="0" stop-color="#48608F"/><stop offset="1" stop-color="#2F3F62"/></linearGradient>
-        <linearGradient id="${o.id}-shoe" x1="0" y1="0" x2="1" y2="0.3">
-          <stop offset="0" stop-color="#3A4A6B"/><stop offset="1" stop-color="#26314A"/></linearGradient>`,
-      shadow: `<ellipse class="contact ${o.id}" cx="${x}" cy="${GROUND+1}" rx="30" ry="6"/>`,
-      back: `<g class="fig ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">
-        <g class="head hairback" style="transform-origin:${x}px ${SH}px">${hairBack}</g></g>`,
-      farArm: `<g class="fig arm-far ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armFar", -14.5*dir)}</g>`,
-      body: `<g class="fig body ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">
-        <g class="legs">${leg(-1, false)}${leg(1, true)}</g>
-        <g class="torso" style="transform-origin:${x}px ${HIP}px">
-          ${hips}
-          <path class="ink-f" d="${top}" stroke="var(--ink)" stroke-width="3.4"/>
-          <path fill="${g('cloth')}" d="${top}"/>
-          <path class="ink-f" d="${taper(x, NECK-6, NECK+9, 6.4, 7.4)}" stroke="var(--ink)" stroke-width="3"/>
-          <path fill="${g('skin')}" d="${taper(x, NECK-6, NECK+9, 5.6, 6.6)}"/>
-          <path class="neckshade" d="${taper(x, NECK-5, NECK+4, 5.4, 6.2)}"/>
-          <g class="head" style="transform-origin:${x}px ${SH}px">
-            <ellipse class="ink-f"  cx="${x}" cy="${HEADY}" rx="15.4" ry="17.2"/>
-            <ellipse fill="${g('skin')}" cx="${x}" cy="${HEADY}" rx="14" ry="15.8"/>
-            <ellipse class="blush" cx="${x-8.4}" cy="${HEADY+5.4}" rx="3.4" ry="2.4"/>
-            <ellipse class="blush" cx="${x+8.4}" cy="${HEADY+5.4}" rx="3.4" ry="2.4"/>
-            ${face(-1)}${face(1)}
-            <path class="nose" d="M${x+dir*1.4},${HEADY+2.6} q${dir*2.2},2 ${dir*.2},3.2"/>
-            <path class="mouth" d="M${x-3.4},${HEADY+8.6} q3.4,3.4 6.8,0"/>
-            ${hairFront}
-          </g>
-        </g>
-      </g>`,
-      nearArm: `<g class="fig arm-near ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armNear", 14.5*dir)}</g>`
-    };
-  };
-
-  const L = person({ id:"figL", x:126, dir:1,  girl:true,
-                     skin:"#F0C39B", skinDark:"#D39C71", hair:"#2A1A12", hair2:"#4A3122",
-                     cloth:"#E4536B", clothDark:"#B8324A" });
-  const R = person({ id:"figR", x:294, dir:-1, girl:false,
-                     skin:"#E0A776", skinDark:"#BC8352", hair:"#1B1009", hair2:"#3A2617",
-                     cloth:"#EFA22A", clothDark:"#C57A0C" });
+  /* A framed picture rather than a stage: warm paper sky, the two of them
+     close in and cropped at the thigh, drawn as flat shapes. This near, a
+     jointed rig reads as machinery — so the arms are two drawings that cross
+     fade instead of limbs that swing. */
+  const PX = 116, PY = 13, PW = 188, PH = 304;
+  const g2 = (id, a, b2) => `
+    <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0.35">
+      <stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b2}"/></linearGradient>`;
 
   wrap.innerHTML = `
-    <svg class="hugscene" viewBox="0 0 ${W} 330" role="img" aria-label="a boy lifting a girl off her feet in a hug">
+    <svg class="hugscene" viewBox="100 0 220 330" role="img"
+         aria-label="the two of them holding on to each other">
       <defs>
-        ${L.defs}${R.defs}
-        <filter id="softshadow" x="-40%" y="-60%" width="180%" height="220%">
-          <feGaussianBlur stdDeviation="5"/></filter>
-        <filter id="depth" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="6"/></filter>
+        <linearGradient id="hugSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#EFE3CC"/>
+          <stop offset=".46" stop-color="#F3C29B"/>
+          <stop offset="1" stop-color="#E9805C"/>
+        </linearGradient>
+        ${g2("herHair","#4E3125","#301C13")}
+        ${g2("herSkin","#F8DBBE","#EBBE99")}
+        ${g2("herKnit","#F6E5DA","#DEC2B2")}
+        ${g2("herLeg","#2F8375","#1D5C52")}
+        ${g2("hisHair","#523726","#37231A")}
+        ${g2("hisSkin","#F3D2B1","#DFB48C")}
+        ${g2("hisCoat","#5C6849","#3F4A31")}
+        ${g2("hisLeg","#918770","#6C6353")}
+        ${g2("hisShirt","#F5EDE0","#DED3C1")}
+        <clipPath id="hugFrame">
+          <rect x="${PX}" y="${PY}" width="${PW}" height="${PH}" rx="15"/>
+        </clipPath>
+        <filter id="hugGrain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+        </filter>
       </defs>
-      <g class="shadows" filter="url(#softshadow)">${L.shadow}${R.shadow}</g>
-      <!-- he is behind and takes her weight; she is in front and off the ground.
-           Her far arm passes behind him, her near arm drapes over his shoulder
-           in front, and his near arm comes round her and sits in front of her. -->
-      ${L.farArm}${R.farArm}${R.back}${R.body}
-      <ellipse class="depth" cx="208" cy="${HIP-32}" rx="33" ry="58" filter="url(#depth)"/>
-      ${L.back}${L.body}
-      ${L.nearArm}${R.nearArm}
-      <g class="hearts"></g>
+
+      <g clip-path="url(#hugFrame)">
+        <rect x="${PX}" y="${PY}" width="${PW}" height="${PH}" fill="url(#hugSky)"/>
+
+        <!-- him, behind -->
+        <g class="fig figR">
+          <path class="ln" fill="url(#hisLeg)" d="M176,262 L306,262 L306,322 L174,322 Z"/>
+          <path class="ln" fill="url(#hisShirt)" d="M212,140 L240,182 L268,140 L262,132 L240,166 L218,132 Z"/>
+          <path class="ln" fill="url(#hisSkin)" d="M226,122 h28 v16 a14,13 0 0 1 -28,0 Z"/>
+          <path class="ln" fill="url(#hisCoat)"
+                d="M174,272 L176,192 C176,164 192,148 216,142 L240,180 L264,142
+                   C290,148 306,164 306,192 L308,272 C266,285 214,285 174,272 Z"/>
+          <path class="seam arm-down" d="M196,166 C190,196 189,230 192,272"/>
+          <g class="head headHim">
+            <ellipse class="ln" fill="url(#hisHair)" cx="240" cy="90" rx="36" ry="37"/>
+            <ellipse class="ln" fill="url(#hisSkin)" cx="240" cy="100" rx="29" ry="32"/>
+            <ellipse class="ln" fill="url(#hisSkin)" cx="269" cy="104" rx="6" ry="8"/>
+            <path fill="url(#hisHair)"
+                  d="M211,94 C212,66 224,54 241,54 C259,54 271,68 269,92
+                     C263,74 253,68 240,70 C226,72 216,80 211,94 Z"/>
+            <path class="brow" d="M220,88 q7,-5 14,-1"/>
+            <path class="brow" d="M248,87 q7,-4 13,1"/>
+            <g class="eyes-open">
+              <ellipse class="ink-f" cx="227" cy="99" rx="2.4" ry="3"/>
+              <ellipse class="ink-f" cx="253" cy="98" rx="2.4" ry="3"/>
+            </g>
+            <g class="eyes-shut">
+              <path class="lash" d="M221,97 q6,7 12,0"/>
+              <path class="lash" d="M247,96 q6,7 12,0"/>
+            </g>
+            <g class="specs">
+              <circle cx="227" cy="98" r="10"/><circle cx="253" cy="97" r="10"/>
+              <path d="M237,98 q3,-2 6,-1"/>
+            </g>
+            <ellipse class="blush" cx="219" cy="110" rx="7" ry="4"/>
+            <ellipse class="blush" cx="258" cy="109" rx="7" ry="4"/>
+            <path class="nose" d="M240,105 q3,3 0,5"/>
+            <path class="mouth" d="M235,118 q6,5 11,-1"/>
+          </g>
+        </g>
+
+        <!-- her, in front and tucked in under his chin -->
+        <g class="fig figL">
+          <path class="ln" fill="url(#herLeg)" d="M148,286 L244,286 L244,326 L146,326 Z"/>
+          <path class="ln" fill="url(#herKnit)"
+                d="M146,290 L150,238 C150,214 166,201 196,201 C226,201 241,214 241,238
+                   L243,290 C214,301 176,301 146,290 Z"/>
+          <path class="seam arm-down" d="M167,222 C161,246 160,270 163,292"/>
+          <path class="ln" fill="url(#herSkin)" d="M186,182 h24 v16 a12,11 0 0 1 -24,0 Z"/>
+          <path class="ln" fill="url(#herHair)"
+                d="M170,148 C150,178 143,228 155,260 C162,280 182,286 188,272
+                   C176,263 169,245 171,222 C165,198 165,168 170,148 Z"/>
+          <g class="head headHer">
+            <ellipse class="ln" fill="url(#herHair)" cx="198" cy="158" rx="35" ry="37"/>
+            <ellipse class="ln" fill="url(#herSkin)" cx="200" cy="172" rx="26" ry="28"/>
+            <path fill="url(#herHair)"
+                  d="M176,168 C176,144 187,134 201,134 C217,134 227,146 226,166
+                     C219,150 208,145 197,148 C186,151 179,158 176,168 Z"/>
+            <path class="brow" d="M182,168 q6,-5 12,-2"/>
+            <path class="brow" d="M206,167 q6,-4 11,1"/>
+            <g class="eyes-open">
+              <ellipse class="ink-f" cx="188" cy="178" rx="2.3" ry="2.9"/>
+              <ellipse class="ink-f" cx="212" cy="177" rx="2.3" ry="2.9"/>
+            </g>
+            <g class="eyes-shut">
+              <path class="lash" d="M182,176 q6,7 12,0"/>
+              <path class="lash" d="M206,175 q6,7 12,0"/>
+            </g>
+            <ellipse class="blush" cx="183" cy="189" rx="7" ry="4"/>
+            <ellipse class="blush" cx="216" cy="188" rx="7" ry="4"/>
+            <path class="nose" d="M199,183 q3,3 0,5"/>
+            <path class="mouth" d="M194,194 q6,5 11,-1"/>
+          </g>
+        </g>
+
+        <!-- her forearms come up between them, hands together -->
+        <g class="fig figL arm-wrap">
+          <path class="ln" fill="url(#herKnit)"
+                d="M186,292 C184,275 193,259 207,249 L219,261
+                   C207,269 200,280 200,292 Z"/>
+          <path class="ln" fill="url(#herSkin)"
+                d="M197,239 C190,243 189,252 196,257 C204,262 216,260 221,253
+                   C225,246 220,237 212,236 Z"/>
+          <path class="seam" d="M202,245 q7,3 13,-1"/>
+          <path class="seam" d="M204,251 q6,2 11,-1"/>
+        </g>
+
+        <!-- his arm comes round her waist, outside both of them -->
+        <g class="fig figR arm-wrap">
+          <path class="ln" fill="url(#hisCoat)"
+                d="M308,208 C304,248 284,276 250,288 C224,297 194,298 172,292
+                   L170,272 C196,280 224,279 246,269 C272,257 288,236 292,202 Z"/>
+          <path class="ln" fill="url(#hisSkin)"
+                d="M174,274 C168,276 165,282 169,287 C173,292 182,292 186,287
+                   C189,283 187,276 182,274 Z"/>
+          <path class="seam" d="M172,281 q6,2 12,-1"/>
+          <path class="seam" d="M172,286 q6,2 11,-1"/>
+        </g>
+
+        <g class="hearts"></g>
+        <rect class="grain" x="${PX}" y="${PY}" width="${PW}" height="${PH}"
+              filter="url(#hugGrain)"/>
+      </g>
+      <rect class="frameline" x="${PX}" y="${PY}" width="${PW}" height="${PH}" rx="15"/>
     </svg>`;
 
   box.appendChild(wrap);
@@ -1987,7 +1935,7 @@ ACTS.hug = b => {
       // the position lives on a wrapper: a CSS transform on the path itself
       // would override an SVG transform attribute and drop it at the origin
       const g = document.createElementNS(NS, "g");
-      const x = 176 + Math.random()*66, y = 118 + Math.random()*40;
+      const x = 124 + Math.random()*54, y = 96 + Math.random()*62;
       const sc = 0.55 + Math.random()*0.6;
       g.setAttribute("transform", `translate(${x} ${y}) scale(${sc})`);
       const p = document.createElementNS(NS, "path");
@@ -2006,18 +1954,16 @@ ACTS.hug = b => {
     if(playing) return;
     playing = true;
     CHIME.warm();
-    // close in, wrap, then he takes her off the ground — in that order, because
-    // a lift that happens before the arms are round her reads as a jump
-    wrap.classList.add("stepping");
-    stageTimers.push(setTimeout(() => wrap.classList.add("hugging"), 340));
-    stageTimers.push(setTimeout(() => wrap.classList.add("lifting"), 780));
-    stageTimers.push(setTimeout(() => { wrap.classList.add("squeeze"); floatHearts(); }, 1240));
-    stageTimers.push(setTimeout(() => wrap.classList.remove("squeeze"), 1620));
+    // close the gap first, then hold on: the arms only make sense once they
+    // are actually touching
+    wrap.classList.add("near");
+    stageTimers.push(setTimeout(() => wrap.classList.add("hold"), 320));
+    stageTimers.push(setTimeout(() => { wrap.classList.add("squeeze"); floatHearts(); }, 1000));
+    stageTimers.push(setTimeout(() => wrap.classList.remove("squeeze"), 1400));
     stageTimers.push(setTimeout(() => {
-      wrap.classList.remove("lifting");                       // set her down first
-      stageTimers.push(setTimeout(() => wrap.classList.remove("hugging"), 520));
-      stageTimers.push(setTimeout(() => { wrap.classList.remove("stepping"); playing = false; }, 1000));
-    }, 4600));
+      wrap.classList.remove("hold");                          // let go first
+      stageTimers.push(setTimeout(() => { wrap.classList.remove("near"); playing = false; }, 460));
+    }, 4400));
   };
 
   let known = null;
