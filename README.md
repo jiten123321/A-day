@@ -128,24 +128,33 @@ in, and a blurred shape darkens him where she stands in front. Faces carry
 brows, a nose, a mouth and a little blush — and the eyes close for the hug,
 which is most of what sells it.
 
-Both are built from rotating joints — shoulder, elbow, neck, waist — rather
-than a canned animation, so the arms genuinely travel and the timing can be
-eased: step in, wrap, squeeze, hold, let go. Every angle is written once for
-the left figure and mirrored by a `--dir` custom property.
+Both are built from rotating joints — shoulder, elbow, hip, knee, neck, waist
+— rather than a canned animation, so the limbs genuinely travel and the timing
+can be eased: step in, wrap, **lift**, squeeze, hold, set down, let go. Every
+angle is written once for the left figure and mirrored by a `--dir` custom
+property, and a negative angle always means "toward the other person".
 
-Four things carry the embrace, and it does not read without them:
+It is a lifting hug: he stays planted with both feet on the ground and leans
+back against her weight, she comes clean off it. Five things carry it, and it
+does not read without them:
 
-- **They turn.** Front-on figures with arms reaching across look like two
-  people posing. Both squash horizontally into a three-quarter view.
-- **They overlap.** Side by side is not a hug; she ends up in front of him
-  with about 90% of her body over his.
-- **Only two arms show.** The other two are on the far side of the bodies and
-  fade out. Four wrapping arms at this overlap is just a knot.
-- **The forearms foreshorten** as they pass behind the other body, so the
-  hands disappear round the back instead of poking out the far side.
+- **She actually leaves the ground.** Her whole figure translates up and her
+  ground shadow fades out; his stays and his feet never move.
+- **Her legs fold.** Hip and knee are separate joints so her legs bend up and
+  back behind her, each leg at a slightly different angle. Straight legs
+  hanging in the air read as floating, not as being carried.
+- **Her arms go up over his shoulders**, not round his waist — from above him
+  they come down onto his shoulders and the forearms drop behind his neck.
+- **They turn and overlap.** Both squash horizontally into a three-quarter
+  view, and he steps further along than she does so she sits in front of his
+  chest with his head clear beside hers rather than blanketed by her.
+- **Only two arms show.** The far arms are behind the bodies and fade out.
+  Four wrapping arms at this overlap is just a knot; the forearms that do show
+  foreshorten as they pass behind the other body, so the hands disappear round
+  the back instead of poking out the far side.
 
-The near arms are drawn above both bodies and the far arms beneath, which is
-what makes the embrace read as an embrace rather than two people overlapping.
+She is drawn a little smaller than him once she is up, which is both true to
+the pose and what keeps his face visible.
 
 ## Rooms
 

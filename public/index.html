@@ -739,11 +739,17 @@ input[type=text], .close, .open{
 .hugscene .mouth{stroke:rgba(90,40,40,.8);stroke-width:1.6;fill:none;stroke-linecap:round}
 .hugscene .neckshade{fill:rgba(60,36,22,.22)}
 /* contact shadows on the ground, and the shading where he is behind her */
-.hugscene .contact{fill:rgba(48,40,30,.30);transition:transform .62s cubic-bezier(.34,.9,.3,1)}
+.hugscene .contact{fill:rgba(48,40,30,.30);
+  transition:transform .62s cubic-bezier(.34,.9,.3,1), opacity .5s}
 .hugscene .depth{fill:rgba(40,28,18,.0);transition:fill .5s}
 .hugwrap.hugging .hugscene .depth{fill:rgba(40,28,18,.30)}
-.hugwrap.stepping .contact.figL{transform:translateX(80px)}
-.hugwrap.stepping .contact.figR{transform:translateX(-80px)}
+.hugwrap.stepping .contact.figL{transform:translateX(56px)}
+.hugwrap.stepping .contact.figR{transform:translateX(-56px)}
+.hugwrap.hugging  .contact.figL{transform:translateX(62px)}
+.hugwrap.hugging  .contact.figR{transform:translateX(-84px)}
+/* once she is off the ground her shadow goes with her — his takes the weight */
+.hugwrap.lifting  .contact.figL{transform:translateX(62px);opacity:0}
+.hugwrap.lifting  .contact.figR{transform:translateX(-86px)}
 /* eyes close for the hug, which is most of what sells it */
 .hugscene .eyes-shut{opacity:0}
 .hugwrap.hugging .hugscene .eyes-open{opacity:0}
@@ -753,45 +759,73 @@ input[type=text], .close, .open{
 .hugscene .hairback .head, .hugscene .hairback{transition-delay:.07s}
 
 /* Joints. Every angle is written for the left figure; --dir mirrors it. */
-.hugscene .up, .hugscene .fore, .hugscene .torso, .hugscene .head, .hugscene .fig{
+.hugscene .up, .hugscene .fore, .hugscene .thigh, .hugscene .shin,
+.hugscene .torso, .hugscene .head, .hugscene .fig{
   transform-box:view-box;
   transition:transform .62s cubic-bezier(.34,.9,.3,1)
 }
 .hugwrap{ --farUp:10deg; --farFore:6deg;  --nearUp:-9deg; --nearFore:-6deg;
-          --lean:0deg;   --tilt:0deg;  --step:0px; --turn:1; --lift:0px }
-/* Far enough in that the bodies genuinely overlap — side by side reads as two
-   people posing, not as a hug. */
-.hugwrap.stepping{ --step:80px }
+          --lean:0deg;   --tilt:0deg;  --step:0px; --turn:1; --lift:0px;
+          --thigh:0deg;  --shin:0deg;  --thigh2:0deg; --shin2:0deg;
+          --spin:0deg;   --sz:1;       --sq:0px }
+/* Close the gap first, then overlap. He ends up further along than she does,
+   so she sits in front of his chest with his head clear beside hers rather
+   than blanketed by her. */
+.hugwrap.stepping{ --step:56px }
 .hugwrap.hugging{ --turn:.72 }          /* both turn to face each other */
+.hugwrap.squeeze{ --sq:5px }
 
-/* Each has their own pose: she is in front with her arms round his waist,
-   he is behind and slightly taller with his arms over her back. */
-/* Only two arms are visible in a real hug — the other two are on the far side
-   of the bodies. Four wrapping arms in this much overlap is just a knot. */
+/* Two arms, not four. His far arm is behind her; once he has her off the
+   ground hers goes behind him too, and what is left is the one arm over his
+   shoulder that the whole pose hangs on. */
 .hugscene .arm-far{ transition:opacity .3s }
-.hugwrap.hugging .arm-far{ opacity:0 }
+.hugwrap.hugging .arm-far.figR{ opacity:0 }
+.hugwrap.lifting .arm-far{ opacity:0 }
 
-/* His goes over her shoulder, hers round his waist, and both forearms shrink
-   as they pass behind the other body so the hands disappear rather than
-   poking out the far side. */
+/* Step one: they close in and wrap. Her arms reach up over his shoulders,
+   his come round her back. Forearms shrink as they pass behind the other
+   body so the hands disappear rather than poking out the far side. */
 .hugwrap.hugging .figL{
-  --nearUp:-55deg;  --nearFore:38deg;
-  --lean:9deg;      --tilt:17deg;   --lift:5px;  --foreScale:.45
+  --step:62px;
+  --nearUp:-16deg; --nearFore:-50deg; --farUp:-26deg; --farFore:-18deg;
+  --upScale:.92;   --foreScale:.42;
+  --lean:8deg;     --tilt:14deg
 }
 .hugwrap.hugging .figR{
-  --nearUp:-45deg;  --nearFore:34deg;
-  --lean:8deg;      --tilt:10deg;   --lift:-9px; --foreScale:.45
+  --step:84px;
+  --nearUp:-52deg; --nearFore:-40deg; --farUp:-46deg; --farFore:-34deg;
+  --upScale:.55;   --foreScale:.45;
+  --lean:-5deg;    --tilt:-10deg
 }
-.hugscene .armFar  .up   { transform:rotate(calc(var(--dir) * var(--farUp))) }
+/* Step two — the lift. He stays planted and leans back against her weight;
+   she comes clean off the ground, her legs folding up behind her. */
+.hugwrap.lifting .figL{
+  --step:62px;     --lift:-38px;      --spin:-3deg;   --sz:.82;
+  --thigh:16deg;   --shin:112deg;     --thigh2:-9deg; --shin2:18deg;
+  --nearUp:-46deg; --nearFore:34deg;  --farUp:-30deg; --farFore:-18deg;
+  --upScale:.9;    --foreScale:.4;
+  --lean:6deg;     --tilt:16deg
+}
+.hugwrap.lifting .figR{
+  --step:86px;
+  --nearUp:-52deg; --nearFore:-40deg; --farUp:-62deg; --farFore:-40deg;
+  --upScale:.45;   --foreScale:.3;
+  --lean:-9deg;    --tilt:-15deg
+}
+.hugscene .armFar  .up   { transform:rotate(calc(var(--dir) * var(--farUp))) scale(var(--upScale,1)) }
 .hugscene .armFar  .fore { transform:rotate(calc(var(--dir) * var(--farFore))) scale(var(--foreScale,1)) }
-.hugscene .armNear .up   { transform:rotate(calc(var(--dir) * var(--nearUp))) }
+.hugscene .armNear .up   { transform:rotate(calc(var(--dir) * var(--nearUp))) scale(var(--upScale,1)) }
 .hugscene .armNear .fore { transform:rotate(calc(var(--dir) * var(--nearFore))) scale(var(--foreScale,1)) }
+.hugscene .thigh         { transform:rotate(calc(var(--dir) * var(--thigh))) }
+.hugscene .shin          { transform:rotate(calc(var(--dir) * var(--shin))) }
+.hugscene .leg2 .thigh   { transform:rotate(calc(var(--dir) * (var(--thigh) + var(--thigh2)))) }
+.hugscene .leg2 .shin    { transform:rotate(calc(var(--dir) * (var(--shin) + var(--shin2)))) }
 .hugscene .torso{ transform:rotate(calc(var(--dir) * var(--lean))) }
 .hugscene .head { transform:rotate(var(--tilt)) }
-.hugscene .figL { transform:translate(var(--step), var(--lift)) scaleX(var(--turn)) }
-.hugscene .figR { transform:translate(calc(-1 * var(--step)), var(--lift)) scaleX(var(--turn)) }
-.hugwrap.squeeze .figL{ transform:translate(calc(var(--step) + 5px), var(--lift)) scaleX(var(--turn)) }
-.hugwrap.squeeze .figR{ transform:translate(calc(-1 * var(--step) - 5px), var(--lift)) scaleX(var(--turn)) }
+.hugscene .figL { transform:translate(calc(var(--step) + var(--sq)), var(--lift))
+                            rotate(var(--spin)) scale(var(--sz)) scaleX(var(--turn)) }
+.hugscene .figR { transform:translate(calc(-1 * (var(--step) + var(--sq))), var(--lift))
+                            rotate(var(--spin)) scale(var(--sz)) scaleX(var(--turn)) }
 .hugwrap.squeeze .hugscene .torso{ transform:rotate(calc(var(--dir) * (var(--lean) + 2deg))) }
 
 /* a little life before anything happens */
@@ -1821,13 +1855,24 @@ ACTS.hug = b => {
       </g>`; };
 
     const legTop = girl ? HIP + 24 : HIP + 4;
-    const leg = (sd) => { const lx = x + sd*10, kx = lx + sd*1.5; return `
-      <path class="ink-f" d="${taper(lx, legTop, legTop+52, girl?10:11.5, girl?7.4:8.6)}" stroke-width="3.2" stroke="var(--ink)"/>
-      <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(lx, legTop, legTop+52, girl?9.2:10.7, girl?6.6:7.8)}"/>
-      <path class="ink-f" d="${taper(kx, legTop+52, GROUND-10, girl?7.2:8.4, girl?5.6:6.6)}" stroke-width="3.2" stroke="var(--ink)"/>
-      <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(kx, legTop+52, GROUND-10, girl?6.4:7.6, girl?4.8:5.8)}"/>
-      <path class="ink-f" d="M${kx-8},${GROUND-12} h16 a6,6 0 0 1 6,6 v3 a4,4 0 0 1-4,4 h-20 a4,4 0 0 1-4,-4 v-3 a6,6 0 0 1 6,-6 z"/>
-      <path fill="${g('shoe')}" d="M${kx-6.5},${GROUND-11} h13 a5,5 0 0 1 5,5 v2 a3,3 0 0 1-3,3 h-17 a3,3 0 0 1-3,-3 v-2 a5,5 0 0 1 5,-5 z"/>`; };
+    const KNEE = Math.round(legTop + (GROUND - 10 - legTop) * (girl ? 0.5 : 0.55));
+    /* hip and knee are real joints — she has to fold her legs up behind her
+       when he lifts her, and a straight peg leg cannot do that */
+    const leg = (sd, second) => { const lx = x + sd*10, kx = lx + sd*1.5; return `
+      <g class="leg${second ? " leg2" : ""}">
+       <g class="thigh" style="transform-origin:${lx}px ${legTop}px">
+        <path class="ink-f" d="${taper(lx, legTop, KNEE, girl?10:11.5, girl?7.4:8.6)}" stroke-width="3.2" stroke="var(--ink)"/>
+        <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(lx, legTop, KNEE, girl?9.2:10.7, girl?6.6:7.8)}"/>
+        <g class="shin" style="transform-origin:${kx}px ${KNEE}px">
+          <circle class="ink-f" cx="${kx}" cy="${KNEE}" r="${girl?7.4:8.6}"/>
+          <path class="ink-f" d="${taper(kx, KNEE, GROUND-10, girl?7.2:8.4, girl?5.6:6.6)}" stroke-width="3.2" stroke="var(--ink)"/>
+          <circle fill="${girl ? g('skin') : g('trouser')}" cx="${kx}" cy="${KNEE}" r="${girl?6.6:7.8}"/>
+          <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(kx, KNEE, GROUND-10, girl?6.4:7.6, girl?4.8:5.8)}"/>
+          <path class="ink-f" d="M${kx-8},${GROUND-12} h16 a6,6 0 0 1 6,6 v3 a4,4 0 0 1-4,4 h-20 a4,4 0 0 1-4,-4 v-3 a6,6 0 0 1 6,-6 z"/>
+          <path fill="${g('shoe')}" d="M${kx-6.5},${GROUND-11} h13 a5,5 0 0 1 5,5 v2 a3,3 0 0 1-3,3 h-17 a3,3 0 0 1-3,-3 v-2 a5,5 0 0 1 5,-5 z"/>
+        </g>
+       </g>
+      </g>`; };
 
     // shoulders taper to a waist, then a skirt or a hip
     const top = girl
@@ -1872,7 +1917,7 @@ ACTS.hug = b => {
         <g class="head hairback" style="transform-origin:${x}px ${SH}px">${hairBack}</g></g>`,
       farArm: `<g class="fig arm-far ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armFar", -14.5*dir)}</g>`,
       body: `<g class="fig body ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">
-        <g class="legs">${leg(-1)}${leg(1)}</g>
+        <g class="legs">${leg(-1, false)}${leg(1, true)}</g>
         <g class="torso" style="transform-origin:${x}px ${HIP}px">
           ${hips}
           <path class="ink-f" d="${top}" stroke="var(--ink)" stroke-width="3.4"/>
@@ -1904,7 +1949,7 @@ ACTS.hug = b => {
                      cloth:"#EFA22A", clothDark:"#C57A0C" });
 
   wrap.innerHTML = `
-    <svg class="hugscene" viewBox="0 0 ${W} 330" role="img" aria-label="a girl and a boy hugging">
+    <svg class="hugscene" viewBox="0 0 ${W} 330" role="img" aria-label="a boy lifting a girl off her feet in a hug">
       <defs>
         ${L.defs}${R.defs}
         <filter id="softshadow" x="-40%" y="-60%" width="180%" height="220%">
@@ -1913,11 +1958,13 @@ ACTS.hug = b => {
           <feGaussianBlur stdDeviation="6"/></filter>
       </defs>
       <g class="shadows" filter="url(#softshadow)">${L.shadow}${R.shadow}</g>
-      ${R.back}${R.body}
-      <ellipse class="depth" cx="210" cy="${HIP-20}" rx="34" ry="60" filter="url(#depth)"/>
+      <!-- he is behind and takes her weight; she is in front and off the ground.
+           Her far arm passes behind him, her near arm drapes over his shoulder
+           in front, and his near arm comes round her and sits in front of her. -->
+      ${L.farArm}${R.farArm}${R.back}${R.body}
+      <ellipse class="depth" cx="208" cy="${HIP-32}" rx="33" ry="58" filter="url(#depth)"/>
       ${L.back}${L.body}
-      ${L.farArm}${L.nearArm}
-      ${R.farArm}${R.nearArm}
+      ${L.nearArm}${R.nearArm}
       <g class="hearts"></g>
     </svg>`;
 
@@ -1940,7 +1987,7 @@ ACTS.hug = b => {
       // the position lives on a wrapper: a CSS transform on the path itself
       // would override an SVG transform attribute and drop it at the origin
       const g = document.createElementNS(NS, "g");
-      const x = 178 + Math.random()*64, y = 196 + Math.random()*26;
+      const x = 176 + Math.random()*66, y = 118 + Math.random()*40;
       const sc = 0.55 + Math.random()*0.6;
       g.setAttribute("transform", `translate(${x} ${y}) scale(${sc})`);
       const p = document.createElementNS(NS, "path");
@@ -1959,14 +2006,18 @@ ACTS.hug = b => {
     if(playing) return;
     playing = true;
     CHIME.warm();
+    // close in, wrap, then he takes her off the ground — in that order, because
+    // a lift that happens before the arms are round her reads as a jump
     wrap.classList.add("stepping");
     stageTimers.push(setTimeout(() => wrap.classList.add("hugging"), 340));
-    stageTimers.push(setTimeout(() => { wrap.classList.add("squeeze"); floatHearts(); }, 980));
-    stageTimers.push(setTimeout(() => wrap.classList.remove("squeeze"), 1320));
+    stageTimers.push(setTimeout(() => wrap.classList.add("lifting"), 780));
+    stageTimers.push(setTimeout(() => { wrap.classList.add("squeeze"); floatHearts(); }, 1240));
+    stageTimers.push(setTimeout(() => wrap.classList.remove("squeeze"), 1620));
     stageTimers.push(setTimeout(() => {
-      wrap.classList.remove("hugging");
-      stageTimers.push(setTimeout(() => { wrap.classList.remove("stepping"); playing = false; }, 480));
-    }, 4200));
+      wrap.classList.remove("lifting");                       // set her down first
+      stageTimers.push(setTimeout(() => wrap.classList.remove("hugging"), 520));
+      stageTimers.push(setTimeout(() => { wrap.classList.remove("stepping"); playing = false; }, 1000));
+    }, 4600));
   };
 
   let known = null;
