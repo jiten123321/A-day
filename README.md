@@ -44,7 +44,7 @@ your own. **Sound on / Sound off** in the chat toolbar toggles it, and the
 choice is remembered per browser. Browsers only allow audio after a click or
 keypress, so the first gesture on the page arms it.
 
-## The arcade
+## The arcade games
 
 Twelve games, all shared — every move lands on both boards.
 
