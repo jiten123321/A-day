@@ -18,9 +18,11 @@ export class DayRoom {
     return this.kv;
   }
 
+  // Awaited by every mutation before it is broadcast: a fire-and-forget write
+  // can be cut short when the object hibernates, and a peer must never be told
+  // about a change that did not survive.
   save() {
-    // Fire and forget; the DO keeps the in-memory copy authoritative.
-    this.ctx.waitUntil(this.ctx.storage.put("kv", this.kv));
+    return this.ctx.storage.put("kv", this.kv);
   }
 
   async fetch(request) {
@@ -75,7 +77,7 @@ export class DayRoom {
       case "set": {
         if (typeof m.k !== "string") return;
         kv[m.k] = m.v;
-        this.save();
+        await this.save();
         this.broadcast({ t: "set", k: m.k, v: m.v, by: att.id }, ws);
         break;
       }
@@ -87,7 +89,7 @@ export class DayRoom {
         arr.push(m.v);
         while (arr.length > cap) arr.shift();
         kv[m.k] = arr;
-        this.save();
+        await this.save();
         // Echo to everyone, sender included, so ordering is the server's.
         this.broadcast({ t: "list", k: m.k, v: arr, by: att.id });
         break;
@@ -98,7 +100,7 @@ export class DayRoom {
         for (const key of Object.keys(kv)) {
           if (!prefix || key === prefix || key.startsWith(prefix)) delete kv[key];
         }
-        this.save();
+        await this.save();
         this.broadcast({ t: "wipe", k: prefix, by: att.id });
         break;
       }
