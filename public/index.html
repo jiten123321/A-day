@@ -716,6 +716,73 @@ input[type=text], .close, .open{
   .ludo{max-width:100%}
 }
 
+/* ===== a hug ===== */
+.hug-launch{
+  position:fixed;right:20px;bottom:88px;z-index:90;
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px 10px 14px;border-radius:999px;border:none;
+  background:var(--rose);color:#FFF6EE;font-family:var(--serif);font-size:1.15rem;
+  box-shadow:0 8px 22px rgba(36,51,80,.25);transition:transform .18s,filter .18s
+}
+.hug-launch:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.hug-launch svg{display:block}
+
+.hugwrap{margin:6px 0 4px}
+.hugscene{width:100%;height:auto;display:block;overflow:visible}
+.hugscene .ground{stroke:var(--line);stroke-width:2;stroke-dasharray:5 8}
+.hugscene .ink{stroke:var(--ink);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.hugscene .tone{stroke:var(--tone);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.hugscene .ink-f{fill:var(--ink)}
+.hugscene .tone-f{fill:var(--tone)}
+.hugscene .hand{fill:var(--tone);stroke:var(--ink);stroke-width:2.5}
+
+/* Joints. Every angle is written for the left figure; --dir mirrors it. */
+.hugscene .up, .hugscene .fore, .hugscene .torso, .hugscene .head, .hugscene .fig{
+  transform-box:view-box;
+  transition:transform .62s cubic-bezier(.34,.9,.3,1)
+}
+.hugwrap{ --farUp:10deg; --farFore:6deg;  --nearUp:-9deg; --nearFore:-6deg;
+          --lean:0deg;   --tilt:0deg;     --step:0px }
+/* close enough that the torsos actually meet */
+.hugwrap.stepping{ --step:67px }
+.hugwrap.hugging{
+  /* The upper arm swings across, then the forearm bends back *down* — an arm
+     draped over a shoulder and one reaching round a waist. Bending both the
+     same way is what makes it a high five instead of a hug. */
+  --nearUp:-108deg; --nearFore:58deg;
+  --farUp:-72deg;   --farFore:26deg;
+  --lean:5deg;      --tilt:10deg
+}
+.hugscene .armFar  .up   { transform:rotate(calc(var(--dir) * var(--farUp))) }
+.hugscene .armFar  .fore { transform:rotate(calc(var(--dir) * var(--farFore))) }
+.hugscene .armNear .up   { transform:rotate(calc(var(--dir) * var(--nearUp))) }
+.hugscene .armNear .fore { transform:rotate(calc(var(--dir) * var(--nearFore))) }
+.hugscene .torso{ transform:rotate(calc(var(--dir) * var(--lean))) }
+.hugscene .head { transform:rotate(var(--tilt)) }
+.hugscene .figL { transform:translateX(var(--step)) }
+.hugscene .figR { transform:translateX(calc(-1 * var(--step))) }
+.hugwrap.squeeze .figL{ transform:translateX(calc(var(--step) + 5px)) }
+.hugwrap.squeeze .figR{ transform:translateX(calc(-1 * var(--step) - 5px)) }
+.hugwrap.squeeze .hugscene .torso{ transform:rotate(calc(var(--dir) * (var(--lean) + 2deg))) }
+
+/* a little life before anything happens */
+@keyframes breathe{0%,100%{transform:rotate(calc(var(--dir) * var(--lean)))}
+                   50%{transform:rotate(calc(var(--dir) * (var(--lean) + .8deg)))}}
+.hugwrap:not(.stepping) .hugscene .torso{animation:breathe 4.2s ease-in-out infinite}
+
+.hugscene .heart{fill:var(--rose);opacity:0;animation:rise 2.4s ease-out forwards}
+@keyframes rise{
+  0%{opacity:0;transform:translateY(0) translateX(0) scale(.6)}
+  18%{opacity:.95}
+  100%{opacity:0;transform:translateY(-120px) translateX(var(--drift)) scale(1.15)}
+}
+.hug-btn{background:var(--rose);color:#FFF6EE;font-size:1.15rem;padding:13px 40px}
+
+@media (prefers-reduced-motion:reduce){
+  .hugscene .up,.hugscene .fore,.hugscene .torso,.hugscene .head,.hugscene .fig{transition:none}
+  .hugscene .heart{animation-duration:.01ms}
+}
+
 /* ===== chat: shared pictures and GIFs ===== */
 .bubble img.shot{
   display:block;max-width:100%;height:auto;border-radius:10px;margin:2px 0 4px;
@@ -816,6 +883,11 @@ input[type=text], .close, .open{
   <span><button class="btn ghost" id="resetBtn" style="padding:6px 16px;font-size:.85rem">Clear today's marks</button></span>
 </footer>
 
+
+<button class="hug-launch" id="hugLaunch" aria-label="Send a hug">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>
+  hug
+</button>
 
 <button class="chat-launch" id="chatLaunch" aria-label="Open the chat">
   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 20.5l1.5-4.4A8.4 8.4 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 9 8.4z"/></svg>
@@ -1504,14 +1576,20 @@ function open(i){
   else showStage(i);
 }
 
+/* Pages reachable outside the twelve stops. */
+const SPECIAL = { hug: { title:"A hug", when:"any time", k:"hug" } };
+const entryOf = v => typeof v === "number" ? PLAN[v] : SPECIAL[v];
+
 function showStage(i){
   if(openIndex === i) return;
-  const h = PLAN[i];
+  const h = entryOf(i);
+  if(!h) return;
   lastFocus = document.activeElement;
   dropSubs(); dropTimers();
   openIndex = i;
 
-  $("#stageWhen").textContent = "stop " + (i+1) + " of " + PLAN.length;
+  $("#stageWhen").textContent = typeof i === "number"
+    ? "stop " + (i+1) + " of " + PLAN.length : h.when;
   $("#stageTitle").textContent = h.title;
   const body = $("#stageBody");
   body.innerHTML = "";
@@ -1524,8 +1602,10 @@ function showStage(i){
   document.body.style.overflow = "hidden";
   $("#closeBtn").focus();
 
-  const list = SYNC.get("day.done", []);
-  if(list.indexOf(i) === -1) SYNC.set("day.done", list.concat([i]));
+  if(typeof i === "number"){
+    const list = SYNC.get("day.done", []);
+    if(list.indexOf(i) === -1) SYNC.set("day.done", list.concat([i]));
+  }
 }
 
 function hideStage(){
@@ -1543,7 +1623,7 @@ function close(){ SYNC.set("stage.open", null); }
 
 SYNC.on("stage.open", v => {
   if(v === null || v === undefined) hideStage();
-  else if(PLAN[v]) showStage(v);
+  else if(entryOf(v)) showStage(v);
 });
 
 $("#closeBtn").addEventListener("click", close);
@@ -1671,6 +1751,136 @@ ACTS.coffee = b => {
   nb.addEventListener("click", () => SYNC.set("coffee.talk", shuffle(TALK)[0]));
 
   bind("coffee.v", render); bind("coffee.talk", render);
+  render();
+};
+
+
+/* --- a hug, any time ---
+   Two figures built from rotating joints rather than a canned animation, so
+   the arms actually travel around each other and the timing can be eased.
+   Whoever presses it, both screens play the same hug. */
+ACTS.hug = b => {
+  lede(b, "Press it. It happens on both screens at once, which is the closest this page gets to the real thing.");
+
+  const box = el("div","card");
+  const wrap = el("div","hugwrap");
+
+  const W = 420, GROUND = 252;
+  const HIP = 176, SH = HIP - 52, HEAD = HIP - 84;
+  const UP = 34, FORE = 32;                       // upper arm / forearm length
+
+  /* One figure, laid out around its hip. dir flips it to face the other way;
+     every joint angle is written for the left figure and negated by --dir. */
+  const figure = (id, x, tone, dir) => {
+    const arm = (cls, dx) => { const ax = x + dx; return `
+      <g class="${cls}">
+        <g class="up" style="transform-origin:${ax}px ${SH}px">
+          <path class="ink"  d="M${ax},${SH} L${ax},${SH+UP}" stroke-width="17"/>
+          <path class="tone" d="M${ax},${SH} L${ax},${SH+UP}" stroke-width="11"/>
+          <g class="fore" style="transform-origin:${ax}px ${SH+UP}px">
+            <path class="ink"  d="M${ax},${SH+UP} L${ax},${SH+UP+FORE}" stroke-width="15"/>
+            <path class="tone" d="M${ax},${SH+UP} L${ax},${SH+UP+FORE}" stroke-width="9"/>
+            <circle class="hand" cx="${ax}" cy="${SH+UP+FORE}" r="6.5"/>
+          </g>
+        </g>
+      </g>`; };
+    const leg = (k, dx) => `
+      <path class="ink"  d="M${x},${HIP} L${x+dx*dir},${HIP+38} L${x+dx*dir*0.7},${GROUND}" stroke-width="19"/>
+      <path class="tone" d="M${x},${HIP} L${x+dx*dir},${HIP+38} L${x+dx*dir*0.7},${GROUND}" stroke-width="13"/>`;
+
+    return {
+      far: `<g class="fig arm-far ${id}" style="--dir:${dir};--tone:${tone}">${arm("armFar", -13*dir)}</g>`,
+      body: `<g class="fig body ${id}" style="--dir:${dir};--tone:${tone}">
+        <g class="legs">${leg("back",-8)}${leg("front",9)}</g>
+        <g class="torso" style="transform-origin:${x}px ${HIP}px">
+          <path class="ink"  d="M${x},${HIP} L${x},${SH}" stroke-width="40"/>
+          <path class="tone" d="M${x},${HIP} L${x},${SH}" stroke-width="32"/>
+          <g class="head" style="transform-origin:${x}px ${SH}px">
+            <path class="ink"  d="M${x},${SH} L${x},${HEAD+14}" stroke-width="15"/>
+            <path class="tone" d="M${x},${SH} L${x},${HEAD+14}" stroke-width="9"/>
+            <circle class="ink-f"  cx="${x}" cy="${HEAD}" r="22"/>
+            <circle class="tone-f" cx="${x}" cy="${HEAD}" r="19"/>
+          </g>
+        </g>
+      </g>`,
+      near: `<g class="fig arm-near ${id}" style="--dir:${dir};--tone:${tone}">${arm("armNear", 13*dir)}</g>`
+    };
+  };
+
+  const L = figure("figL", 120, "var(--rose)", 1);
+  const R = figure("figR", 300, "var(--marigold)", -1);
+
+  wrap.innerHTML = `
+    <svg class="hugscene" viewBox="0 0 ${W} 300" role="img" aria-label="two people hugging">
+      <line class="ground" x1="34" y1="${GROUND}" x2="${W-34}" y2="${GROUND}"/>
+      ${L.far}${R.far}
+      ${L.body}${R.body}
+      ${L.near}${R.near}
+      <g class="hearts"></g>
+    </svg>`;
+  box.appendChild(wrap);
+
+  const r = el("div","row"); r.style.justifyContent = "center";
+  const go = el("button","btn hug-btn","Hug");
+  r.appendChild(go);
+  box.appendChild(r);
+  const tally = el("div","qnum"); tally.style.textAlign = "center";
+  box.appendChild(tally);
+  b.appendChild(box);
+
+  const scene = wrap.querySelector(".hugscene");
+  const hearts = wrap.querySelector(".hearts");
+  const NS = "http://www.w3.org/2000/svg";
+
+  const floatHearts = () => {
+    for(let i = 0; i < 7; i++){
+      // the position lives on a wrapper: a CSS transform on the path itself
+      // would override an SVG transform attribute and drop it at the origin
+      const g = document.createElementNS(NS, "g");
+      const x = 178 + Math.random()*64, y = 196 + Math.random()*26;
+      const sc = 0.55 + Math.random()*0.6;
+      g.setAttribute("transform", `translate(${x} ${y}) scale(${sc})`);
+      const p = document.createElementNS(NS, "path");
+      p.setAttribute("class", "heart");
+      p.setAttribute("d", "M0,4 C-8,-4 -4,-12 0,-6.5 C4,-12 8,-4 0,4 Z");
+      p.style.animationDelay = (i * 0.11 + Math.random()*0.12) + "s";
+      p.style.setProperty("--drift", (Math.random()*50 - 25) + "px");
+      g.appendChild(p);
+      hearts.appendChild(g);
+      setTimeout(() => g.remove(), 2800);
+    }
+  };
+
+  let playing = false;
+  const play = () => {
+    if(playing) return;
+    playing = true;
+    CHIME.warm();
+    wrap.classList.add("stepping");
+    stageTimers.push(setTimeout(() => wrap.classList.add("hugging"), 340));
+    stageTimers.push(setTimeout(() => { wrap.classList.add("squeeze"); floatHearts(); }, 980));
+    stageTimers.push(setTimeout(() => wrap.classList.remove("squeeze"), 1320));
+    stageTimers.push(setTimeout(() => {
+      wrap.classList.remove("hugging");
+      stageTimers.push(setTimeout(() => { wrap.classList.remove("stepping"); playing = false; }, 480));
+    }, 4200));
+  };
+
+  let known = null;
+  const render = () => {
+    const n = SYNC.get("hug.n", 0);
+    const by = SYNC.get("hug.by", "");
+    tally.textContent = n ? n + (n === 1 ? " hug" : " hugs") + " so far" + (by ? " · last one from " + by : "") : "";
+    if(known !== null && n > known) play();
+    known = n;
+  };
+
+  go.addEventListener("click", () => {
+    SYNC.set("hug.by", ME.name || nameOf(mySide()));
+    SYNC.set("hug.n", SYNC.get("hug.n", 0) + 1);
+  });
+
+  bind("hug.n", render); bind("hug.by", render);
   render();
 };
 
@@ -3733,6 +3943,27 @@ const CHIME = {
 
   blocked(){ return !CHIME.ctx || CHIME.ctx.state !== "running"; },
 
+  /* Lower and softer than a message: a warm third rather than a ping. */
+  warm(){
+    if(!CHIME.on) return;
+    const c = CHIME.arm();
+    if(!c) return;
+    const go = () => {
+      const t0 = c.currentTime;
+      [[330, 0], [415, 0.05], [494, 0.1]].forEach(([hz, at]) => {
+        const osc = c.createOscillator(), gain = c.createGain();
+        osc.type = "triangle";
+        osc.frequency.value = hz;
+        gain.gain.setValueAtTime(0.0001, t0 + at);
+        gain.gain.exponentialRampToValueAtTime(0.1, t0 + at + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + at + 0.9);
+        osc.connect(gain).connect(c.destination);
+        osc.start(t0 + at); osc.stop(t0 + at + 1);
+      });
+    };
+    c.state === "running" ? go() : c.resume().then(go).catch(() => {});
+  },
+
   blip(c){
     const t0 = c.currentTime;
     // Two soft notes, a rising fifth. Short enough to never be annoying.
@@ -4017,6 +4248,9 @@ const PICS = {
 
 /* ---- go ---- */
 buildHours();
+$("#hugLaunch").addEventListener("click", () => {
+  if(SYNC.get("stage.open", null) !== "hug") SYNC.set("stage.open", "hug"); else showStage("hug");
+});
 GLITTER.init();
 nameGate();
 CUR.start();
