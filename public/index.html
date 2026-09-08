@@ -1184,6 +1184,10 @@ function renderPresence(){
     list.appendChild(w);
   });
 
+  // a new arrival can change who holds which seat, so redraw what is open
+  const sig = JSON.stringify([SYNC.id, seats().her && seats().her.id, seats().you && seats().you.id]);
+  if(sig !== renderPresence.sig){ renderPresence.sig = sig; SYNC.fireAll(); }
+
   const others = SYNC.peers.filter(p => p.id !== SYNC.id).length;
   const note = $("#aloneNote");
   note.hidden = !(SYNC.live && others === 0);
@@ -1558,9 +1562,38 @@ const note = (b, txt) => b.appendChild(el("p","note",txt));
    to it, so both screens always agree. Guests share the second seat. */
 const ACTS = {};
 
-const mySide    = () => ME.side === "her" ? "her" : "you";
+/* ---- who is sitting where ----
+   Seats come from the room's peer list, worked out identically on every
+   screen, rather than from the name you typed. Two people who both type the
+   same name — or neither of the two names — must still get one seat each, or
+   every turn-based game deadlocks with nobody able to move. */
+function seats(){
+  const peers = SYNC.peers.slice().sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const low = x => (x || "").trim().toLowerCase();
+  let h = peers.find(p => low(p.name) === low(CFG.her));
+  let y = peers.find(p => p !== h && low(p.name) === low(CFG.you));
+  const rest = peers.filter(p => p !== h && p !== y);
+  if(!h) h = rest.shift();
+  if(!y) y = rest.shift();
+  return { her: h || null, you: y || null };
+}
+const seatOf = side => seats()[side];
+const seated = () => { const s = seats();
+  return !!((s.her && s.her.id === SYNC.id) || (s.you && s.you.id === SYNC.id)); };
+const mySide = () => {
+  const s = seats();
+  if(s.her && s.her.id === SYNC.id) return "her";
+  if(s.you && s.you.id === SYNC.id) return "you";
+  return ME.side === "her" ? "her" : "you";      // not seated: watching
+};
 const theirSide = () => mySide() === "her" ? "you" : "her";
-const nameOf    = s => s === "her" ? CFG.her : CFG.you;
+
+/* On your own you may move for both sides, so the day is playable before the
+   other one arrives instead of stuck on a turn that can never come. */
+const alone   = () => SYNC.peers.filter(p => p.id !== SYNC.id).length === 0;
+const canPlay = side => alone() || (seated() && side === mySide());
+const canAct  = () => alone() || seated();
+const nameOf  = s => { const seat = seatOf(s); return seat ? seat.name : (s === "her" ? CFG.her : CFG.you); };
 const ensure    = (k, make) => { let v = SYNC.get(k, null); if(v === null){ v = make(); SYNC.set(k, v); } return v; };
 
 /* --- 10:00 chai --- */
@@ -1927,15 +1960,15 @@ ACTS.match = b => {
       status.style.color = "var(--teal)";
     } else {
       status.style.color = "";
-      status.textContent = (turn === mySide() ? "Your turn" : nameOf(turn) + "'s turn") +
+      status.textContent = (canPlay(turn) ? "Your turn" : nameOf(turn) + "'s turn") +
         " · " + (got.length/2) + " of 8 pairs · " + CFG.her + " " + sc.her + " · " + CFG.you + " " + sc.you;
     }
-    status.classList.toggle("mine", turn === mySide());
+    status.classList.toggle("mine", canPlay(turn));
   };
 
   function flip(i){
     const turn = SYNC.get("match.turn", "her");
-    if(turn !== mySide()) return;
+    if(!canPlay(turn)) return;
     const up = SYNC.get("match.up", []), got = SYNC.get("match.got", []);
     if(up.length >= 2 || up.indexOf(i) !== -1 || got.indexOf(i) !== -1) return;
     const next = up.concat([i]);
@@ -2106,7 +2139,7 @@ ACTS.song = b => {
     const g = el("div","ded");
     g.appendChild(el("label", null, nameOf(side) + " is playing"));
     const i2 = el("input"); i2.type = "text"; i2.placeholder = "song and artist";
-    if(side !== mySide()) i2.readOnly = true;
+    i2.readOnly = !(alone() || side === mySide());
     g.appendChild(i2); d.appendChild(g); return i2;
   };
   const inHer = mk("her"), inYou = mk("you");
@@ -2265,9 +2298,9 @@ function c4(host, gbind){
     }
     if(over){ status.textContent = over; status.style.color = "var(--teal)"; status.classList.remove("mine"); return; }
     status.style.color = "";
-    const mine = turn === myPiece();
+    const mine = canPlay(turn === 1 ? "her" : "you");
     status.classList.toggle("mine", mine);
-    status.textContent = mine ? "Your turn. Pick a column." : (turn === 1 ? CFG.her : CFG.you) + " is thinking.";
+    status.textContent = mine ? "Your turn. Pick a column." : nameOf(turn === 1 ? "her" : "you") + " is thinking.";
   };
 
   function win(g, r, c, p){
@@ -2285,14 +2318,14 @@ function c4(host, gbind){
   function drop(c){
     if(SYNC.get("c4.over", "")) return;
     const turn = SYNC.get("c4.turn", 1);
-    if(turn !== myPiece()) return;
+    if(!canPlay(turn === 1 ? "her" : "you")) return;
     const g = SYNC.get("c4.grid", Array(42).fill(0)).slice();
     for(let r = 5; r >= 0; r--){
       if(!at(g,r,c)){
         g[r*7+c] = turn;
         SYNC.set("c4.grid", g);
         if(win(g,r,c,turn)){
-          SYNC.set("c4.over", (turn === 1 ? CFG.her : CFG.you) + " wins. Say it out loud.");
+          SYNC.set("c4.over", nameOf(turn === 1 ? "her" : "you") + " wins. Say it out loud.");
         } else if(g.every(v => v)){
           SYNC.set("c4.over", "Full board, nobody wins. Very us.");
         } else {
@@ -2667,7 +2700,7 @@ const CH = {
 /* --- arcade: chess --- */
 function chessGame(host, gbind){
   const myColour = () => mySide() === "her" ? "w" : "b";
-  const nameOfColour = c => c === "w" ? CFG.her : CFG.you;
+  const nameOfColour = c => nameOf(c === "w" ? "her" : "you");
 
   const box = el("div","card");
   const status = el("div","turnbar","");
@@ -2721,7 +2754,7 @@ function chessGame(host, gbind){
       b.setAttribute("aria-label", CH.NAME(i) + (p ? " " + p : " empty"));
     });
 
-    const mine = s.turn === myColour();
+    const mine = canPlay(s.turn === "w" ? "her" : "you");
     status.classList.toggle("mine", mine && !st8.startsWith("check"));
     if(st8 === "checkmate")      status.textContent = nameOfColour(s.turn === "w" ? "b" : "w") + " wins by checkmate.";
     else if(st8 === "stalemate") status.textContent = "Stalemate. Nobody wins.";
@@ -2743,7 +2776,7 @@ function chessGame(host, gbind){
   function tap(i){
     const s = st();
     if(CH.status(s) === "checkmate" || CH.status(s) === "stalemate") return;
-    if(s.turn !== myColour()) return;
+    if(!canPlay(s.turn === "w" ? "her" : "you")) return;
     const p = s.b[i];
 
     if(sel !== null && CH.legal(s, sel).indexOf(i) !== -1){
@@ -2758,7 +2791,7 @@ function chessGame(host, gbind){
       sel = null; render();
       return;
     }
-    sel = (p && p[0] === myColour() && sel !== i) ? i : null;
+    sel = (p && p[0] === s.turn && sel !== i) ? i : null;
     render();
   }
 
@@ -2768,7 +2801,7 @@ function chessGame(host, gbind){
     promo.appendChild(el("span", null, "Promote to"));
     ["Q","R","B","N"].forEach(k => {
       const b = el("button","promo-pick", CH.GLYPH[k]);
-      b.classList.add(myColour() === "w" ? "w" : "b");
+      b.classList.add(st().turn === "w" ? "w" : "b");
       b.addEventListener("click", () => {
         SYNC.set("chess.st", CH.apply(st(), pending.from, pending.to, k));
         pending = null; sel = null; promo.hidden = true; render();
@@ -2824,7 +2857,7 @@ function tttGame(host, gbind){
       c.textContent = b[i];
       c.className = "tcell" + (b[i] === "X" ? " x" : b[i] === "O" ? " o" : "") +
                     (w && w.line.indexOf(i) !== -1 ? " win" : "");
-      c.disabled = !!w || turn !== mySide() || !!b[i];
+      c.disabled = !!w || !canPlay(turn) || !!b[i];
     });
     if(w){
       // the winner is whoever owns the mark, not whoever is "next" — the turn
@@ -2836,8 +2869,8 @@ function tttGame(host, gbind){
       status.classList.remove("mine");
     } else {
       status.style.color = "";
-      status.textContent = turn === mySide() ? "Your turn — you are " + markOf(mySide()) : nameOf(turn) + " is thinking.";
-      status.classList.toggle("mine", turn === mySide());
+      status.textContent = canPlay(turn) ? "Your turn — you are " + markOf(turn) : nameOf(turn) + " is thinking.";
+      status.classList.toggle("mine", canPlay(turn));
     }
     tally.textContent = CFG.her + " " + sc.her + "  ·  " + CFG.you + " " + sc.you + "  ·  drawn " + sc.draw;
   };
@@ -2845,7 +2878,7 @@ function tttGame(host, gbind){
   function play(i){
     const b = SYNC.get("ttt.b", Array(9).fill("")).slice();
     const turn = SYNC.get("ttt.turn", "her");
-    if(turn !== mySide() || b[i] || winner(b)) return;
+    if(!canPlay(turn) || b[i] || winner(b)) return;
     b[i] = markOf(turn);
     SYNC.set("ttt.b", b);
     const w = winner(b);
@@ -2935,15 +2968,15 @@ function dotsGame(host, gbind){
       status.style.color = "var(--teal)"; status.classList.remove("mine");
     } else {
       status.style.color = "";
-      status.textContent = (s.turn === mySide() ? "Your line" : nameOf(s.turn) + "'s line") +
+      status.textContent = (canPlay(s.turn) ? "Your line" : nameOf(s.turn) + "'s line") +
         " · " + CFG.her + " " + mine + " · " + CFG.you + " " + yours;
-      status.classList.toggle("mine", s.turn === mySide());
+      status.classList.toggle("mine", canPlay(s.turn));
     }
   };
 
   function draw(kind, idx){
     const s = get();
-    if(s.turn !== mySide()) return;
+    if(!canPlay(s.turn)) return;
     const h = s.h.slice(), v = s.v.slice(), own = s.own.slice();
     if(kind === "h"){ if(h[idx]) return; h[idx] = 1; } else { if(v[idx]) return; v[idx] = 1; }
     let claimed = 0;
@@ -3157,16 +3190,16 @@ function ludoGame(host, gbind){
         const t = el("i","tok " + side);
         if(p === LU.DONE) t.classList.add("home");
         if(seen[key] > 1) t.classList.add("stack");
-        const can = s.rolled && s.turn === side && side === mySide() && !s.over
+        const can = s.rolled && s.turn === side && canPlay(side) && !s.over
                     && LU.movable(s, side, s.die).indexOf(i) !== -1;
         if(can){
           t.classList.add("can");
           t.addEventListener("click", () => {
             const cur = st();
-            if(!cur.rolled || cur.turn !== mySide() || cur.over) return;
-            const after = LU.move(cur, mySide(), i, cur.die);
+            if(!cur.rolled || !canPlay(cur.turn) || cur.over) return;
+            const after = LU.move(cur, cur.turn, i, cur.die);
             after.rolled = false;
-            if(!after.over && cur.die !== 6) after.turn = mySide() === "her" ? "you" : "her";
+            if(!after.over && cur.die !== 6) after.turn = cur.turn === "her" ? "you" : "her";
             after.die = cur.die === 6 && !after.over ? 0 : 0;
             SYNC.set("ludo.st", after);
           });
@@ -3175,13 +3208,13 @@ function ludoGame(host, gbind){
       });
     });
 
-    const mine = s.turn === mySide();
+    const mine = canPlay(s.turn);
     die.textContent = s.die ? "⚀⚁⚂⚃⚄⚅"[s.die-1] : "roll";
     die.disabled = !!s.over || !mine || s.rolled;
     die.classList.toggle("live", mine && !s.rolled && !s.over);
 
     if(s.over){
-      status.textContent = (s.over === mySide() ? "You win." : nameOf(s.over) + " wins.") + " All four home.";
+      status.textContent = (s.over === mySide() && !alone() ? "You win." : nameOf(s.over) + " wins.") + " All four home.";
       status.style.color = "var(--teal)"; status.classList.remove("mine");
     } else {
       status.style.color = "";
@@ -3194,7 +3227,7 @@ function ludoGame(host, gbind){
         pass.addEventListener("click", () => {
           const cur = st();
           SYNC.set("ludo.st", Object.assign({}, cur, {rolled:false, die:0,
-            turn: mySide() === "her" ? "you" : "her"}));
+            turn: cur.turn === "her" ? "you" : "her"}));
         });
         status.appendChild(pass);
       }
@@ -3203,7 +3236,7 @@ function ludoGame(host, gbind){
 
   die.addEventListener("click", () => {
     const s = st();
-    if(s.over || s.turn !== mySide() || s.rolled) return;
+    if(s.over || !canPlay(s.turn) || s.rolled) return;
     SYNC.set("ludo.st", Object.assign({}, s, { die: 1 + Math.floor(Math.random()*6), rolled: true }));
   });
   again.addEventListener("click", () => {
@@ -3375,7 +3408,7 @@ function hangmanGame(host, gbind){
   const render = () => {
     const s = get();
     const setBySomeone = !!s.word;
-    const iSet = s.by === mySide();
+    const iSet = s.by === mySide() && !alone();
     const letters2 = s.word.toLowerCase().split("").filter(c => /[a-z]/.test(c));
     const missed = s.tried.filter(t => letters2.indexOf(t) === -1);
     const won = setBySomeone && letters2.every(c => s.tried.indexOf(c) !== -1);
@@ -3409,7 +3442,7 @@ function hangmanGame(host, gbind){
 
   function guess(L){
     const s = get();
-    if(!s.word || s.by === mySide()) return;
+    if(!s.word || (s.by === mySide() && !alone())) return;
     if(s.tried.indexOf(L) !== -1) return;
     const tried = s.tried.concat([L]);
     SYNC.set("hang.tried", tried);
@@ -3489,10 +3522,10 @@ ACTS.watch = b => {
     const nextSide = titles.length % 2 === 0 ? "her" : "you";
     const full = titles.length >= 6;
     turnLbl.textContent = full ? "Six on the list. Go to step two."
-      : (nextSide === mySide() ? "Your turn to add one." : nameOf(nextSide) + " adds one.");
-    turnLbl.classList.toggle("mine", !full && nextSide === mySide());
-    add.disabled = full || nextSide !== mySide();
-    inp.disabled = full || nextSide !== mySide();
+      : (canPlay(nextSide) ? "Your turn to add one." : nameOf(nextSide) + " adds one.");
+    turnLbl.classList.toggle("mine", !full && canPlay(nextSide));
+    add.disabled = full || !canPlay(nextSide);
+    inp.disabled = full || !canPlay(nextSide);
     inp.placeholder = add.disabled && !full ? "waiting for " + nameOf(nextSide) : "anything on Netflix, Prime, wherever";
 
     const used = SYNC.get("watch.veto", {});
@@ -3524,8 +3557,9 @@ ACTS.watch = b => {
     const v = inp.value.trim();
     const titles = SYNC.get("watch.titles", []);
     if(!v || titles.length >= 6) return;
-    if(titles.length % 2 === 0 ? mySide() !== "her" : mySide() !== "you") return;
-    SYNC.push("watch.titles", { s: mySide(), v: v.slice(0,90) }, 6);
+    const next = titles.length % 2 === 0 ? "her" : "you";
+    if(!canPlay(next)) return;
+    SYNC.push("watch.titles", { s: next, v: v.slice(0,90) }, 6);
     inp.value = ""; inp.focus();
   };
   add.addEventListener("click", push);

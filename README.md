@@ -65,8 +65,24 @@ Also **tic tac toe**, **dots and boxes** (close a box, go again) and
 the original connect four, emoji films, never have I ever, word chain and who's
 more likely.
 
-Ladoo plays white, X, and moves first; Jitendra and any guest take the other
-seat.
+### Seats
+
+The two-player games need one person in each seat. Seats are worked out from
+the room's peer list — identically on every screen, so nobody has to agree
+about it — with the names in `CFG` used only as a preference:
+
+- If someone typed the name in `CFG.her`, they take that seat; likewise
+  `CFG.you`.
+- Anyone else fills the remaining seats in a stable order.
+
+That matters because the seat used to come from the name alone, which meant two
+people who both typed the same name — or neither of the two names — landed in
+the *same* seat, and every turn-based game deadlocked with nobody able to move.
+
+Labels show whoever is actually sitting there, not the configured names.
+
+**On your own you may move for both sides**, so a game is still playable before
+the other one arrives rather than stuck on a turn that can never come.
 
 ## Look
 
