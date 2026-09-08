@@ -44,6 +44,13 @@ your own. **Sound on / Sound off** in the chat toolbar toggles it, and the
 choice is remembered per browser. Browsers only allow audio after a click or
 keypress, so the first gesture on the page arms it.
 
+## The page
+
+The header carries an analog watch rather than a digital clock, and the hour
+rows are just a title, a one-line description and a button — no timestamps. The
+sun on the arc still shows where you are in the day; the arc's pegs are
+navigation. Each activity's own header says which stop it is.
+
 ## Rooms
 
 Everyone on the same URL is in the same room. The default room is `same-sun`;
