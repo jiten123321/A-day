@@ -219,12 +219,37 @@ states are called `near` and `hold`.
 
 ## Watch party
 
-A room first, then the picking. The room is one big screen with the two of you
-down the side: who is here, and the chat — the same thread as the chat panel,
-text only, so you can talk about the film without covering it. Under the
-screen is a source bar: a YouTube link, or a screen share. Below the room, the
-picking still works as it did — six titles alternating, a veto each, and a
-countdown off the shared clock for anything neither of those can carry.
+The room, and nothing else. One big screen with the two of you down the side:
+who is here, and the chat — the same thread as the chat panel, text only, so
+you can talk about the film without covering it. Under the screen is a source
+bar: a YouTube link, or a screen share, then the house rules.
+
+The shortlist, the picker and the countdown that used to sit under the room
+are gone. They were three cards of ceremony in front of the thing you actually
+came for. `CFG.watchRules` still feeds the house rules at the bottom of the
+room card.
+
+### Filling the screen
+
+The button in the corner of the picture takes **the whole room** up, not just
+the screen — so the chat in the rail comes with it and sits beside the film
+rather than on top of it. It asks for real fullscreen and also styles itself
+into place, so it works whether or not the browser grants it. Escape comes
+back out of the picture rather than closing the activity, and leaving the
+activity leaves the big picture behind.
+
+An incoming call drops out of the big picture, because a real fullscreen hides
+the chat panel whatever its z-index says — a call you cannot see is a call you
+miss. The watch party listens for a `call:incoming` event on `window` that the
+chat fires; the two never reference each other directly.
+
+On a phone the chat is a sheet across the bottom, and at 80vh it buried the
+picture completely. While something is playing, `body.watching` takes it down
+to half the screen.
+
+**One name to avoid here:** a local `const esc` for the Escape handler shadows
+the global `esc()` that escapes HTML, and every name rendered on that screen
+became "undefined". It is called `escKey`.
 
 ### YouTube, in step
 

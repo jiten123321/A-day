@@ -382,6 +382,31 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .rchat-row .btn{padding:10px 16px;font-size:.9rem}
 .srcbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
 .srcbar input[type=text]{flex:1;min-width:180px;margin:0}
+/* fill the screen */
+.maxbtn{
+  position:absolute;top:10px;right:10px;z-index:5;
+  width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.3);
+  background:rgba(18,32,63,.5);color:#FFF6EE;font-size:1rem;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  opacity:.55;transition:opacity .18s,background .18s;
+}
+.screen:hover .maxbtn, .maxbtn:focus-visible, .screen.on .maxbtn{opacity:1}
+.maxbtn:hover{background:rgba(18,32,63,.8)}
+/* the whole room goes up, so the chat in the rail comes with the picture */
+.room.cinema{
+  position:fixed;inset:0;z-index:200;margin:0;
+  background:var(--indigo);padding:14px;gap:14px;
+  grid-template-rows:1fr;align-items:stretch;
+}
+.room.cinema .screen{height:100%;aspect-ratio:auto;margin:0;border-radius:10px}
+.room.cinema .rail{height:100%;overflow:hidden}
+.room.cinema .rchat{flex:1;min-height:0}
+.room.cinema .rchat-log{height:auto;flex:1}
+.room.cinema .maxbtn{opacity:1}
+@media (max-width:820px){
+  .room.cinema{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .room.cinema .rchat-log{height:120px;flex:0 0 auto}
+}
 .stagebox .ytbox{position:absolute;inset:0;display:none}
 .stagebox.mode-yt .ytbox{display:block}
 .stagebox.mode-yt video{display:none}
@@ -532,6 +557,7 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 
 @media (max-width:640px){
   .chatbox{right:0;left:0;bottom:0;width:100%;max-height:80vh;border-radius:20px 20px 0 0}
+  body.watching .chatbox{max-height:52vh}
   .callbar{padding:10px 12px 12px}
   .callbar.seeing ~ .msgs{min-height:96px}
   .chat-launch{right:16px;bottom:16px}
@@ -4120,52 +4146,11 @@ function hangmanGame(host, gbind){
 /* --- 14:00 watch party --- */
 ACTS.watch = b => {
   ACTS.watch._n = (ACTS.watch._n || 0);
-  lede(b, "Shortlist it, let the page pick, then share your screen and watch it on both sides at once.");
-
-  const s1 = el("div","card");
-  s1.appendChild(el("div","qnum","step one — build the shortlist"));
-  s1.appendChild(el("h4", null, "Six titles, three each, alternating.")).style.cssText = "font-family:var(--serif);font-weight:400;font-size:1.25rem;margin:0 0 14px";
-  const turnLbl = el("div","turnbar","");
-  s1.appendChild(turnLbl);
-  const inp = el("input"); inp.type = "text"; inp.placeholder = "anything on Netflix, Prime, wherever";
-  inp.style.marginTop = "12px";
-  s1.appendChild(inp);
-  const r1 = el("div","row");
-  const add = el("button","btn","Add to the list");
-  const clr = el("button","btn ghost","Start the list over");
-  r1.appendChild(add); r1.appendChild(clr); s1.appendChild(r1);
-  const list = el("ul","slips"); list.style.marginTop = "16px"; s1.appendChild(list);
-  b.appendChild(s1);
-
-  const s2 = el("div","card"); s2.style.marginTop = "18px";
-  s2.appendChild(el("div","qnum","step two — let it decide"));
-  const pickOut = el("div","pickout","nothing picked yet");
-  s2.appendChild(pickOut);
-  const r2 = el("div","row");
-  const pick = el("button","btn","Pick one for us");
-  const v1 = el("button","btn ghost", CFG.her + "'s veto");
-  const v2 = el("button","btn ghost", CFG.you + "'s veto");
-  [pick,v1,v2].forEach(x => r2.appendChild(x));
-  s2.appendChild(r2);
-  note(s2, "One veto each, then whatever comes up is what we watch. That's the whole point.");
-  b.appendChild(s2);
-
-  const s3 = el("div","card"); s3.style.marginTop = "18px";
-  s3.appendChild(el("div","qnum","step three — same frame"));
-  const cd = el("div","countdown","ready");
-  s3.appendChild(cd);
-  const r3 = el("div","row");
-  const go = el("button","btn","Count us down");
-  const brk = el("button","btn ghost","Five minute break");
-  r3.appendChild(go); r3.appendChild(brk); s3.appendChild(r3);
-  const rules = el("ul","rules");
-  CFG.watchRules.forEach(x => rules.appendChild(el("li", null, x)));
-  s3.appendChild(rules);
-  b.appendChild(s3);
+  lede(b, "Put something on and watch it on both sides at once.");
 
   /* ---- the room: one screen, both of you around it ---- */
   const s4 = el("div","card"); s4.style.marginTop = "18px";
-  s4.appendChild(el("div","qnum","the room — put something on and watch it together"));
+  s4.appendChild(el("div","qnum","the room"));
   const bar = el("div","sharebar","");
   s4.appendChild(bar);
 
@@ -4179,8 +4164,10 @@ ACTS.watch = b => {
   ytbox.appendChild(ytHost);
   const hint = el("div","hint","Nothing on. Paste a YouTube link, or share the tab you're playing it in.");
   const tap = el("button","tap","Tap to start");
+  const max = el("button","maxbtn", "\u2921");
+  max.title = "Fill the screen"; max.setAttribute("aria-label","Fill the screen");
   screen.appendChild(vid); screen.appendChild(ytbox);
-  screen.appendChild(hint); screen.appendChild(tap);
+  screen.appendChild(hint); screen.appendChild(tap); screen.appendChild(max);
 
   const rail = el("div","rail");
   const who = el("div","who");
@@ -4197,6 +4184,46 @@ ACTS.watch = b => {
   room.appendChild(screen); room.appendChild(rail);
   s4.appendChild(room);
 
+  /* Big picture. The whole room goes up, not just the screen, so the chat
+     beside it comes along — the panel that floats over the page covers the
+     film, and the one in the rail never does. */
+  const big = () => document.fullscreenElement === room || room.classList.contains("cinema");
+  const grow = () => {
+    room.classList.add("cinema");              // in place at once, whatever fullscreen does
+    if(room.requestFullscreen) room.requestFullscreen().catch(() => {});
+    paintMax();
+  };
+  const shrink = () => {
+    room.classList.remove("cinema");
+    if(document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    paintMax();
+  };
+  const paintMax = () => {
+    max.innerHTML = big() ? "\u2922" : "\u2921";
+    const t = big() ? "Back to the page" : "Fill the screen";
+    max.title = t; max.setAttribute("aria-label", t);
+  };
+  max.addEventListener("click", () => big() ? shrink() : grow());
+  /* Esc leaves the big picture rather than the whole activity. Not "esc":
+     that is the global that escapes HTML, and shadowing it turned every name
+     on this screen into "undefined". */
+  const escKey = e => { if(e.key === "Escape" && big()){ e.stopPropagation(); shrink(); } };
+  document.addEventListener("keydown", escKey, true);
+  /* The browser's own exit (Esc, F11, the system button) has to be followed. */
+  const fsOut = () => { if(!document.fullscreenElement) room.classList.remove("cinema"); paintMax(); };
+  document.addEventListener("fullscreenchange", fsOut);
+  /* A call you cannot see is a call you miss: the chat lives outside the big
+     picture, and a real fullscreen hides it whatever its z-index says. */
+  const onCall = () => { if(big()) shrink(); };
+  window.addEventListener("call:incoming", onCall);
+  onClose(() => {
+    document.removeEventListener("keydown", escKey, true);
+    document.removeEventListener("fullscreenchange", fsOut);
+    window.removeEventListener("call:incoming", onCall);
+    if(room.classList.contains("cinema")) shrink();
+  });
+  paintMax();
+
   const src = el("div","srcbar");
   const ytIn = el("input"); ytIn.type = "text"; ytIn.placeholder = "paste a YouTube link";
   const ytGo = el("button","btn","Put it on");
@@ -4206,8 +4233,11 @@ ACTS.watch = b => {
   const clearAll  = el("button","btn ghost","Clear the screen");
   [ytIn, ytGo, shareGo, shareStop, sound, clearAll].forEach(x => src.appendChild(x));
   s4.appendChild(src);
-  note(s4, "A YouTube link plays on both sides at once — whoever presses play, pauses or scrubs moves it for both of you. Screen share carries anything else that isn't copy protected: pick <b>a tab</b> in Chrome or Edge, which is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle whichever way you try it — their copy protection blanks the frames before the browser sees them, so for those the countdown below is still the answer.");
-  b.insertBefore(s4, s1);
+  note(s4, "A YouTube link plays on both sides at once — whoever presses play, pauses or scrubs moves it for both of you. Screen share carries anything else that isn't copy protected: pick <b>a tab</b> in Chrome or Edge, which is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle whichever way you try it — their copy protection blanks the frames before the browser sees them, so for those, open it on both sides and press play on three.");
+  const rules = el("ul","rules");
+  CFG.watchRules.forEach(x => rules.appendChild(el("li", null, x)));
+  s4.appendChild(rules);
+  b.appendChild(s4);
 
   /* who is in the room */
   const paintWho = () => {
@@ -4471,6 +4501,11 @@ ACTS.watch = b => {
     } catch(_){}
   });
 
+  /* On a phone the chat is a sheet across the bottom, and at 80vh it buried
+     the picture. While something is actually playing it takes half. */
+  const onAir = () => screen.classList.contains("on") || screen.classList.contains("mode-yt");
+  const markAir = () => document.body.classList.toggle("watching", onAir());
+
   const paintShare = () => {
     const sh = liveShare();
     const mine = !!sh && sh.id === SYNC.id;
@@ -4514,99 +4549,19 @@ ACTS.watch = b => {
   };
   bind("watch.share", paintShare);
   ["yt.v","yt.playing","yt.at","yt.since","yt.by"].forEach(k => bind(k, () => { paintYt(); paintShare(); }));
+  every(700, markAir);
   every(1000, syncYt);
   every(1200, paintWho);
-  onClose(() => { stopShare(); if(player){ try { player.destroy(); } catch(_){} player = null; } });
+  onClose(() => {
+    stopShare();
+    document.body.classList.remove("watching");
+    if(player){ try { player.destroy(); } catch(_){} player = null; }
+  });
   window.addEventListener("beforeunload", stopShare);
   paintWho(); paintChat(); paintYt();
 
-  const render = () => {
-    const titles = SYNC.get("watch.titles", []);
-    list.innerHTML = "";
-    titles.forEach(x => list.appendChild(el("li", null, "<b style='color:var(--mango)'>" + esc(nameOf(x.s)) + "</b>: " + esc(x.v))));
-    const nextSide = titles.length % 2 === 0 ? "her" : "you";
-    const full = titles.length >= 6;
-    turnLbl.textContent = full ? "Six on the list. Go to step two."
-      : (canPlay(nextSide) ? "Your turn to add one." : nameOf(nextSide) + " adds one.");
-    turnLbl.classList.toggle("mine", !full && canPlay(nextSide));
-    add.disabled = full || !canPlay(nextSide);
-    inp.disabled = full || !canPlay(nextSide);
-    inp.placeholder = add.disabled && !full ? "waiting for " + nameOf(nextSide) : "anything on Netflix, Prime, wherever";
-
-    const used = SYNC.get("watch.veto", {});
-    [[v1,"her"],[v2,"you"]].forEach(([btn,side]) => {
-      btn.disabled = !!used[side];
-      btn.textContent = used[side] ? nameOf(side) + " used their veto" : nameOf(side) + "'s veto";
-    });
-    pickOut.textContent = SYNC.get("watch.pick", "") || "nothing picked yet";
-  };
-
-  const roll = () => {
-    const titles = SYNC.get("watch.titles", []).map(x => x.v);
-    const vetoed = SYNC.get("watch.vetoed", []);
-    const pool = titles.filter(t => vetoed.indexOf(t) === -1);
-    if(!pool.length){ SYNC.set("watch.pick", "Add some titles first."); return; }
-    let n = 0;
-    const iv = setInterval(() => {
-      SYNC.set("watch.pick", pool[Math.floor(Math.random()*pool.length)]);
-      if(++n > 14){
-        clearInterval(iv);
-        pickOut.classList.add("locked");
-        stageTimers.push(setTimeout(() => pickOut.classList.remove("locked"), 700));
-      }
-    }, 110);
-    stageTimers.push(iv);
-  };
-
-  const push = () => {
-    const v = inp.value.trim();
-    const titles = SYNC.get("watch.titles", []);
-    if(!v || titles.length >= 6) return;
-    const next = titles.length % 2 === 0 ? "her" : "you";
-    if(!canPlay(next)) return;
-    SYNC.push("watch.titles", { s: next, v: v.slice(0,90) }, 6);
-    inp.value = ""; inp.focus();
-  };
-  add.addEventListener("click", push);
-  inp.addEventListener("keydown", e => { if(e.key === "Enter") push(); });
-  clr.addEventListener("click", () => SYNC.wipe("watch."));
-  pick.addEventListener("click", roll);
-
-  const veto = (btn, side) => btn.addEventListener("click", () => {
-    const used = Object.assign({}, SYNC.get("watch.veto", {}));
-    if(used[side]) return;
-    const cur = SYNC.get("watch.pick", "");
-    const titles = SYNC.get("watch.titles", []).map(x => x.v);
-    if(titles.indexOf(cur) === -1) return;
-    used[side] = 1;
-    SYNC.set("watch.veto", used);
-    SYNC.set("watch.vetoed", SYNC.get("watch.vetoed", []).concat([cur]));
-    roll();
-  });
-  veto(v1,"her"); veto(v2,"you");
-
-  go.addEventListener("click", () => { SYNC.set("watch.mode","go"); SYNC.set("watch.cd", SYNC.now() + 5000); });
-  brk.addEventListener("click", () => { SYNC.set("watch.mode","break"); SYNC.set("watch.cd", SYNC.now() + 300000); });
-
-  const paintCd = () => {
-    const endsAt = SYNC.get("watch.cd", 0), mode = SYNC.get("watch.mode", "");
-    if(!endsAt){ cd.textContent = "ready"; cd.classList.remove("big"); return; }
-    const left = (endsAt - SYNC.now())/1000;
-    if(mode === "go"){
-      if(left > 0){ cd.classList.add("big"); cd.textContent = String(Math.ceil(left)); }
-      else if(left > -2.5){ cd.classList.add("big"); cd.textContent = "play"; }
-      else { cd.classList.remove("big"); cd.textContent = "watching"; }
-    } else {
-      cd.classList.remove("big");
-      cd.textContent = left > 0 ? mmss(left) + " left" : "back to it";
-    }
-  };
-
-  ["watch.titles","watch.veto","watch.vetoed","watch.pick"].forEach(k => bind(k, render));
-  bind("watch.cd", paintCd); bind("watch.mode", paintCd);
-  every(250, paintCd);
   every(1500, paintShare);          // the peer list decides whether a share is still live
-  render(); paintShare();
+  paintShare();
 };
 
 /* --- 16:30 truth or dare --- */
@@ -5293,6 +5248,7 @@ const PICS = {
     SYNC.on("call.on", () => {
       const c = liveCall();
       if(c && c.by !== SYNC.id && !joined){
+        window.dispatchEvent(new CustomEvent("call:incoming"));   // out of any big picture
         if(!box.classList.contains("on")) openChat();
         if(!ringTo){ CHIME.warm(); ringTo = setInterval(() => CHIME.warm(), 2800); }
       } else if(ringTo){ clearInterval(ringTo); ringTo = null; }
