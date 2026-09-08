@@ -46,13 +46,19 @@ keypress, so the first gesture on the page arms it.
 
 ## The arcade
 
-Nine games, all shared — every move lands on both boards.
+Twelve games, all shared — every move lands on both boards.
 
 **Chess** is the real thing: legal move generation, castling (including through
 check), en passant, promotion with a picker, check, checkmate, stalemate and the
 fifty-move draw. The board is flipped for whoever is playing black. Rules are
 verified by perft — 197,281 nodes at depth 4 from the start, and 97,862 at depth
 3 from the Kiwipete position, both exact.
+
+**Ludo** is the two-player game on a proper 52-square board: sixes to leave the
+yard and to roll again, capture on any square that isn't a star, and the exact
+number to get home. **Snake** gives you a board each, both live, so you watch
+the other one play while you play. **Hangman** has one of you set a word and the
+other spend six wrong guesses on it.
 
 Also **tic tac toe**, **dots and boxes** (close a box, go again) and
 **rock paper scissors** (both pick in secret, both reveal at once), alongside
@@ -65,9 +71,13 @@ seat.
 ## The page
 
 The header carries an analog watch rather than a digital clock, and the hour
-rows are just a title, a one-line description and a button — no timestamps. The
-sun on the arc still shows where you are in the day; the arc's pegs are
-navigation. Each activity's own header says which stop it is.
+rows are just a title, a one-line description and a button — no timestamps.
+Each activity's own header says which stop it is.
+
+Behind everything, a slow glitter rain on one fixed canvas: density scales with
+the viewport and caps at 120 flecks, they twinkle on their own phases and drift
+sideways as they fall. It idles when the tab is hidden and holds still for
+prefers-reduced-motion.
 
 ## Rooms
 

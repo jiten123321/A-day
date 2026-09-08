@@ -561,6 +561,75 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
   .dots{justify-content:center}
 }
 
+/* ===== arcade: ludo, snake, hangman ===== */
+.ludo{
+  display:grid;grid-template-columns:repeat(15,1fr);gap:1px;margin:16px 0;
+  max-width:460px;aspect-ratio:1;background:rgba(244,237,224,.12);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden
+}
+.lc{position:relative;background:#0E1739;display:grid;place-items:center}
+.lc.void{background:#0B1330}
+.lc.track{background:#E6DAC2}
+.lc.safe{background:#C9BDA2}
+.lc.safe::after{content:"★";position:absolute;font-size:.55em;color:rgba(27,40,86,.5)}
+.lc.yard.her{background:rgba(226,112,126,.28)}
+.lc.yard.you{background:rgba(244,169,60,.28)}
+.lc.run.her{background:rgba(226,112,126,.72)}
+.lc.run.you{background:rgba(244,169,60,.72)}
+.lc.centre{background:var(--teal)}
+.tok{
+  position:absolute;width:74%;height:74%;border-radius:50%;
+  border:2px solid rgba(16,26,60,.65);box-shadow:0 1px 3px rgba(0,0,0,.4)
+}
+.tok.her{background:var(--rose)}
+.tok.you{background:var(--marigold)}
+.tok.stack{width:52%;height:52%;transform:translate(28%,28%)}
+.tok.home{border-color:var(--teal)}
+.tok.can{cursor:pointer;animation:tokpulse 1.1s ease-in-out infinite}
+@keyframes tokpulse{0%,100%{box-shadow:0 0 0 0 rgba(63,163,150,.9)}50%{box-shadow:0 0 0 4px rgba(63,163,150,0)}}
+.die{
+  width:64px;height:64px;border-radius:14px;border:1px solid var(--line);
+  background:rgba(244,237,224,.08);color:var(--paper);font-size:2rem;line-height:1
+}
+.die.live{border-color:var(--marigold);color:var(--marigold);animation:tokpulse 1.4s ease-in-out infinite}
+.die:disabled{opacity:.45}
+
+.snakes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+.snakewrap{display:grid;justify-items:center;gap:6px}
+.snakewrap label{font-size:.72rem;letter-spacing:.06em;color:var(--muted)}
+.sgrid{
+  display:grid;grid-template-columns:repeat(16,1fr);gap:1px;width:100%;aspect-ratio:1;
+  background:rgba(244,237,224,.08);border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;touch-action:none
+}
+.sc{background:#0E1739}
+.sc.snake.mine{background:var(--marigold)}
+.sc.snake.theirs{background:var(--rose)}
+.sc.snake.head{background:var(--paper)}
+.sc.food{background:var(--teal);border-radius:50%}
+.sscore{font-family:var(--serif);font-size:1.2rem;color:var(--mango)}
+
+.hangword{
+  font-family:var(--serif);font-size:clamp(1.4rem,6vw,2.2rem);letter-spacing:.18em;
+  margin:16px 0 6px;min-height:1.2em;word-break:break-word
+}
+.gallows{font-size:1.3rem;letter-spacing:.35em;min-height:1.4em;margin-bottom:10px}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(34px,1fr));gap:6px;margin:12px 0}
+.key{
+  aspect-ratio:1;border:1px solid var(--line);border-radius:8px;background:none;
+  color:var(--paper);font-size:.85rem;font-weight:600
+}
+.key:disabled{opacity:.5}
+.key.hit{background:rgba(63,163,150,.35);border-color:var(--teal)}
+.key.miss{background:rgba(226,112,126,.2);border-color:rgba(226,112,126,.5)}
+.setter{display:flex;gap:8px;margin-top:10px}
+.setter input{flex:1}
+
+@media (max-width:640px){
+  .snakes{grid-template-columns:1fr}
+  .ludo{max-width:100%}
+}
+
 /* ===== chat: shared pictures and GIFs ===== */
 .bubble img.shot{
   display:block;max-width:100%;height:auto;border-radius:10px;margin:2px 0 4px;
@@ -860,7 +929,7 @@ const CFG = {
 const PLAN = [
   {t:"10:00", title:"Chai to start",       line:"Two cups, one call. Clink through the camera.", k:"chai"},
   {t:"10:30", title:"Question roulette",   line:"Spin it, answer it. Two skips all day.", k:"wheel"},
-  {t:"11:00", title:"The arcade",          line:"Nine games. Chess, connect four, dots and boxes.", k:"arcade"},
+  {t:"11:00", title:"The arcade",          line:"Twelve games. Chess, ludo, snake, connect four.", k:"arcade"},
   {t:"12:00", title:"Same order",          line:"Four picks each, blind. Then count the overlap.", k:"menu"},
   {t:"13:00", title:"Ninety seconds to draw me", line:"From memory. No photos, no undo, no being nice.", k:"draw"},
   {t:"13:30", title:"Memory match",        line:"Sixteen cards, eight things that already happened.", k:"match"},
@@ -1995,11 +2064,14 @@ ACTS.letter = b => {
 
 /* --- 11:00 the arcade --- */
 ACTS.arcade = b => {
-  lede(b, "Nine games, all shared. Every move lands on both boards.");
+  lede(b, "Twelve games, all shared. Every move lands on both boards.");
   const hub = el("div","tiles");
   const panel = el("div"); panel.style.marginTop = "10px";
   const GAMES = [
     {n:"Chess", d:"Real rules. Castling, en passant, checkmate.", f:chessGame},
+    {n:"Ludo", d:"Four tokens each. Sixes to come out, exact number to get home.", f:ludoGame},
+    {n:"Snake", d:"One board each, both live. Longest wins.", f:snakeGame},
+    {n:"Hangman", d:"One of you sets a word, the other has six wrong guesses.", f:hangmanGame},
     {n:"Tic tac toe", d:"Three in a row. Loser starts the next one.", f:tttGame},
     {n:"Dots and boxes", d:"Close a box, go again. Sixteen to take.", f:dotsGame},
     {n:"Rock paper scissors", d:"Both pick in secret, both reveal at once.", f:rpsGame},
@@ -2014,6 +2086,7 @@ ACTS.arcade = b => {
   let gsubs = [], gtimers = [];
   const gbind = (k, fn) => { gsubs.push(SYNC.on(k, fn)); };
   const gevery = (ms, fn) => { fn(); const id = setInterval(fn, ms); gtimers.push(id); return id; };
+  const gclean = fn => { gsubs.push(fn); };          // anything else to undo on swap
   const gclear = () => { gsubs.forEach(f => f()); gsubs = []; gtimers.forEach(clearInterval); gtimers = []; };
   stageSubs.push(gclear);
 
@@ -2033,7 +2106,7 @@ ACTS.arcade = b => {
     const gi = SYNC.get("arcade.game", null);
     tiles.forEach((t,i) => t.classList.toggle("on", i === gi));
     if(gi === null || !GAMES[gi]) return;
-    GAMES[gi].f(panel, gbind, gevery);
+    GAMES[gi].f(panel, gbind, gevery, gclean);
   };
   bind("arcade.game", render);
   render();
@@ -2850,6 +2923,401 @@ function rpsGame(host, gbind){
   });
 
   ["rps.pick.her","rps.pick.you","rps.score"].forEach(k => gbind(k, render));
+  render();
+}
+
+
+/* --- arcade: ludo --- */
+const LU = {
+  /* The 52-square loop, as [col,row] on a 15x15 board, starting beside the
+     red yard and running clockwise. */
+  PATH: [[1,6],[2,6],[3,6],[4,6],[5,6],
+         [6,5],[6,4],[6,3],[6,2],[6,1],[6,0],
+         [7,0],
+         [8,0],[8,1],[8,2],[8,3],[8,4],[8,5],
+         [9,6],[10,6],[11,6],[12,6],[13,6],[14,6],
+         [14,7],
+         [14,8],[13,8],[12,8],[11,8],[10,8],[9,8],
+         [8,9],[8,10],[8,11],[8,12],[8,13],[8,14],
+         [7,14],
+         [6,14],[6,13],[6,12],[6,11],[6,10],[6,9],
+         [5,8],[4,8],[3,8],[2,8],[1,8],[0,8],
+         [0,7],
+         [0,6]],
+  HOME: { her: [[1,7],[2,7],[3,7],[4,7],[5,7]], you: [[13,7],[12,7],[11,7],[10,7],[9,7]] },
+  YARD: { her: [[1,1],[3,1],[1,3],[3,3]],       you: [[11,10],[13,10],[11,12],[13,12]] },
+  START: { her: 0, you: 26 },
+  SAFE: [0, 8, 13, 21, 26, 34, 39, 47],
+  DONE: 56,                     // 51 track steps + 5 home + 1
+
+  /* -1 = still in the yard, 0..50 track, 51..55 home column, 56 home */
+  cell(side, p){
+    if(p < 0) return null;
+    if(p <= 50) return LU.PATH[(LU.START[side] + p) % 52];
+    if(p <= 55) return LU.HOME[side][p - 51];
+    return [7,7];
+  },
+  trackIndex: (side, p) => (p >= 0 && p <= 50) ? (LU.START[side] + p) % 52 : -1,
+
+  fresh(){
+    return { pos:{ her:[-1,-1,-1,-1], you:[-1,-1,-1,-1] }, turn:"her", die:0, rolled:false, over:"" };
+  },
+
+  /* Which tokens could legally use this roll. */
+  movable(st, side, die){
+    const out = [];
+    st.pos[side].forEach((p,i) => {
+      if(p === LU.DONE) return;
+      if(p < 0){ if(die === 6) out.push(i); return; }
+      if(p + die <= LU.DONE) out.push(i);      // must land exactly on home
+    });
+    return out;
+  },
+
+  move(st, side, i, die){
+    const next = JSON.parse(JSON.stringify(st));
+    const foe = side === "her" ? "you" : "her";
+    let p = next.pos[side][i];
+    p = p < 0 ? 0 : p + die;                   // a six brings it to the start square
+    next.pos[side][i] = p;
+
+    const ti = LU.trackIndex(side, p);
+    if(ti >= 0 && LU.SAFE.indexOf(ti) === -1){
+      next.pos[foe].forEach((q,j) => {
+        if(LU.trackIndex(foe, q) === ti) next.pos[foe][j] = -1;   // sent home
+      });
+    }
+    if(next.pos[side].every(x => x === LU.DONE)) next.over = side;
+    return next;
+  }
+};
+
+function ludoGame(host, gbind){
+  const box = el("div","card");
+  const status = el("div","turnbar","");
+  box.appendChild(status);
+
+  const board = el("div","ludo");
+  const cells = [];
+  for(let r = 0; r < 15; r++) for(let c = 0; c < 15; c++){
+    const d = el("i","lc");
+    const inBox = (c0,r0) => c >= c0 && c < c0+6 && r >= r0 && r < r0+6;
+    if(inBox(0,0)) d.classList.add("yard","her");
+    else if(inBox(9,9)) d.classList.add("yard","you");
+    else if(inBox(9,0) || inBox(0,9)) d.classList.add("void");
+    if(c === 7 && r === 7) d.classList.add("centre");
+    board.appendChild(d);
+    cells.push(d);
+  }
+  LU.PATH.forEach((xy,i) => {
+    const d = cells[xy[1]*15 + xy[0]];
+    d.classList.add("track");
+    if(LU.SAFE.indexOf(i) !== -1) d.classList.add("safe");
+  });
+  ["her","you"].forEach(side => LU.HOME[side].forEach(xy =>
+    cells[xy[1]*15 + xy[0]].classList.add("run", side)));
+  box.appendChild(board);
+
+  const r = el("div","row");
+  const die = el("button","die","–");
+  const again = el("button","btn ghost","New game");
+  r.appendChild(die); r.appendChild(again);
+  box.appendChild(r);
+  const hint = el("p","note","Six to bring a token out, six rolls again, and you need the exact number to get home. Landing on a token that isn't on a star sends it back.");
+  box.appendChild(hint);
+  host.appendChild(box);
+
+  const st = () => SYNC.get("ludo.st", null) || LU.fresh();
+
+  const render = () => {
+    const s = st();
+    board.querySelectorAll(".tok").forEach(t => t.remove());
+    ["her","you"].forEach(side => {
+      const seen = {};
+      s.pos[side].forEach((p,i) => {
+        const xy = p < 0 ? LU.YARD[side][i] : LU.cell(side, p);
+        const key = xy[0] + "," + xy[1];
+        seen[key] = (seen[key] || 0) + 1;
+        const t = el("i","tok " + side);
+        if(p === LU.DONE) t.classList.add("home");
+        if(seen[key] > 1) t.classList.add("stack");
+        const can = s.rolled && s.turn === side && side === mySide() && !s.over
+                    && LU.movable(s, side, s.die).indexOf(i) !== -1;
+        if(can){
+          t.classList.add("can");
+          t.addEventListener("click", () => {
+            const cur = st();
+            if(!cur.rolled || cur.turn !== mySide() || cur.over) return;
+            const after = LU.move(cur, mySide(), i, cur.die);
+            after.rolled = false;
+            if(!after.over && cur.die !== 6) after.turn = mySide() === "her" ? "you" : "her";
+            after.die = cur.die === 6 && !after.over ? 0 : 0;
+            SYNC.set("ludo.st", after);
+          });
+        }
+        cells[xy[1]*15 + xy[0]].appendChild(t);
+      });
+    });
+
+    const mine = s.turn === mySide();
+    die.textContent = s.die ? "⚀⚁⚂⚃⚄⚅"[s.die-1] : "roll";
+    die.disabled = !!s.over || !mine || s.rolled;
+    die.classList.toggle("live", mine && !s.rolled && !s.over);
+
+    if(s.over){
+      status.textContent = (s.over === mySide() ? "You win." : nameOf(s.over) + " wins.") + " All four home.";
+      status.style.color = "var(--teal)"; status.classList.remove("mine");
+    } else {
+      status.style.color = "";
+      const stuck = s.rolled && LU.movable(s, s.turn, s.die).length === 0;
+      status.textContent = stuck ? (mine ? "Nothing to move with that. Pass." : nameOf(s.turn) + " is stuck.")
+        : mine ? (s.rolled ? "Pick a token." : "Your roll.") : nameOf(s.turn) + "'s turn.";
+      status.classList.toggle("mine", mine);
+      if(stuck && mine){
+        const pass = el("button","btn"); pass.textContent = "Pass";
+        pass.addEventListener("click", () => {
+          const cur = st();
+          SYNC.set("ludo.st", Object.assign({}, cur, {rolled:false, die:0,
+            turn: mySide() === "her" ? "you" : "her"}));
+        });
+        status.appendChild(pass);
+      }
+    }
+  };
+
+  die.addEventListener("click", () => {
+    const s = st();
+    if(s.over || s.turn !== mySide() || s.rolled) return;
+    SYNC.set("ludo.st", Object.assign({}, s, { die: 1 + Math.floor(Math.random()*6), rolled: true }));
+  });
+  again.addEventListener("click", () => {
+    if(!confirm("Start a new game of ludo? The board is shared.")) return;
+    SYNC.set("ludo.st", LU.fresh());
+  });
+
+  gbind("ludo.st", render);
+  render();
+}
+
+/* --- arcade: snake, one board each, both live --- */
+function snakeGame(host, gbind, gevery, gclean){
+  const N = 16, TICK = 190;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","arrows, WASD or swipe — you each play your own, and watch the other's"));
+  const pair = el("div","snakes");
+  const mk = (side) => {
+    const w = el("div","snakewrap");
+    w.appendChild(el("label", null, side === mySide() ? "yours" : nameOf(side) + "'s"));
+    const g = el("div","sgrid");
+    const cs = [];
+    for(let i = 0; i < N*N; i++){ const d = el("i","sc"); g.appendChild(d); cs.push(d); }
+    w.appendChild(g);
+    const sc = el("div","sscore","0");
+    w.appendChild(sc);
+    pair.appendChild(w);
+    return { cells: cs, score: sc };
+  };
+  const mineUI = mk(mySide()), themUI = mk(theirSide());
+  box.appendChild(pair);
+  const r = el("div","row");
+  const go = el("button","btn","Start");
+  r.appendChild(go); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "12px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  let me = null, dir = [1,0], nextDir = [1,0], alive = false, acc = 0;
+
+  const spawnFood = (body) => {
+    let f;
+    do { f = [Math.floor(Math.random()*N), Math.floor(Math.random()*N)]; }
+    while(body.some(b => b[0] === f[0] && b[1] === f[1]));
+    return f;
+  };
+  const start = () => {
+    me = { body: [[4,8],[3,8],[2,8]], food: spawnFood([[4,8],[3,8],[2,8]]), score: 0 };
+    dir = [1,0]; nextDir = [1,0]; alive = true; acc = 0;
+    go.textContent = "Restart";
+    paint(mineUI, shot(false), true);
+    SYNC.ev("snake.live", Object.assign({ s: mySide() }, shot(false)));
+  };
+
+  /* every caller passes the same shape: {b: body, f: food, n: score, dead} */
+  const paint = (ui, s, isMine) => {
+    ui.cells.forEach(c => c.className = "sc");
+    if(!s){ ui.score.textContent = "–"; return; }
+    s.b.forEach((seg,i) => {
+      const c = ui.cells[seg[1]*N + seg[0]];
+      if(c) c.className = "sc snake" + (i === 0 ? " head" : "") + (isMine ? " mine" : " theirs");
+    });
+    if(s.f){ const f = ui.cells[s.f[1]*N + s.f[0]]; if(f) f.className = "sc food"; }
+    ui.score.textContent = s.n + (s.dead ? " — out" : "");
+  };
+  const shot = (dead) => ({ b: me.body, f: me.food, n: me.score, dead: !!dead });
+
+  const step = () => {
+    if(!alive || !me) return;
+    dir = nextDir;
+    const head = [me.body[0][0] + dir[0], me.body[0][1] + dir[1]];
+    const hitWall = head[0] < 0 || head[1] < 0 || head[0] >= N || head[1] >= N;
+    const hitSelf = me.body.some(b => b[0] === head[0] && b[1] === head[1]);
+    if(hitWall || hitSelf){
+      alive = false;
+      SYNC.ev("snake.live", Object.assign({ s: mySide() }, shot(true)));
+      const key = "snake.best." + mySide();
+      if(me.score > SYNC.get(key, 0)) SYNC.set(key, me.score);
+      go.textContent = "Go again";
+      paint(mineUI, shot(true), true);
+      return;
+    }
+    me.body.unshift(head);
+    if(head[0] === me.food[0] && head[1] === me.food[1]){
+      me.score++; me.food = spawnFood(me.body);
+    } else me.body.pop();
+    paint(mineUI, shot(false), true);
+    SYNC.ev("snake.live", Object.assign({ s: mySide() }, shot(false)));
+  };
+
+  const turn = (d) => {
+    if(!alive) return;
+    if(d[0] === -dir[0] && d[1] === -dir[1]) return;   // no instant reversal
+    nextDir = d;
+  };
+  const KEYS = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
+                 w:[0,-1], s:[0,1], a:[-1,0], d:[1,0], W:[0,-1], S:[0,1], A:[-1,0], D:[1,0] };
+  const onKey = e => {
+    const d = KEYS[e.key];
+    if(!d) return;
+    e.preventDefault(); turn(d);
+  };
+  window.addEventListener("keydown", onKey);
+
+  let sx = 0, sy = 0;
+  const grid = pair.querySelector(".sgrid");
+  grid.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  grid.addEventListener("touchend", e => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if(Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+    turn(Math.abs(dx) > Math.abs(dy) ? [dx > 0 ? 1 : -1, 0] : [0, dy > 0 ? 1 : -1]);
+  }, {passive:true});
+
+  go.addEventListener("click", start);
+
+  gbind("snake.best.her", () => paintBest());
+  gbind("snake.best.you", () => paintBest());
+  const paintBest = () => {
+    best.textContent = "Best — " + CFG.her + " " + SYNC.get("snake.best.her", 0) +
+                       "  ·  " + CFG.you + " " + SYNC.get("snake.best.you", 0);
+  };
+
+  const off = SYNC.onEv("snake.live", v => {
+    if(!v || v.s === mySide()) return;
+    paint(themUI, v, false);
+  });
+  // the key handler and the live listener go when the game is swapped out
+  gclean(() => { window.removeEventListener("keydown", onKey); off(); alive = false; });
+
+  gevery(TICK, step);
+  paintBest();
+  paint(mineUI, null, true);
+  paint(themUI, null, false);
+}
+
+/* --- arcade: hangman --- */
+function hangmanGame(host, gbind){
+  const box = el("div","card");
+  const status = el("div","turnbar","");
+  box.appendChild(status);
+  const wordLine = el("div","hangword","");
+  box.appendChild(wordLine);
+  const gallows = el("div","gallows","");
+  box.appendChild(gallows);
+  const keys = el("div","keys");
+  const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+  const keyBtns = letters.map(L => {
+    const b = el("button","key", L.toUpperCase());
+    b.addEventListener("click", () => guess(L));
+    keys.appendChild(b); return b;
+  });
+  box.appendChild(keys);
+  const setter = el("div","setter");
+  const inp = el("input"); inp.type = "text"; inp.placeholder = "a word or short phrase for them";
+  const setBtn = el("button","btn","Set it");
+  setter.appendChild(inp); setter.appendChild(setBtn);
+  box.appendChild(setter);
+  const r = el("div","row");
+  const reset = el("button","btn ghost","New word");
+  r.appendChild(reset); box.appendChild(r);
+  host.appendChild(box);
+
+  const MAX = 6;
+  const get = () => ({
+    word: SYNC.get("hang.word", ""), by: SYNC.get("hang.by", ""),
+    tried: SYNC.get("hang.tried", []), score: SYNC.get("hang.score", {her:0, you:0})
+  });
+
+  const render = () => {
+    const s = get();
+    const setBySomeone = !!s.word;
+    const iSet = s.by === mySide();
+    const letters2 = s.word.toLowerCase().split("").filter(c => /[a-z]/.test(c));
+    const missed = s.tried.filter(t => letters2.indexOf(t) === -1);
+    const won = setBySomeone && letters2.every(c => s.tried.indexOf(c) !== -1);
+    const lost = missed.length >= MAX;
+
+    setter.hidden = setBySomeone;
+    keys.hidden = !setBySomeone || iSet || won || lost;
+    reset.hidden = !setBySomeone;
+
+    wordLine.textContent = !setBySomeone ? "" :
+      s.word.split("").map(c => !/[a-z]/i.test(c) ? c
+        : (s.tried.indexOf(c.toLowerCase()) !== -1 || won || lost) ? c.toUpperCase() : "_").join(" ");
+
+    gallows.textContent = setBySomeone ? "✗".repeat(missed.length) + "·".repeat(Math.max(0, MAX - missed.length)) : "";
+    gallows.style.color = missed.length >= MAX - 2 ? "var(--rose)" : "var(--muted)";
+
+    keyBtns.forEach((b,i) => { b.disabled = s.tried.indexOf(letters[i]) !== -1;
+      b.classList.toggle("hit", s.tried.indexOf(letters[i]) !== -1 && letters2.indexOf(letters[i]) !== -1);
+      b.classList.toggle("miss", s.tried.indexOf(letters[i]) !== -1 && letters2.indexOf(letters[i]) === -1); });
+
+    status.classList.toggle("mine", setBySomeone && !iSet && !won && !lost);
+    status.style.color = won || lost ? "var(--teal)" : "";
+    status.textContent = !setBySomeone ? "Someone set a word."
+      : won ? (iSet ? nameOf(theirSide()) + " got it." : "You got it.")
+      : lost ? "Out of guesses. It was " + s.word.toUpperCase() + "."
+      : iSet ? "You set it — " + nameOf(theirSide()) + " is guessing."
+      : "Your guess. " + (MAX - missed.length) + " wrong left.";
+    const sc = s.score;
+    status.title = CFG.her + " " + sc.her + " · " + CFG.you + " " + sc.you;
+  };
+
+  function guess(L){
+    const s = get();
+    if(!s.word || s.by === mySide()) return;
+    if(s.tried.indexOf(L) !== -1) return;
+    const tried = s.tried.concat([L]);
+    SYNC.set("hang.tried", tried);
+    const letters2 = s.word.toLowerCase().split("").filter(c => /[a-z]/.test(c));
+    const missed = tried.filter(t => letters2.indexOf(t) === -1);
+    if(letters2.every(c => tried.indexOf(c) !== -1) || missed.length >= MAX){
+      const sc = Object.assign({her:0, you:0}, s.score);
+      sc[letters2.every(c => tried.indexOf(c) !== -1) ? mySide() : s.by]++;
+      SYNC.set("hang.score", sc);
+    }
+  }
+  const setIt = () => {
+    const v = inp.value.trim().slice(0,40);
+    if(!v || !/[a-z]/i.test(v)) return;
+    SYNC.set("hang.word", v); SYNC.set("hang.by", mySide()); SYNC.set("hang.tried", []);
+    inp.value = "";
+  };
+  setBtn.addEventListener("click", setIt);
+  inp.addEventListener("keydown", e => { if(e.key === "Enter") setIt(); });
+  reset.addEventListener("click", () => {
+    SYNC.set("hang.word", ""); SYNC.set("hang.by", ""); SYNC.set("hang.tried", []);
+  });
+
+  ["hang.word","hang.by","hang.tried","hang.score"].forEach(k => gbind(k, render));
   render();
 }
 
