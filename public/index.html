@@ -1631,9 +1631,15 @@ const CUR = {
     setTimeout(() => holder.remove(), 620);
   },
 
+  /* Something with a secret in it can ask for the pointer to stop travelling.
+     Watching the other one's cursor drift onto "rock" and a ripple land on it
+     tells you everything the game was about to hide. */
+  mute:false,
+
   start(){
     let last = 0;
     window.addEventListener("pointermove", e => {
+      if(CUR.mute) return;
       const t = performance.now();
       if(t - last < 50) return;
       last = t;
@@ -1641,6 +1647,7 @@ const CUR = {
     }, {passive:true});
 
     window.addEventListener("pointerdown", e => {
+      if(CUR.mute) return;
       SYNC.ev("tap", CUR.encode(e.clientX, e.clientY));
     }, {passive:true});
 
@@ -3685,7 +3692,7 @@ function dotsGame(host, gbind){
 }
 
 /* --- arcade: rock paper scissors --- */
-function rpsGame(host, gbind){
+function rpsGame(host, gbind, gevery, gclean){
   const THROWS = [{k:"rock", e:"\u{1FAA8}"}, {k:"paper", e:"\u{1F4C4}"}, {k:"scissors", e:"✂️"}];
   const beats = { rock:"scissors", paper:"rock", scissors:"paper" };
 
@@ -3715,16 +3722,63 @@ function rpsGame(host, gbind){
 
   const emoji = k => (THROWS.find(t => t.k === k) || {}).e || "";
 
+  /* "Both pick in secret" has to mean it. The old version wrote the throw
+     straight into the shared room and left the hiding to the other screen's
+     CSS — anyone curious could read it out of the state, and long before
+     that, the live cursor and its click ripple landed on the button. So:
+     commit first, reveal second. What travels when you press is a flag
+     saying you have chosen. The throw itself stays in this browser until
+     both flags are up, and neither can be changed after that. */
+  let myPick = "", myRound = -1;
+
+  const round   = () => SYNC.get("rps.round", 0);
+  const locked  = side => !!SYNC.get("rps.lock." + side, false);
+  const shown   = side => SYNC.get("rps.pick." + side, "");
+
+  const publish = () => {
+    if(!myPick || myRound !== round()) return;
+    if(!locked("her") || !locked("you")) return;          // still someone to wait for
+    if(shown(mySide()) !== myPick) SYNC.set("rps.pick." + mySide(), myPick);
+  };
+
+  /* Both sides publish at the same moment, so exactly one tab counts the
+     round: whoever holds the first seat. The round number keeps a repaint,
+     a reconnect or a second look from counting it twice. */
+  const settle = () => {
+    const her = shown("her"), you = shown("you");
+    if(!her || !you) return;
+    const s = seats();
+    if(!s.her || s.her.id !== SYNC.id) return;
+    if(SYNC.get("rps.scored", -1) === round()) return;
+    SYNC.set("rps.scored", round());
+    const sc = Object.assign({her:0, you:0, draw:0}, SYNC.get("rps.score", {}));
+    if(her === you) sc.draw++;
+    else if(beats[her] === you) sc.her++;
+    else sc.you++;
+    SYNC.set("rps.score", sc);
+  };
+
   const render = () => {
-    const mine = SYNC.get("rps.pick." + mySide(), "");
-    const theirs = SYNC.get("rps.pick." + theirSide(), "");
-    const sc = SYNC.get("rps.score", {her:0, you:0, draw:0});
-    const both = mine && theirs;
+    /* The round moving on is what ends a throw, not the button that moved it
+       — only one of the two tabs pressed that, and the other one was left
+       holding last round's hand. */
+    if(myRound !== round()){ myPick = ""; myRound = -1; }
+    publish(); settle();
+
+    const iAm = mySide(), they = theirSide();
+    /* A reload loses the throw but not the flag. Nothing was revealed, so
+       hand the pick back rather than stranding the round. */
+    if(locked(iAm) && !myPick && !shown(iAm)) SYNC.set("rps.lock." + iAm, false);
+
+    const mine   = shown(iAm) || myPick;
+    const theirs = shown(they);
+    const sc = Object.assign({her:0, you:0, draw:0}, SYNC.get("rps.score", {}));
+    const both = !!shown(iAm) && !!theirs;
 
     mineFace.textContent = mine ? emoji(mine) : "?";
-    themFace.textContent = both ? emoji(theirs) : (theirs ? "\u{1F512}" : "?");
+    themFace.textContent = both ? emoji(theirs) : (locked(they) ? "\u{1F512}" : "?");
     mineFace.classList.toggle("set", !!mine);
-    themFace.classList.toggle("set", !!theirs);
+    themFace.classList.toggle("set", locked(they) || both);
 
     btns.forEach((b,i) => {
       b.disabled = !!mine;
@@ -3734,33 +3788,36 @@ function rpsGame(host, gbind){
 
     if(both){
       verdict.textContent = mine === theirs ? "Both " + mine + ". Again."
-        : beats[mine] === theirs ? "You win this one." : nameOf(theirSide()) + " takes it.";
+        : beats[mine] === theirs ? "You win this one." : nameOf(they) + " takes it.";
     } else if(mine){
-      verdict.textContent = "Locked in. Waiting for " + nameOf(theirSide()) + ".";
+      verdict.textContent = "Locked in. Waiting for " + nameOf(they) + ".";
     } else {
-      verdict.textContent = theirs ? nameOf(theirSide()) + " has picked. Your turn." : "Pick one.";
+      verdict.textContent = locked(they) ? nameOf(they) + " has chosen. Your turn." : "Pick one.";
     }
     tally.textContent = CFG.her + " " + sc.her + "  ·  " + CFG.you + " " + sc.you + "  ·  drawn " + sc.draw;
   };
 
   function pick(k){
-    if(SYNC.get("rps.pick." + mySide(), "")) return;
-    SYNC.set("rps.pick." + mySide(), k);
-    const theirs = SYNC.get("rps.pick." + theirSide(), "");
-    if(!theirs) return;
-    // whoever completes the pair scores it, so it is counted once
-    const sc = Object.assign({her:0, you:0, draw:0}, SYNC.get("rps.score", {}));
-    if(k === theirs) sc.draw++;
-    else if(beats[k] === theirs) sc[mySide()]++;
-    else sc[theirSide()]++;
-    SYNC.set("rps.score", sc);
+    if(myPick || shown(mySide())) return;
+    myPick = k; myRound = round();
+    SYNC.set("rps.lock." + mySide(), k ? true : false);   // the flag, never the throw
+    render();
   }
 
   next.addEventListener("click", () => {
+    myPick = ""; myRound = -1;
     SYNC.set("rps.pick.her", ""); SYNC.set("rps.pick.you", "");
+    SYNC.set("rps.lock.her", false); SYNC.set("rps.lock.you", false);
+    SYNC.set("rps.round", round() + 1);
   });
 
-  ["rps.pick.her","rps.pick.you","rps.score"].forEach(k => gbind(k, render));
+  /* And nothing else gives it away either: a pointer drifting onto "rock",
+     or a ripple landing on it, is the whole secret. */
+  CUR.mute = true;
+  gclean(() => { CUR.mute = false; });
+
+  ["rps.pick.her","rps.pick.you","rps.lock.her","rps.lock.you","rps.score","rps.round"]
+    .forEach(k => gbind(k, render));
   render();
 }
 
