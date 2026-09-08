@@ -44,12 +44,59 @@ your own. **Sound on / Sound off** in the chat toolbar toggles it, and the
 choice is remembered per browser. Browsers only allow audio after a click or
 keypress, so the first gesture on the page arms it.
 
+## The arcade
+
+Twelve games, all shared — every move lands on both boards.
+
+**Chess** is the real thing: legal move generation, castling (including through
+check), en passant, promotion with a picker, check, checkmate, stalemate and the
+fifty-move draw. The board is flipped for whoever is playing black. Rules are
+verified by perft — 197,281 nodes at depth 4 from the start, and 97,862 at depth
+3 from the Kiwipete position, both exact.
+
+**Ludo** is the two-player game on a proper 52-square board: sixes to leave the
+yard and to roll again, capture on any square that isn't a star, and the exact
+number to get home. **Snake** gives you a board each, both live, so you watch
+the other one play while you play. **Hangman** has one of you set a word and the
+other spend six wrong guesses on it.
+
+Also **tic tac toe**, **dots and boxes** (close a box, go again) and
+**rock paper scissors** (both pick in secret, both reveal at once), alongside
+the original connect four, emoji films, never have I ever, word chain and who's
+more likely.
+
+Ladoo plays white, X, and moves first; Jitendra and any guest take the other
+seat.
+
+## Look
+
+The whole thing is a doodle: pen on paper rather than the old night theme.
+
+- **Handwriting throughout** — Caveat for headings, Patrick Hand for everything
+  else, both self-hosted from `public/fonts/` so there is no font-CDN
+  dependency and the page can never render half-styled while one is slow.
+- **Hand-drawn outlines.** Every component's border is a `::before` overlay run
+  through an SVG turbulence filter (`#wob1`/`#wob2`/`#wob3` in the page). Only
+  the line is distorted, never the text inside it — which is why the filter is
+  on an overlay rather than on the element.
+- Uneven corner radii, a fraction of a degree of rotation on cards and message
+  bubbles, and a scribbled underline beneath each hour's heading.
+- Faint ruled-and-squared paper under everything, and the glitter falls as
+  little pen marks — asterisks, crosses and dots — rather than round specks.
+
+The palette tokens kept their names, so `--paper` is the ink and `--night` is
+the page. Every existing rule therefore keeps meaning what it meant.
+
 ## The page
 
 The header carries an analog watch rather than a digital clock, and the hour
-rows are just a title, a one-line description and a button — no timestamps. The
-sun on the arc still shows where you are in the day; the arc's pegs are
-navigation. Each activity's own header says which stop it is.
+rows are just a title, a one-line description and a button — no timestamps.
+Each activity's own header says which stop it is.
+
+Behind everything, a slow glitter rain on one fixed canvas: density scales with
+the viewport and caps at 120 flecks, they twinkle on their own phases and drift
+sideways as they fall. It idles when the tab is hidden and holds still for
+prefers-reduced-motion.
 
 ## Rooms
 
