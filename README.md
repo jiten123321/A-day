@@ -182,8 +182,34 @@ states are called `near` and `hold`.
 
 ## Watch party
 
-Four steps: six titles alternating, a veto each, a countdown off the shared
-clock, and then the screen itself.
+A room first, then the picking. The room is one big screen with the two of you
+down the side: who is here, and the chat — the same thread as the chat panel,
+text only, so you can talk about the film without covering it. Under the
+screen is a source bar: a YouTube link, or a screen share. Below the room, the
+picking still works as it did — six titles alternating, a veto each, and a
+countdown off the shared clock for anything neither of those can carry.
+
+### YouTube, in step
+
+Paste a link and it goes up on both screens. Whoever presses play, pauses or
+scrubs moves it for both of you, because nobody sends "play" — the room stores
+where the film was (`yt.at`) and when that was true by the shared clock
+(`yt.since`), and each side works out for itself where it should be now. A tab
+that was slow to load, or came back from a lock screen, computes the same
+answer as everyone else and seeks to it rather than drifting. Corrections only
+fire past 1.5 seconds of drift, so ordinary jitter doesn't make the picture
+jump.
+
+The player is YouTube's own iframe with its own controls, and its state changes
+are what write to the room — so scrubbing the YouTube bar is the sync control,
+rather than a separate set of buttons that has to be kept in agreement with it.
+
+A caveat on this one: youtube.com is not reachable from the sandbox this was
+built in, so the sync logic is tested against a stand-in player and the real
+iframe API has not been exercised here. If it misbehaves, that is the first
+place to look. The second person's browser may also refuse to autoplay with
+sound until they touch the video once.
+
 
 **Screen sharing is peer to peer.** `getDisplayMedia` on one side, a
 `RTCPeerConnection` between the two browsers, and the room's existing

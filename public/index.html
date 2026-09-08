@@ -356,6 +356,36 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .screen.needtap .tap{display:flex}
 .sharebar{font-size:.9rem;color:var(--muted);margin:0 0 10px;min-height:1.3em}
 .sharebar b{color:var(--mango);font-weight:400}
+
+/* the room: one big screen, everyone down the side */
+.room{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
+@media (max-width:820px){ .room{grid-template-columns:1fr} }
+.room .screen{margin:0}
+.rail{display:flex;flex-direction:column;gap:10px;min-width:0}
+.who{display:flex;flex-wrap:wrap;gap:6px}
+.who .chip{
+  font-size:.82rem;padding:4px 10px;border-radius:999px;
+  background:rgba(36,51,80,.08);border:1px solid var(--line);color:var(--muted)
+}
+.who .chip.me{color:var(--mango)}
+.rchat{display:flex;flex-direction:column;gap:8px;min-height:0}
+.rchat-log{
+  height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;
+  padding:10px;border-radius:12px 10px 13px 9px;background:rgba(36,51,80,.05);
+  border:1px solid var(--line);font-size:.9rem;line-height:1.45
+}
+@media (max-width:820px){ .rchat-log{height:150px} }
+.rchat-log .rmsg b{color:var(--mango);font-weight:400}
+.rchat-log .empty{color:var(--muted)}
+.rchat-row{display:flex;gap:8px}
+.rchat-row input{flex:1;min-width:0;margin:0}
+.rchat-row .btn{padding:10px 16px;font-size:.9rem}
+.srcbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.srcbar input[type=text]{flex:1;min-width:180px;margin:0}
+.stagebox .ytbox{position:absolute;inset:0;display:none}
+.stagebox.mode-yt .ytbox{display:block}
+.stagebox.mode-yt video{display:none}
+.stagebox .ytbox iframe{width:100%;height:100%;border:0;display:block}
 .dare-btn{background:var(--rose);color:#2A0B12}
 
 
@@ -3914,6 +3944,7 @@ function hangmanGame(host, gbind){
 
 /* --- 14:00 watch party --- */
 ACTS.watch = b => {
+  ACTS.watch._n = (ACTS.watch._n || 0);
   lede(b, "Shortlist it, let the page pick, then share your screen and watch it on both sides at once.");
 
   const s1 = el("div","card");
@@ -3957,27 +3988,171 @@ ACTS.watch = b => {
   s3.appendChild(rules);
   b.appendChild(s3);
 
-  /* ---- step four: the screen itself, over WebRTC ---- */
+  /* ---- the room: one screen, both of you around it ---- */
   const s4 = el("div","card"); s4.style.marginTop = "18px";
-  s4.appendChild(el("div","qnum","step four — share the screen"));
+  s4.appendChild(el("div","qnum","the room — put something on and watch it together"));
   const bar = el("div","sharebar","");
   s4.appendChild(bar);
-  const screen = el("div","screen");
+
+  const room = el("div","room");
+  const screen = el("div","screen stagebox");
   const vid = el("video");
   vid.playsInline = true; vid.autoplay = true; vid.muted = true;
   vid.setAttribute("playsinline","");   // muted so the picture always starts; sound is a press away
-  const hint = el("div","hint","Nothing on yet. Whoever has the film open presses share and picks that tab.");
+  const ytbox = el("div","ytbox");
+  const ytHost = el("div"); ytHost.id = "ytHost" + (++ACTS.watch._n);
+  ytbox.appendChild(ytHost);
+  const hint = el("div","hint","Nothing on. Paste a YouTube link, or share the tab you're playing it in.");
   const tap = el("button","tap","Tap to start");
-  screen.appendChild(vid); screen.appendChild(hint); screen.appendChild(tap);
-  s4.appendChild(screen);
-  const r4 = el("div","row");
-  const shareGo   = el("button","btn","Share my screen");
+  screen.appendChild(vid); screen.appendChild(ytbox);
+  screen.appendChild(hint); screen.appendChild(tap);
+
+  const rail = el("div","rail");
+  const who = el("div","who");
+  rail.appendChild(who);
+  const rchat = el("div","rchat");
+  const clog = el("div","rchat-log");
+  const crow = el("div","rchat-row");
+  const cin = el("input"); cin.type = "text"; cin.placeholder = "say something";
+  const csend = el("button","btn","Send");
+  crow.appendChild(cin); crow.appendChild(csend);
+  rchat.appendChild(clog); rchat.appendChild(crow);
+  rail.appendChild(rchat);
+
+  room.appendChild(screen); room.appendChild(rail);
+  s4.appendChild(room);
+
+  const src = el("div","srcbar");
+  const ytIn = el("input"); ytIn.type = "text"; ytIn.placeholder = "paste a YouTube link";
+  const ytGo = el("button","btn","Put it on");
+  const shareGo   = el("button","btn ghost","Share my screen");
   const shareStop = el("button","btn ghost","Stop sharing");
   const sound     = el("button","btn ghost","Sound on");
-  [shareGo, shareStop, sound].forEach(x => r4.appendChild(x));
-  s4.appendChild(r4);
-  note(s4, "Chrome or Edge on a computer, and pick <b>a tab</b> rather than the whole screen — that is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle: their copy protection blanks the picture before the browser ever sees it. YouTube and anything unprotected come through fine, and for the locked ones the countdown above still gets you both to play on the same second.");
-  b.appendChild(s4);
+  const clearAll  = el("button","btn ghost","Clear the screen");
+  [ytIn, ytGo, shareGo, shareStop, sound, clearAll].forEach(x => src.appendChild(x));
+  s4.appendChild(src);
+  note(s4, "A YouTube link plays on both sides at once — whoever presses play, pauses or scrubs moves it for both of you. Screen share carries anything else that isn't copy protected: pick <b>a tab</b> in Chrome or Edge, which is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle whichever way you try it — their copy protection blanks the frames before the browser sees them, so for those the countdown below is still the answer.");
+  b.insertBefore(s4, s1);
+
+  /* who is in the room */
+  const paintWho = () => {
+    who.innerHTML = "";
+    const ps = SYNC.peers.length ? SYNC.peers : [{ id: SYNC.id, name: ME.name }];
+    ps.forEach(p => {
+      const c = el("span", "chip" + (p.id === SYNC.id ? " me" : ""),
+                   esc(p.name || "someone") + (p.id === SYNC.id ? " · you" : ""));
+      who.appendChild(c);
+    });
+  };
+
+  /* the same thread as the chat panel, just text, sitting next to the screen */
+  const paintChat = () => {
+    const msgs = SYNC.get("chat.msgs", []).slice(-40);
+    clog.innerHTML = "";
+    if(!msgs.length){ clog.appendChild(el("div","empty","Nothing said yet.")); return; }
+    msgs.forEach(m => clog.appendChild(el("div","rmsg",
+      "<b>" + esc(m.who || "someone") + "</b> " +
+      (m.img ? "<i>sent a picture</i>" : esc(m.v || "")))));
+    clog.scrollTop = clog.scrollHeight;
+  };
+  const sayIt = () => {
+    const v = cin.value.trim(); if(!v) return;
+    SYNC.push("chat.msgs", { who: ME.name || "me", s: mySide(), cid: CID,
+                             at: Date.now(), v: v.slice(0,500) }, 400);
+    cin.value = "";
+  };
+  csend.addEventListener("click", sayIt);
+  cin.addEventListener("keydown", e => { if(e.key === "Enter") sayIt(); });
+  bind("chat.msgs", paintChat);
+
+  /* ---- YouTube, kept in step on both sides ---- */
+  const ytId = u => {
+    u = (u || "").trim();
+    if(/^[\w-]{11}$/.test(u)) return u;
+    const m = u.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+    return m ? m[1] : "";
+  };
+  let player = null, ytReady = false, applying = false, loadedId = "";
+
+  const loadApi = () => {
+    if(window.YT && window.YT.Player){ ytReady = true; return; }
+    if(!document.getElementById("ytapi")){
+      const t = el("script"); t.id = "ytapi"; t.src = "https://www.youtube.com/iframe_api";
+      t.onerror = () => say("YouTube wouldn't load here — the screen share still works.");
+      document.head.appendChild(t);
+    }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if(prev) prev(); ytReady = true; paintShare(); };
+  };
+
+  const pushYt = playing => {
+    if(!player || applying) return;
+    SYNC.set("yt.at", player.getCurrentTime ? player.getCurrentTime() : 0);
+    SYNC.set("yt.since", SYNC.now());
+    SYNC.set("yt.playing", !!playing);
+  };
+
+  const makePlayer = id => {
+    if(!ytReady || !window.YT || !window.YT.Player) return;
+    if(player && loadedId !== id){ try { player.loadVideoById(id); } catch(_){} loadedId = id; return; }
+    if(player) return;
+    loadedId = id;
+    player = new window.YT.Player(ytHost.id, {
+      videoId: id, host: "https://www.youtube-nocookie.com",
+      playerVars: { modestbranding:1, rel:0, playsinline:1 },
+      events: {
+        onReady: () => { syncYt(); },
+        onStateChange: e => {
+          if(applying) return;
+          if(e.data === 1) pushYt(true);
+          else if(e.data === 2) pushYt(false);
+        }
+      }
+    });
+  };
+
+  /* Everyone works out where the film should be from one clock, so a lagging
+     tab catches up instead of the two of you drifting apart. */
+  const syncYt = () => {
+    const id = SYNC.get("yt.v", "");
+    if(!id || !player || !player.getCurrentTime) return;
+    const playing = SYNC.get("yt.playing", false);
+    const at = SYNC.get("yt.at", 0), since = SYNC.get("yt.since", 0);
+    const target = playing && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
+    const cur = player.getCurrentTime();
+    const hold = () => { applying = true; setTimeout(() => { applying = false; }, 700); };
+    if(Math.abs(cur - target) > 1.5){ hold(); player.seekTo(target, true); }
+    const st = player.getPlayerState ? player.getPlayerState() : -1;
+    if(playing && st !== 1 && st !== 3){ hold(); player.playVideo(); }
+    if(!playing && st === 1){ hold(); player.pauseVideo(); }
+  };
+
+  ytGo.addEventListener("click", () => {
+    const id = ytId(ytIn.value);
+    if(!id){ say("That doesn't look like a YouTube link."); return; }
+    ytIn.value = "";
+    stopShare();
+    SYNC.set("yt.v", id);
+    SYNC.set("yt.at", 0); SYNC.set("yt.since", SYNC.now()); SYNC.set("yt.playing", true);
+    SYNC.set("yt.by", ME.name || nameOf(mySide()));
+    msg = "";
+  });
+  clearAll.addEventListener("click", () => {
+    stopShare();
+    SYNC.set("yt.v", ""); SYNC.set("yt.playing", false);
+  });
+
+  const paintYt = () => {
+    const id = SYNC.get("yt.v", "");
+    if(!id){
+      if(player){ try { player.destroy(); } catch(_){} player = null; loadedId = ""; }
+      screen.classList.remove("mode-yt");
+      return;
+    }
+    screen.classList.add("mode-yt");
+    loadApi();
+    makePlayer(id);
+  };
 
   const RTC = { iceServers: [{ urls: ["stun:stun.l.google.com:19302",
                                       "stun:stun1.l.google.com:19302"] }] };
@@ -4074,6 +4249,7 @@ ACTS.watch = b => {
       return;
     }
     msg = "";
+    SYNC.set("yt.v", "");                                              // the screen takes the stage
     local.getVideoTracks()[0].addEventListener("ended", stopShare);   // the browser's own stop button
     vid.muted = true;                                                  // never echo your own audio back
     showStream(local);
@@ -4116,12 +4292,15 @@ ACTS.watch = b => {
     shareStop.disabled = !mine;
     sound.disabled     = !sh || mine;
     sound.textContent  = vid.muted ? "Sound on" : "Sound off";
+    const onYt = !!SYNC.get("yt.v", "");
     if(!sh){
       if(vid.srcObject){ vid.srcObject = null; vid.muted = true; screen.classList.remove("on","needtap"); }
-      bar.innerHTML = msg;                     // whatever went wrong stays readable
+      bar.innerHTML = msg || (onYt
+        ? ("<b>" + esc(SYNC.get("yt.by","Someone")) + "</b> put a video on. Play, pause and scrub move it for both of you.")
+        : "");
       shareGo.disabled = !canShare;
       shareGo.textContent = "Share my screen";
-      hint.textContent = "Nothing on yet. Whoever has the film open presses share and picks that tab.";
+      hint.textContent = "Nothing on. Paste a YouTube link, or share the tab you're playing it in.";
       return;
     }
     if(mine){
@@ -4136,8 +4315,12 @@ ACTS.watch = b => {
     }
   };
   bind("watch.share", paintShare);
-  onClose(stopShare);
+  ["yt.v","yt.playing","yt.at","yt.since","yt.by"].forEach(k => bind(k, () => { paintYt(); paintShare(); }));
+  every(1000, syncYt);
+  every(1200, paintWho);
+  onClose(() => { stopShare(); if(player){ try { player.destroy(); } catch(_){} player = null; } });
   window.addEventListener("beforeunload", stopShare);
+  paintWho(); paintChat(); paintYt();
 
   const render = () => {
     const titles = SYNC.get("watch.titles", []);
