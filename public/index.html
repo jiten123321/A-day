@@ -716,6 +716,95 @@ input[type=text], .close, .open{
   .ludo{max-width:100%}
 }
 
+/* ===== a hug ===== */
+.hug-launch{
+  position:fixed;right:20px;bottom:88px;z-index:90;
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px 10px 14px;border-radius:999px;border:none;
+  background:var(--rose);color:#FFF6EE;font-family:var(--serif);font-size:1.15rem;
+  box-shadow:0 8px 22px rgba(36,51,80,.25);transition:transform .18s,filter .18s
+}
+.hug-launch:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.hug-launch svg{display:block}
+
+.hugwrap{margin:6px 0 4px}
+.hugscene{width:100%;max-width:360px;height:auto;display:block;margin:0 auto;overflow:visible}
+.hugscene .frameline{fill:none;stroke:var(--ink);stroke-width:2.4;opacity:.9}
+.hugscene .grain{opacity:.17;mix-blend-mode:multiply;pointer-events:none}
+.hugscene .ink-f{fill:#3E2C24}
+/* every filled shape carries the same soft warm outline; the gradient fills
+   themselves are drawn on top of an outlined copy, so .ln is the outline */
+.hugscene .ln{stroke:#43312B;stroke-width:2.3;stroke-linejoin:round;stroke-linecap:round}
+/* interior shapes take a lighter line than the silhouette — one weight
+   everywhere is what makes flat art look like clip art */
+.hugscene .ln2{stroke:#43312B;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.hugscene .seam{fill:none;stroke:#43312B;stroke-width:1.5;opacity:.42;stroke-linecap:round}
+.hugscene .fold{fill:none;stroke:rgba(62,42,34,.24);stroke-width:1.5;stroke-linecap:round}
+.hugscene .shade{fill:rgba(98,52,36,.17);stroke:none}
+.hugscene .hi{fill:rgba(255,246,234,.13);stroke:none}
+.hugscene .strand{fill:none;stroke:rgba(255,234,210,.10);stroke-width:3;stroke-linecap:round}
+.hugscene .lens{fill:rgba(255,250,240,.16);stroke:none}
+.hugscene .specs .glint{stroke:rgba(255,252,246,.7);stroke-width:1.6}
+/* the shadows they cast on each other only exist once they are touching */
+.hugscene .contactshade{opacity:0;transition:opacity .5s}
+.hugwrap.hold .contactshade{opacity:1}
+.hugscene .blush{fill:rgba(207,96,86,.34);stroke:none}
+.hugscene .brow{stroke:rgba(52,34,24,.7);stroke-width:1.6;fill:none;stroke-linecap:round}
+.hugscene .lash{stroke:#3E2C24;stroke-width:2;fill:none;stroke-linecap:round}
+.hugscene .nose{stroke:rgba(120,74,48,.6);stroke-width:1.5;fill:none;stroke-linecap:round}
+.hugscene .mouth{stroke:rgba(90,42,38,.8);stroke-width:1.7;fill:none;stroke-linecap:round}
+.hugscene .specs{fill:none;stroke:#42302A;stroke-width:1.8;opacity:.85}
+
+/* eyes close for the hug, which is most of what sells it */
+.hugscene .eyes-shut{opacity:0}
+.hugwrap.hold .eyes-open{opacity:0}
+.hugwrap.hold .eyes-shut{opacity:1}
+.hugscene .eyes-open,.hugscene .eyes-shut{transition:opacity .3s}
+
+/* Two poses, not a rig: they stand apart with their arms down, then they are
+   holding on. What moves is where each of them is, how their heads tip, and
+   which pair of arms is showing. */
+.hugscene .fig, .hugscene .head{
+  transform-box:view-box;
+  transition:transform .66s cubic-bezier(.34,.9,.3,1)
+}
+.hugscene .figL{ transform:translate(-36px, 10px) }
+.hugscene .figR{ transform:translate(42px, -4px) }
+.hugwrap.near .figL{ transform:translate(0,0) }
+.hugwrap.near .figR{ transform:translate(0,0) }
+.hugwrap.squeeze .figL{ transform:translate(3px,1px) }
+.hugwrap.squeeze .figR{ transform:translate(-3px,0) }
+
+/* he tips his head down over hers, she turns hers up into him */
+.hugscene .headHim{ transform-origin:240px 132px }
+.hugscene .headHer{ transform-origin:200px 202px; transform:scale(.94) }
+.hugwrap.hold .headHim{ transform:rotate(-14deg) }
+.hugwrap.hold .headHer{ transform:rotate(16deg) scale(.94) }
+
+/* the arms cross fade: down at their sides, then wrapped */
+.hugscene .arm-wrap{ opacity:0; transition:opacity .42s }
+.hugscene .arm-down{ opacity:1; transition:opacity .3s }
+.hugwrap.hold .arm-wrap{ opacity:1 }
+.hugwrap.hold .arm-down{ opacity:0 }
+
+/* a little life before anything happens */
+@keyframes breathe{0%,100%{transform:translateY(0)} 50%{transform:translateY(-1.2px)}}
+.hugwrap:not(.near) .hugscene .figR{animation:breathe 4.2s ease-in-out infinite}
+
+.hugscene .heart{fill:#FFF4E9;stroke:rgba(120,70,50,.25);stroke-width:1;
+  opacity:0;animation:rise 2.4s ease-out forwards}
+@keyframes rise{
+  0%{opacity:0;transform:translateY(0) translateX(0) scale(.6)}
+  18%{opacity:.95}
+  100%{opacity:0;transform:translateY(-120px) translateX(var(--drift)) scale(1.15)}
+}
+.hug-btn{background:var(--rose);color:#FFF6EE;font-size:1.15rem;padding:13px 40px}
+
+@media (prefers-reduced-motion:reduce){
+  .hugscene .fig,.hugscene .head{transition:none;animation:none}
+  .hugscene .heart{animation-duration:.01ms}
+}
+
 /* ===== chat: shared pictures and GIFs ===== */
 .bubble img.shot{
   display:block;max-width:100%;height:auto;border-radius:10px;margin:2px 0 4px;
@@ -816,6 +905,11 @@ input[type=text], .close, .open{
   <span><button class="btn ghost" id="resetBtn" style="padding:6px 16px;font-size:.85rem">Clear today's marks</button></span>
 </footer>
 
+
+<button class="hug-launch" id="hugLaunch" aria-label="Send a hug">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>
+  hug
+</button>
 
 <button class="chat-launch" id="chatLaunch" aria-label="Open the chat">
   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 20.5l1.5-4.4A8.4 8.4 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 9 8.4z"/></svg>
@@ -1504,14 +1598,20 @@ function open(i){
   else showStage(i);
 }
 
+/* Pages reachable outside the twelve stops. */
+const SPECIAL = { hug: { title:"A hug", when:"any time", k:"hug" } };
+const entryOf = v => typeof v === "number" ? PLAN[v] : SPECIAL[v];
+
 function showStage(i){
   if(openIndex === i) return;
-  const h = PLAN[i];
+  const h = entryOf(i);
+  if(!h) return;
   lastFocus = document.activeElement;
   dropSubs(); dropTimers();
   openIndex = i;
 
-  $("#stageWhen").textContent = "stop " + (i+1) + " of " + PLAN.length;
+  $("#stageWhen").textContent = typeof i === "number"
+    ? "stop " + (i+1) + " of " + PLAN.length : h.when;
   $("#stageTitle").textContent = h.title;
   const body = $("#stageBody");
   body.innerHTML = "";
@@ -1524,8 +1624,10 @@ function showStage(i){
   document.body.style.overflow = "hidden";
   $("#closeBtn").focus();
 
-  const list = SYNC.get("day.done", []);
-  if(list.indexOf(i) === -1) SYNC.set("day.done", list.concat([i]));
+  if(typeof i === "number"){
+    const list = SYNC.get("day.done", []);
+    if(list.indexOf(i) === -1) SYNC.set("day.done", list.concat([i]));
+  }
 }
 
 function hideStage(){
@@ -1543,7 +1645,7 @@ function close(){ SYNC.set("stage.open", null); }
 
 SYNC.on("stage.open", v => {
   if(v === null || v === undefined) hideStage();
-  else if(PLAN[v]) showStage(v);
+  else if(entryOf(v)) showStage(v);
 });
 
 $("#closeBtn").addEventListener("click", close);
@@ -1671,6 +1773,294 @@ ACTS.coffee = b => {
   nb.addEventListener("click", () => SYNC.set("coffee.talk", shuffle(TALK)[0]));
 
   bind("coffee.v", render); bind("coffee.talk", render);
+  render();
+};
+
+
+/* --- a hug, any time ---
+   Two figures built from rotating joints rather than a canned animation, so
+   the arms actually travel around each other and the timing can be eased.
+   Whoever presses it, both screens play the same hug. */
+ACTS.hug = b => {
+  lede(b, "Press it. It happens on both screens at once, which is the closest this page gets to the real thing.");
+
+  const box = el("div","card");
+  const wrap = el("div","hugwrap");
+
+  /* A framed picture rather than a stage: warm paper sky, the two of them
+     close in and cropped at the thigh, drawn as flat shapes. This near, a
+     jointed rig reads as machinery — so the arms are two drawings that cross
+     fade instead of limbs that swing. */
+  const PX = 116, PY = 13, PW = 188, PH = 304;
+  const g2 = (id, a, b2) => `
+    <linearGradient id="${id}" x1="0.15" y1="0" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b2}"/></linearGradient>`;
+
+  wrap.innerHTML = `
+    <svg class="hugscene" viewBox="100 0 220 330" role="img"
+         aria-label="the two of them holding on to each other">
+      <defs>
+        <linearGradient id="hugSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#F0E5D0"/>
+          <stop offset=".44" stop-color="#F3C29B"/>
+          <stop offset="1" stop-color="#E67F5C"/>
+        </linearGradient>
+        <radialGradient id="hugGlow" cx=".52" cy=".42" r=".62">
+          <stop offset="0" stop-color="#FFF6E8" stop-opacity=".34"/>
+          <stop offset="1" stop-color="#FFF6E8" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="hugVig" cx=".5" cy=".44" r=".78">
+          <stop offset=".5" stop-color="#5E2A16" stop-opacity="0"/>
+          <stop offset="1" stop-color="#5E2A16" stop-opacity=".15"/>
+        </radialGradient>
+        ${g2("herHair","#553425","#2C1A12")}
+        ${g2("herSkin","#FADEC2","#E9BA95")}
+        ${g2("herKnit","#EFD8C9","#CBA894")}
+        ${g2("herLeg","#32897A","#1B564D")}
+        ${g2("hisHair","#583B29","#332017")}
+        ${g2("hisSkin","#F5D5B4","#DDB088")}
+        ${g2("hisCoat","#616D4D","#3B462E")}
+        ${g2("hisLeg","#968C74","#6A6151")}
+        ${g2("hisShirt","#EFE5D3","#CDC0A9")}
+        <clipPath id="hugFrame">
+          <rect x="${PX}" y="${PY}" width="${PW}" height="${PH}" rx="15"/>
+        </clipPath>
+        <filter id="hugGrain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+        </filter>
+        <filter id="hugSoft" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="4.5"/>
+        </filter>
+        <filter id="hugLift" x="-25%" y="-25%" width="150%" height="150%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#7A4025" flood-opacity=".2"/>
+        </filter>
+      </defs>
+
+      <g clip-path="url(#hugFrame)">
+        <rect x="${PX}" y="${PY}" width="${PW}" height="${PH}" fill="url(#hugSky)"/>
+        <ellipse cx="216" cy="146" rx="128" ry="150" fill="url(#hugGlow)"/>
+
+        <g class="pair" filter="url(#hugLift)">
+        <!-- him, behind -->
+        <g class="fig figR">
+          <path class="ln" fill="url(#hisLeg)" d="M176,262 L306,262 L306,322 L174,322 Z"/>
+          <path class="ln2" fill="url(#hisShirt)"
+                d="M212,140 L240,182 L268,140 L262,132 L240,166 L218,132 Z"/>
+          <path class="ln" fill="url(#hisSkin)" d="M226,122 h28 v16 a14,13 0 0 1 -28,0 Z"/>
+          <path class="shade" d="M226,122 h28 v5 a14,9 0 0 1 -28,0 Z"/>
+          <path class="ln" fill="url(#hisCoat)"
+                d="M174,272 C172,236 173,208 177,192 C182,166 194,150 216,142
+                   L240,180 L264,142 C288,150 301,166 305,192
+                   C309,209 310,238 308,272 C266,285 214,285 174,272 Z"/>
+          <path class="hi" d="M264,146 C286,154 297,170 301,194 C292,178 280,162 262,152 Z"/>
+          <path class="fold" d="M222,148 L240,174 L258,148"/>
+          <path class="fold" d="M290,166 C298,186 300,214 298,244"/>
+          <path class="fold" d="M252,264 q14,5 26,-2"/>
+          <path class="seam arm-down" d="M196,168 C190,198 189,232 192,270"/>
+          <g class="head headHim">
+            <ellipse class="ln" fill="url(#hisHair)" cx="240" cy="90" rx="36" ry="37"/>
+            <ellipse class="ln" fill="url(#hisSkin)" cx="240" cy="100" rx="29" ry="32"/>
+            <path class="ln2" fill="url(#hisSkin)" d="M264,96 C273,94 277,102 274,110 C271,117 264,116 262,110 Z"/>
+            <path class="shade" d="M266,100 q6,2 5,9 q-4,-6 -6,-6 Z"/>
+            <path fill="url(#hisHair)"
+                  d="M211,94 C212,64 224,52 241,52 C260,52 272,66 270,92
+                     C264,72 253,66 240,68 C226,70 216,80 211,94 Z"/>
+            <path class="strand" d="M222,70 C230,62 244,59 256,64"/>
+            <path class="strand" d="M216,84 C220,74 228,68 236,66"/>
+            <path class="shade" d="M212,92 C214,72 222,60 234,55 C220,64 214,78 214,96 Z"/>
+            <path class="brow" d="M219,87 q8,-5 15,-1"/>
+            <path class="brow" d="M247,86 q8,-4 14,2"/>
+            <g class="eyes-open">
+              <ellipse class="ink-f" cx="227" cy="99" rx="2.5" ry="3.1"/>
+              <ellipse class="ink-f" cx="253" cy="98" rx="2.5" ry="3.1"/>
+              <circle fill="#fff" cx="228" cy="98" r=".9"/>
+              <circle fill="#fff" cx="254" cy="97" r=".9"/>
+            </g>
+            <g class="eyes-shut">
+              <path class="lash" d="M220,97 q6.5,7 13,-.5"/>
+              <path class="lash" d="M246,96 q6.5,7 13,-.5"/>
+            </g>
+            <g class="specs">
+              <circle class="lens" cx="227" cy="98" r="10.5"/>
+              <circle class="lens" cx="253" cy="97" r="10.5"/>
+              <circle cx="227" cy="98" r="10.5"/><circle cx="253" cy="97" r="10.5"/>
+              <path d="M237.5,98 q3,-2 6,-1"/>
+              <path d="M216.6,97 l-5,-2"/>
+              <path class="glint" d="M221,92 l5,-4"/>
+              <path class="glint" d="M247,91 l5,-4"/>
+            </g>
+            <ellipse class="blush" cx="218" cy="110" rx="7.5" ry="4.2"/>
+            <ellipse class="blush" cx="258" cy="109" rx="7.5" ry="4.2"/>
+            <path class="nose" d="M239,104 q4,4 0,6"/>
+            <path class="mouth" d="M234,118 q6,5.5 11,-1"/>
+          </g>
+        </g>
+
+        <!-- what she casts on him once she is in against his chest -->
+        <g class="contactshade" filter="url(#hugSoft)">
+          <ellipse class="shade" cx="228" cy="196" rx="30" ry="26"/>
+          <ellipse class="shade" cx="222" cy="140" rx="18" ry="10"/>
+        </g>
+
+        <!-- her, in front and tucked in under his chin -->
+        <g class="fig figL">
+          <path class="ln" fill="url(#herLeg)" d="M148,286 L244,286 L244,326 L146,326 Z"/>
+          <path class="ln" fill="url(#herKnit)"
+                d="M146,290 C144,262 145,242 149,230 C154,212 168,201 196,201
+                   C224,201 239,212 243,230 C247,243 246,264 243,290
+                   C214,301 176,301 146,290 Z"/>
+          <path class="fold" d="M180,208 q18,10 34,-2"/>
+          <path class="fold" d="M166,276 q14,7 28,3"/>
+          <path class="seam arm-down" d="M167,224 C161,248 160,272 163,292"/>
+          <path class="ln" fill="url(#herSkin)" d="M186,182 h24 v16 a12,11 0 0 1 -24,0 Z"/>
+          <path class="shade" d="M186,182 h24 v5 a12,8 0 0 1 -24,0 Z"/>
+          <path class="ln" fill="url(#herHair)"
+                d="M170,146 C146,168 136,200 139,226 C141,246 138,266 149,278
+                   C160,291 180,295 191,287 C199,281 198,271 190,267
+                   C178,261 170,247 171,229 C165,208 165,174 170,146 Z"/>
+          <path class="shade" d="M171,168 C163,196 160,232 168,258
+                                  C176,280 186,288 191,286 C178,282 168,262 167,236
+                                  C166,212 168,186 171,168 Z"/>
+          <path class="strand" d="M152,186 C144,212 143,244 151,268"/>
+          <path class="strand" d="M166,196 C160,220 159,246 165,266"/>
+          <g class="head headHer">
+            <ellipse class="ln" fill="url(#herHair)" cx="198" cy="158" rx="35" ry="37"/>
+            <ellipse class="ln" fill="url(#herSkin)" cx="200" cy="172" rx="26" ry="28"/>
+            <path fill="url(#herHair)"
+                  d="M176,168 C176,142 187,132 201,132 C218,132 228,144 227,166
+                     C220,148 208,143 197,146 C186,149 179,158 176,168 Z"/>
+            <path class="strand" d="M186,140 C196,134 210,135 218,142"/>
+            <path class="strand" d="M180,154 C184,144 191,138 199,136"/>
+            <path class="shade" d="M177,166 C177,146 186,135 197,131 C185,140 179,152 179,170 Z"/>
+            <path class="brow" d="M181,167 q7,-5 13,-2"/>
+            <path class="brow" d="M205,166 q7,-4 12,1"/>
+            <g class="eyes-open">
+              <ellipse class="ink-f" cx="188" cy="178" rx="2.4" ry="3"/>
+              <ellipse class="ink-f" cx="212" cy="177" rx="2.4" ry="3"/>
+              <circle fill="#fff" cx="189" cy="177" r=".9"/>
+              <circle fill="#fff" cx="213" cy="176" r=".9"/>
+            </g>
+            <g class="eyes-shut">
+              <path class="lash" d="M181,176 q6.5,7 13,-.5"/>
+              <path class="lash" d="M205,175 q6.5,7 13,-.5"/>
+            </g>
+            <ellipse class="blush" cx="182" cy="189" rx="7.5" ry="4.2"/>
+            <ellipse class="blush" cx="216" cy="188" rx="7.5" ry="4.2"/>
+            <path class="nose" d="M198,182 q4,4 0,6"/>
+            <path class="mouth" d="M193,194 q6,5.5 11,-1"/>
+          </g>
+        </g>
+
+        <!-- her forearms come up between them, hands together -->
+        <g class="fig figL arm-wrap">
+          <path class="ln" fill="url(#herKnit)"
+                d="M186,292 C184,275 193,259 207,249 L219,261
+                   C207,269 200,280 200,292 Z"/>
+          <path class="fold" d="M196,262 q8,-6 14,-8"/>
+          <path class="ln" fill="url(#herSkin)"
+                d="M197,239 C190,243 189,252 196,257 C204,262 216,260 221,253
+                   C225,246 220,237 212,236 Z"/>
+          <path class="hi" d="M200,240 C207,237 215,238 219,242 C213,240 205,240 200,243 Z"/>
+          <path class="seam" d="M202,245 q7,3 13,-1"/>
+          <path class="seam" d="M204,251 q6,2 11,-1"/>
+        </g>
+
+        <!-- what his arm casts on her knit, under the sleeve itself -->
+        <g class="contactshade" filter="url(#hugSoft)">
+          <path class="shade" d="M172,266 C200,276 230,274 254,262 L258,274
+                                  C230,288 198,290 170,280 Z"/>
+        </g>
+
+        <!-- his arm comes round her waist, outside both of them -->
+        <g class="fig figR arm-wrap">
+          <path class="ln" fill="url(#hisCoat)"
+                d="M308,208 C304,248 284,276 250,288 C224,297 194,298 172,292
+                   L170,272 C196,280 224,279 246,269 C272,257 288,236 292,202 Z"/>
+          <path class="hi" d="M304,214 C300,246 282,270 252,281 C280,266 296,244 300,212 Z"/>
+          <path class="fold" d="M236,275 q4,8 2,14"/>
+          <path class="fold" d="M266,264 q5,7 4,13"/>
+          <path class="ln2" fill="url(#hisSkin)"
+                d="M174,274 C168,276 165,282 169,287 C173,292 182,292 186,287
+                   C189,283 187,276 182,274 Z"/>
+          <path class="seam" d="M172,281 q6,2 12,-1"/>
+          <path class="seam" d="M172,286 q6,2 11,-1"/>
+        </g>
+        </g>
+
+        <g class="hearts"></g>
+        <rect x="${PX}" y="${PY}" width="${PW}" height="${PH}" fill="url(#hugVig)"/>
+        <rect class="grain" x="${PX}" y="${PY}" width="${PW}" height="${PH}"
+              filter="url(#hugGrain)"/>
+      </g>
+      <rect class="frameline" x="${PX}" y="${PY}" width="${PW}" height="${PH}" rx="15"/>
+    </svg>`;
+
+  box.appendChild(wrap);
+
+  const r = el("div","row"); r.style.justifyContent = "center";
+  const go = el("button","btn hug-btn","Hug");
+  r.appendChild(go);
+  box.appendChild(r);
+  const tally = el("div","qnum"); tally.style.textAlign = "center";
+  box.appendChild(tally);
+  b.appendChild(box);
+
+  const scene = wrap.querySelector(".hugscene");
+  const hearts = wrap.querySelector(".hearts");
+  const NS = "http://www.w3.org/2000/svg";
+
+  const floatHearts = () => {
+    for(let i = 0; i < 7; i++){
+      // the position lives on a wrapper: a CSS transform on the path itself
+      // would override an SVG transform attribute and drop it at the origin
+      const g = document.createElementNS(NS, "g");
+      const x = 124 + Math.random()*54, y = 96 + Math.random()*62;
+      const sc = 0.55 + Math.random()*0.6;
+      g.setAttribute("transform", `translate(${x} ${y}) scale(${sc})`);
+      const p = document.createElementNS(NS, "path");
+      p.setAttribute("class", "heart");
+      p.setAttribute("d", "M0,4 C-8,-4 -4,-12 0,-6.5 C4,-12 8,-4 0,4 Z");
+      p.style.animationDelay = (i * 0.11 + Math.random()*0.12) + "s";
+      p.style.setProperty("--drift", (Math.random()*50 - 25) + "px");
+      g.appendChild(p);
+      hearts.appendChild(g);
+      setTimeout(() => g.remove(), 2800);
+    }
+  };
+
+  let playing = false;
+  const play = () => {
+    if(playing) return;
+    playing = true;
+    CHIME.warm();
+    // close the gap first, then hold on: the arms only make sense once they
+    // are actually touching
+    wrap.classList.add("near");
+    stageTimers.push(setTimeout(() => wrap.classList.add("hold"), 320));
+    stageTimers.push(setTimeout(() => { wrap.classList.add("squeeze"); floatHearts(); }, 1000));
+    stageTimers.push(setTimeout(() => wrap.classList.remove("squeeze"), 1400));
+    stageTimers.push(setTimeout(() => {
+      wrap.classList.remove("hold");                          // let go first
+      stageTimers.push(setTimeout(() => { wrap.classList.remove("near"); playing = false; }, 460));
+    }, 4400));
+  };
+
+  let known = null;
+  const render = () => {
+    const n = SYNC.get("hug.n", 0);
+    const by = SYNC.get("hug.by", "");
+    tally.textContent = n ? n + (n === 1 ? " hug" : " hugs") + " so far" + (by ? " · last one from " + by : "") : "";
+    if(known !== null && n > known) play();
+    known = n;
+  };
+
+  go.addEventListener("click", () => {
+    SYNC.set("hug.by", ME.name || nameOf(mySide()));
+    SYNC.set("hug.n", SYNC.get("hug.n", 0) + 1);
+  });
+
+  bind("hug.n", render); bind("hug.by", render);
   render();
 };
 
@@ -3733,6 +4123,27 @@ const CHIME = {
 
   blocked(){ return !CHIME.ctx || CHIME.ctx.state !== "running"; },
 
+  /* Lower and softer than a message: a warm third rather than a ping. */
+  warm(){
+    if(!CHIME.on) return;
+    const c = CHIME.arm();
+    if(!c) return;
+    const go = () => {
+      const t0 = c.currentTime;
+      [[330, 0], [415, 0.05], [494, 0.1]].forEach(([hz, at]) => {
+        const osc = c.createOscillator(), gain = c.createGain();
+        osc.type = "triangle";
+        osc.frequency.value = hz;
+        gain.gain.setValueAtTime(0.0001, t0 + at);
+        gain.gain.exponentialRampToValueAtTime(0.1, t0 + at + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + at + 0.9);
+        osc.connect(gain).connect(c.destination);
+        osc.start(t0 + at); osc.stop(t0 + at + 1);
+      });
+    };
+    c.state === "running" ? go() : c.resume().then(go).catch(() => {});
+  },
+
   blip(c){
     const t0 = c.currentTime;
     // Two soft notes, a rising fifth. Short enough to never be annoying.
@@ -4017,6 +4428,9 @@ const PICS = {
 
 /* ---- go ---- */
 buildHours();
+$("#hugLaunch").addEventListener("click", () => {
+  if(SYNC.get("stage.open", null) !== "hug") SYNC.set("stage.open", "hug"); else showStage("hug");
+});
 GLITTER.init();
 nameGate();
 CUR.start();
