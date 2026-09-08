@@ -199,6 +199,15 @@ wants. Stopping, closing the stage, or hitting the browser's own stop button
 all end the capture; the activity registers a teardown with `onClose` so a
 screen share cannot outlive the page it was started from.
 
+**The status line is sticky.** The panel repaints on a poll, and the first
+version wrote failures straight into it — so every refusal, cancelled picker
+and unsupported browser flashed for a second and a half and then vanished,
+leaving a button that appeared to do nothing at all. Failures now live in a
+variable the repaint reads from, and the message names the browser's own error
+so a report of "it doesn't work" can be diagnosed. Browsers with no
+`getDisplayMedia` are told before they press anything: the button is disabled
+and says why.
+
 Three things are worth knowing before you use it:
 
 - **Netflix, Prime and Disney+ come through black.** Their copy protection
