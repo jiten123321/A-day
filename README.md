@@ -125,12 +125,20 @@ flat colour under ink outlines like the rest of the page. They have faces, and
 their eyes close for the hug, which is most of what sells it.
 
 Both are built from rotating joints — shoulder, elbow, neck, waist — rather
-than a canned animation, so the arms genuinely travel around each other and
-the timing can be eased: step in, wrap, squeeze, hold, let go. Every angle is
-written once for the left figure and mirrored by a `--dir` custom property, so
-the pair is one description rather than two. One arm goes over a shoulder and
-the other round a waist, and the heads lean the same way on screen so they pass
-cheek to cheek instead of butting foreheads.
+than a canned animation, so the arms genuinely travel and the timing can be
+eased: step in, wrap, squeeze, hold, let go. Every angle is written once for
+the left figure and mirrored by a `--dir` custom property.
+
+Four things carry the embrace, and it does not read without them:
+
+- **They turn.** Front-on figures with arms reaching across look like two
+  people posing. Both squash horizontally into a three-quarter view.
+- **They overlap.** Side by side is not a hug; she ends up in front of him
+  with about 90% of her body over his.
+- **Only two arms show.** The other two are on the far side of the bodies and
+  fade out. Four wrapping arms at this overlap is just a knot.
+- **The forearms foreshorten** as they pass behind the other body, so the
+  hands disappear round the back instead of poking out the far side.
 
 The near arms are drawn above both bodies and the far arms beneath, which is
 what makes the embrace read as an embrace rather than two people overlapping.

@@ -748,27 +748,40 @@ input[type=text], .close, .open{
   transition:transform .62s cubic-bezier(.34,.9,.3,1)
 }
 .hugwrap{ --farUp:10deg; --farFore:6deg;  --nearUp:-9deg; --nearFore:-6deg;
-          --lean:0deg;   --tilt:0deg;     --step:0px }
-/* close enough that the torsos actually meet */
-.hugwrap.stepping{ --step:67px }
-.hugwrap.hugging{
-  /* The upper arm swings across, then the forearm bends back *down* — an arm
-     draped over a shoulder and one reaching round a waist. Bending both the
-     same way is what makes it a high five instead of a hug. */
-  --nearUp:-96deg;  --nearFore:52deg;
-  --farUp:-68deg;   --farFore:22deg;
-  --lean:5deg;      --tilt:10deg
+          --lean:0deg;   --tilt:0deg;  --step:0px; --turn:1; --lift:0px }
+/* Far enough in that the bodies genuinely overlap — side by side reads as two
+   people posing, not as a hug. */
+.hugwrap.stepping{ --step:80px }
+.hugwrap.hugging{ --turn:.72 }          /* both turn to face each other */
+
+/* Each has their own pose: she is in front with her arms round his waist,
+   he is behind and slightly taller with his arms over her back. */
+/* Only two arms are visible in a real hug — the other two are on the far side
+   of the bodies. Four wrapping arms in this much overlap is just a knot. */
+.hugscene .arm-far{ transition:opacity .3s }
+.hugwrap.hugging .arm-far{ opacity:0 }
+
+/* His goes over her shoulder, hers round his waist, and both forearms shrink
+   as they pass behind the other body so the hands disappear rather than
+   poking out the far side. */
+.hugwrap.hugging .figL{
+  --nearUp:-55deg;  --nearFore:38deg;
+  --lean:9deg;      --tilt:17deg;   --lift:5px;  --foreScale:.45
+}
+.hugwrap.hugging .figR{
+  --nearUp:-45deg;  --nearFore:34deg;
+  --lean:8deg;      --tilt:10deg;   --lift:-9px; --foreScale:.45
 }
 .hugscene .armFar  .up   { transform:rotate(calc(var(--dir) * var(--farUp))) }
-.hugscene .armFar  .fore { transform:rotate(calc(var(--dir) * var(--farFore))) }
+.hugscene .armFar  .fore { transform:rotate(calc(var(--dir) * var(--farFore))) scale(var(--foreScale,1)) }
 .hugscene .armNear .up   { transform:rotate(calc(var(--dir) * var(--nearUp))) }
-.hugscene .armNear .fore { transform:rotate(calc(var(--dir) * var(--nearFore))) }
+.hugscene .armNear .fore { transform:rotate(calc(var(--dir) * var(--nearFore))) scale(var(--foreScale,1)) }
 .hugscene .torso{ transform:rotate(calc(var(--dir) * var(--lean))) }
 .hugscene .head { transform:rotate(var(--tilt)) }
-.hugscene .figL { transform:translateX(var(--step)) }
-.hugscene .figR { transform:translateX(calc(-1 * var(--step))) }
-.hugwrap.squeeze .figL{ transform:translateX(calc(var(--step) + 5px)) }
-.hugwrap.squeeze .figR{ transform:translateX(calc(-1 * var(--step) - 5px)) }
+.hugscene .figL { transform:translate(var(--step), var(--lift)) scaleX(var(--turn)) }
+.hugscene .figR { transform:translate(calc(-1 * var(--step)), var(--lift)) scaleX(var(--turn)) }
+.hugwrap.squeeze .figL{ transform:translate(calc(var(--step) + 5px), var(--lift)) scaleX(var(--turn)) }
+.hugwrap.squeeze .figR{ transform:translate(calc(-1 * var(--step) - 5px), var(--lift)) scaleX(var(--turn)) }
 .hugwrap.squeeze .hugscene .torso{ transform:rotate(calc(var(--dir) * (var(--lean) + 2deg))) }
 
 /* a little life before anything happens */
@@ -1788,9 +1801,7 @@ ACTS.hug = b => {
     const arm = (cls, dx) => { const ax = x + dx; return `
       <g class="${cls}">
         <g class="up" style="transform-origin:${ax}px ${SH}px">
-          ${limb(`M${ax},${SH} L${ax},${SH+UP}`, 11, o.skin)}
-          <path class="ink"    d="M${ax},${SH-1} L${ax},${SH+15}" stroke-width="21"/>
-          <path class="cloth"  d="M${ax},${SH-1} L${ax},${SH+15}" stroke-width="17" style="stroke:${o.cloth}"/>
+          ${limb(`M${ax},${SH} L${ax},${SH+UP}`, 12.5, o.cloth)}
           <g class="fore" style="transform-origin:${ax}px ${SH+UP}px">
             ${limb(`M${ax},${SH+UP} L${ax},${SH+UP+FORE}`, 9.5, o.skin)}
             <circle class="ink-f" cx="${ax}" cy="${SH+UP+FORE+2}" r="7.5"/>
@@ -1832,10 +1843,10 @@ ACTS.hug = b => {
       </g>`;
 
     return {
-      back: `<g class="fig ${o.id}" style="--dir:${dir}">
+      back: `<g class="fig ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">
         <g class="head" style="transform-origin:${x}px ${SH}px">${hairBack}</g></g>`,
-      farArm: `<g class="fig arm-far ${o.id}" style="--dir:${dir}">${arm("armFar", -13*dir)}</g>`,
-      body: `<g class="fig body ${o.id}" style="--dir:${dir}">
+      farArm: `<g class="fig arm-far ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armFar", -13*dir)}</g>`,
+      body: `<g class="fig body ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">
         <g class="legs">${leg(-1)}${leg(1)}</g>
         <g class="torso" style="transform-origin:${x}px ${HIP}px">
           ${shorts}
@@ -1853,7 +1864,7 @@ ACTS.hug = b => {
           </g>
         </g>
       </g>`,
-      nearArm: `<g class="fig arm-near ${o.id}" style="--dir:${dir}">${arm("armNear", 13*dir)}</g>`
+      nearArm: `<g class="fig arm-near ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armNear", 13*dir)}</g>`
     };
   };
 
@@ -1865,10 +1876,10 @@ ACTS.hug = b => {
   wrap.innerHTML = `
     <svg class="hugscene" viewBox="0 0 ${W} 300" role="img" aria-label="a girl and a boy hugging">
       <line class="ground" x1="34" y1="${GROUND}" x2="${W-34}" y2="${GROUND}"/>
-      ${L.farArm}${R.farArm}
-      ${L.back}${R.back}
-      ${L.body}${R.body}
-      ${L.nearArm}${R.nearArm}
+      ${R.back}${R.body}
+      ${L.back}${L.body}
+      ${L.farArm}${L.nearArm}
+      ${R.farArm}${R.nearArm}
       <g class="hearts"></g>
     </svg>`;
 
