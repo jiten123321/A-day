@@ -4155,9 +4155,12 @@ ACTS.watch = b => {
   };
 
   const RTC = { iceServers: [{ urls: ["stun:stun.l.google.com:19302",
-                                      "stun:stun1.l.google.com:19302"] }] };
+                                      "stun:stun1.l.google.com:19302",
+                                      "stun:stun2.l.google.com:19302",
+                                      "stun:stun.cloudflare.com:3478"] }] };
   const pcs = new Map(), pend = new Map();
-  let local = null, wanted = false, msg = "";
+  let local = null, msg = "";
+  let askedFor = "", askedAt = 0;      // which share we asked to see, and when
   /* paintShare runs on a poll, so a message written straight into the bar is
      gone within a second and a half — every failure looked like nothing
      happening at all. Failures go here and stay until something replaces them. */
@@ -4175,9 +4178,12 @@ ACTS.watch = b => {
   const dropPc = id => {
     const pc = pcs.get(id);
     if(pc){ try { pc.close(); } catch(_){} pcs.delete(id); }
-    pend.delete(id);
+    /* the buffered candidates are NOT dropped here: a fresh offer arrives with
+       its own candidates already in flight, and throwing them away was losing
+       the ones that matter */
   };
-  const dropAll = () => { Array.from(pcs.keys()).forEach(dropPc); };
+  const dropAll = () => { Array.from(pcs.keys()).forEach(dropPc); pend.clear(); };
+  const stateOf = pc => pc ? (pc.connectionState || pc.iceConnectionState || "") : "";
 
   const showStream = st => {
     vid.srcObject = st;
@@ -4193,15 +4199,36 @@ ACTS.watch = b => {
   const makePc = id => {
     const pc = new RTCPeerConnection(RTC);
     pcs.set(id, pc);
-    pc.onicecandidate = e => { if(e.candidate) sig(id, "ice", { cand: e.candidate.toJSON() }); };
+    pc.__sent = false;      // has our offer or answer gone out yet?
+    pc.__out  = [];         // candidates gathered before it did
+    pc.__srflx = false;     // did STUN ever tell us our public address?
+    /* Candidates start arriving during setLocalDescription, which is before
+       the offer itself goes out — sending them first meant the far side filed
+       them against a connection it did not have yet. Hold them behind the
+       description. */
+    pc.onicecandidate = e => {
+      if(!e.candidate) return;
+      const c = e.candidate.toJSON();
+      if(/ typ (srflx|relay)/.test(c.candidate || "")) pc.__srflx = true;
+      if(pc.__sent) sig(id, "ice", { cand: c });
+      else pc.__out.push(c);
+    };
     pc.ontrack = e => showStream(e.streams[0]);
     pc.onconnectionstatechange = () => {
-      if(pc.connectionState === "failed"){
-        msg = "The connection wouldn't hold — some networks won't let two browsers talk directly. Try again, or try one of you on wifi.";
+      const st = stateOf(pc);
+      if(st === "failed"){
+        msg = pc.__srflx
+          ? "The two browsers couldn't reach each other — some networks won't let them talk directly. Try again, or one of you on wifi rather than mobile data."
+          : "Couldn't get out to work out this connection's address. A strict network or a VPN will do that. Try again on another connection.";
       }
       paintShare();
     };
     return pc;
+  };
+  const opened = (id, pc) => {                 // description signalled: let the candidates go
+    pc.__sent = true;
+    pc.__out.forEach(c => sig(id, "ice", { cand: c }));
+    pc.__out = [];
   };
   const flush = (id, pc) => {
     (pend.get(id) || []).forEach(c => pc.addIceCandidate(c).catch(()=>{}));
@@ -4216,6 +4243,7 @@ ACTS.watch = b => {
     try {
       await pc.setLocalDescription(await pc.createOffer());
       sig(id, "offer", { sdp: pc.localDescription });
+      opened(id, pc);
     } catch(_){ say("Couldn't start the stream."); }
   };
 
@@ -4266,7 +4294,15 @@ ACTS.watch = b => {
 
   bindEv("watch.rtc", async (m, by) => {
     if(!m || m.to !== SYNC.id) return;
-    if(m.kind === "want"){ offerTo(by); return; }
+    if(m.kind === "want"){
+      /* A viewer that is still connecting asks again every few seconds. Answering
+         each one tore down a negotiation that was halfway through and started
+         over, so on any connection slower than a loopback it never finished. */
+      const cur = pcs.get(by), st = stateOf(cur);
+      if(cur && st !== "failed" && st !== "closed" && st !== "disconnected") return;
+      offerTo(by);
+      return;
+    }
     let pc = pcs.get(by);
     try {
       if(m.kind === "offer"){
@@ -4274,6 +4310,7 @@ ACTS.watch = b => {
         await pc.setRemoteDescription(m.sdp);
         await pc.setLocalDescription(await pc.createAnswer());
         sig(by, "answer", { sdp: pc.localDescription });
+        opened(by, pc);
         flush(by, pc);
       } else if(m.kind === "answer" && pc){
         await pc.setRemoteDescription(m.sdp);
@@ -4307,11 +4344,24 @@ ACTS.watch = b => {
       bar.innerHTML = msg || "You are sharing. This is what they see.";
       shareGo.textContent = "Sharing…";
     } else {
-      const st = pcs.size ? Array.from(pcs.values())[0].connectionState : "";
-      bar.innerHTML = msg || ("<b>" + esc(sh.name || "They") + "</b> is sharing" +
-        (st === "connected" ? "." : " — connecting…"));
-      hint.textContent = "Connecting to " + (sh.name || "them") + "…";
-      if(!wanted){ wanted = true; sig(sh.id, "want", {}); setTimeout(() => { wanted = false; }, 4000); }
+      const pc = pcs.get(sh.id), st = stateOf(pc);
+      const on = st === "connected" || st === "completed";
+      const dead = !pc || st === "failed" || st === "closed" || st === "disconnected";
+      /* Ask once per share, and again only if it actually died or has been
+         quiet far too long — not on every repaint. */
+      if(askedFor !== sh.id || (dead && SYNC.now() - askedAt > 9000)){
+        askedFor = sh.id; askedAt = SYNC.now();
+        dropPc(sh.id);
+        sig(sh.id, "want", {});
+      }
+      const waited = Math.round((SYNC.now() - askedAt) / 1000);
+      const where = on ? "."
+        : !pc ? " — waiting for their side to answer…"
+        : (st === "connecting" || st === "new" || st === "checking")
+          ? (" — connecting…" + (waited > 12 ? " (this is taking a while; some networks block it)" : ""))
+          : " — " + esc(st || "connecting…");
+      bar.innerHTML = msg || ("<b>" + esc(sh.name || "They") + "</b> is sharing" + where);
+      hint.textContent = on ? "" : "Connecting to " + (sh.name || "them") + "…";
     }
   };
   bind("watch.share", paintShare);
