@@ -48,8 +48,19 @@ button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
 .brandline{
   font-size:.82rem;letter-spacing:.09em;color:var(--muted);
   display:flex;gap:14px;align-items:center;
+  padding-right:clamp(0px,18vw,240px);
 }
 .brandline span{white-space:nowrap}
+.watch{width:46px;height:46px;flex:none;display:block;overflow:visible}
+.watch .case{fill:rgba(244,237,224,.07);stroke:rgba(244,237,224,.28);stroke-width:2}
+.watch .ticks line{stroke:rgba(244,237,224,.45);stroke-width:2;stroke-linecap:round}
+.watch .ticks line.big{stroke:var(--mango);stroke-width:3}
+.watch .hand{stroke:var(--paper);stroke-linecap:round;transform-origin:50px 50px}
+.watch .hr{stroke-width:5}
+.watch .min{stroke-width:3.4}
+.watch .sec{stroke:var(--marigold);stroke-width:1.6}
+.watch .pin{fill:var(--marigold)}
+@media (prefers-reduced-motion:no-preference){ .watch .sec{transition:transform .18s cubic-bezier(.3,1.6,.5,1)} }
 .rule{flex:1;height:1px;background:var(--line)}
 
 .hero-copy{margin:6vh 0 0}
@@ -85,7 +96,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
 
 .hour{
   display:grid;
-  grid-template-columns:132px 1fr;
+  grid-template-columns:1fr;
   gap:clamp(16px,4vw,40px);
   padding:26px 0 30px;
   border-top:1px solid var(--line);
@@ -115,7 +126,7 @@ button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
   font-size:.95rem;
 }
 .open:hover{background:var(--marigold);border-color:var(--marigold);color:#12203F}
-.hour.done .clock{color:var(--teal)}
+.hour.done h2{color:var(--teal)}
 .hour.done h2::after{content:" ✓";color:var(--teal);font-size:.7em;vertical-align:.25em}
 
 .footer{
@@ -406,9 +417,7 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 }
 
 @media (max-width:640px){
-  .hour{grid-template-columns:1fr;gap:6px}
-  .clock{display:flex;align-items:baseline;gap:12px}
-  .clock small{margin:0}
+  .hour{gap:6px}
   .jarwrap{grid-template-columns:1fr}
   .tiles{grid-template-columns:1fr}
   .c4{gap:4px;padding:5px}
@@ -516,7 +525,7 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
   <div class="gate-inner">
     <p class="gate-eyebrow">before anything else</p>
     <h2>Who's there?</h2>
-    <p class="gate-line">Type your name so the day knows which side of it you're on. Whoever else is on this link sees you arrive.</p>
+    <p class="gate-line">So the day knows which side of it you're on.</p>
     <input type="text" id="gateName" placeholder="your name" autocomplete="off" spellcheck="false">
     <button class="btn" id="gateGo" disabled>Start the day</button>
   </div>
@@ -531,12 +540,20 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 
 <header class="sky">
   <div class="brandline">
-    <span id="dateline">Sunday</span><i class="rule"></i><span id="clockline">10:00</span>
+    <svg class="watch" id="watch" viewBox="0 0 100 100" role="img" aria-label="the time">
+      <circle class="case" cx="50" cy="50" r="46"/>
+      <g class="ticks" id="ticks"></g>
+      <line class="hand hr"  id="hHr"  x1="50" y1="50" x2="50" y2="28"/>
+      <line class="hand min" id="hMin" x1="50" y1="50" x2="50" y2="18"/>
+      <line class="hand sec" id="hSec" x1="50" y1="56" x2="50" y2="15"/>
+      <circle class="pin" cx="50" cy="50" r="2.6"/>
+    </svg>
+    <span id="dateline">Sunday</span><i class="rule"></i>
   </div>
 
   <div class="hero-copy">
     <h1>One day<em>together</em></h1>
-    <p class="hero-sub" id="heroSub">Same sun, two windows. Open each hour when it arrives, and we do that one together on call. Nothing here works alone.</p>
+    <p class="hero-sub" id="heroSub">Same sun, two windows. Nothing here works alone.</p>
   </div>
 
   <div class="arc-wrap">
@@ -546,11 +563,10 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 
 <main class="day">
   <p class="alone" id="aloneNote" hidden>
-    <b>Nobody else is here yet.</b> Send this exact link to the other person and keep it open —
-    every click, every pick and both cursors show up on each other's screen.
+    <b>Nobody else is here yet.</b> Send this link and keep it open.
     <code id="shareLink"></code>
   </p>
-  <p class="day-intro" id="dayIntro">Twelve stops between ten in the morning and six in the evening. Some need a pen, one needs both of us to shut up and listen. Open an hour and it opens on the other side too.</p>
+  <p class="day-intro" id="dayIntro">Twelve stops. Open one and it opens on her side too.</p>
   <div id="hours"></div>
 </main>
 
@@ -770,18 +786,18 @@ const CFG = {
 };
 
 const PLAN = [
-  {t:"10:00", title:"Chai to start",       line:"Two cups, one call. Fill yours while I fill mine, then we clink through the camera like idiots.", k:"chai"},
-  {t:"10:30", title:"Question roulette",   line:"Spin it, answer it. You get two skips for the whole day, use them carefully.", k:"wheel"},
-  {t:"11:00", title:"The arcade",          line:"Five games. Connect four, emoji films, never have I ever, word chain, who's more likely. Screen share or just call out your moves.", k:"arcade"},
-  {t:"12:00", title:"Same order",          line:"We each pick four things for lunch without seeing the other's list. Then we count the overlap.", k:"menu"},
-  {t:"13:00", title:"Ninety seconds to draw me", line:"From memory. No photos, no undo. We show at the same time and neither of us is allowed to be nice about it.", k:"draw"},
-  {t:"13:30", title:"Memory match",        line:"Sixteen cards, eight things that already happened to us. Flip them till they pair up.", k:"match"},
-  {t:"14:00", title:"Watch party",         line:"Build the shortlist, let the page pick, count down together, press play on the same frame. Two hours, phones face down.", k:"watch"},
-  {t:"16:00", title:"How well do you know me", line:"Eight questions about me. Under five right and you owe me a voice note explaining yourself.", k:"quiz"},
-  {t:"16:30", title:"Truth or dare, long distance", line:"Every dare here is one you can actually do from your room. No backing out, no renegotiating.", k:"dare"},
-  {t:"17:00", title:"One song each",       line:"You put on yours, I put on mine. Full song, no talking over it, no skipping to the good part.", k:"song"},
-  {t:"17:30", title:"The wish jar",        line:"Everything we're doing the week the distance ends. Type them in, no editing, no being realistic.", k:"jar"},
-  {t:"18:00", title:"Sunset, and a letter", line:"Turn the brightness down and just read this one.", k:"letter"}
+  {t:"10:00", title:"Chai to start",       line:"Two cups, one call. Clink through the camera.", k:"chai"},
+  {t:"10:30", title:"Question roulette",   line:"Spin it, answer it. Two skips all day.", k:"wheel"},
+  {t:"11:00", title:"The arcade",          line:"Five games. Connect four, emoji films, word chain.", k:"arcade"},
+  {t:"12:00", title:"Same order",          line:"Four picks each, blind. Then count the overlap.", k:"menu"},
+  {t:"13:00", title:"Ninety seconds to draw me", line:"From memory. No photos, no undo, no being nice.", k:"draw"},
+  {t:"13:30", title:"Memory match",        line:"Sixteen cards, eight things that already happened.", k:"match"},
+  {t:"14:00", title:"Watch party",         line:"Shortlist it, let the page pick, press play together.", k:"watch"},
+  {t:"16:00", title:"How well do you know me", line:"Eight about me. Under five and you explain yourself.", k:"quiz"},
+  {t:"16:30", title:"Truth or dare, long distance", line:"Every dare is doable from your room. No backing out.", k:"dare"},
+  {t:"17:00", title:"One song each",       line:"One each. Full song, no talking, no skipping.", k:"song"},
+  {t:"17:30", title:"The wish jar",        line:"The week the distance ends. Nothing realistic.", k:"jar"},
+  {t:"18:00", title:"Sunset, and a letter", line:"Brightness down. Just read it.", k:"letter"}
 ];
 
 /* ======================= plumbing ======================= */
@@ -1042,12 +1058,31 @@ const CUR = {
 };
 
 /* ---- header clock + date ---- */
+function buildWatch(){
+  const g = $("#ticks"), NS = "http://www.w3.org/2000/svg";
+  for(let i = 0; i < 12; i++){
+    const a = (i/12) * 2 * Math.PI;
+    const big = i % 3 === 0, r1 = big ? 34 : 37;
+    const ln = document.createElementNS(NS,"line");
+    ln.setAttribute("x1", 50 + r1*Math.sin(a));  ln.setAttribute("y1", 50 - r1*Math.cos(a));
+    ln.setAttribute("x2", 50 + 41*Math.sin(a));  ln.setAttribute("y2", 50 - 41*Math.cos(a));
+    if(big) ln.setAttribute("class","big");
+    g.appendChild(ln);
+  }
+}
+
 function tick(){
   const d = new Date();
   $("#dateline").textContent = d.toLocaleDateString(undefined,{weekday:"long", day:"numeric", month:"long"});
-  $("#clockline").textContent = d.toLocaleTimeString(undefined,{hour:"2-digit", minute:"2-digit"});
+  const sec = d.getSeconds(), min = d.getMinutes(), hr = d.getHours() % 12;
+  const turn = (node, deg) => node.style.transform = "rotate(" + deg + "deg)";
+  turn($("#hHr"),  hr*30 + min*0.5);
+  turn($("#hMin"), min*6 + sec*0.1);
+  turn($("#hSec"), sec*6);
+  $("#watch").setAttribute("aria-label",
+    d.toLocaleTimeString(undefined,{hour:"2-digit", minute:"2-digit"}));
 }
-tick(); setInterval(tick, 20000);
+buildWatch(); tick(); setInterval(tick, 1000);
 
 /* timers owned by the open activity */
 let stageTimers = [];
@@ -1101,12 +1136,6 @@ function buildArc(){
     const c = document.createElementNS(NS,"circle");
     c.setAttribute("cx",p.x); c.setAttribute("cy",p.y); c.setAttribute("r", sharp ? "5" : "3");
     g.appendChild(c);
-    if(sharp){
-      const tx = document.createElementNS(NS,"text");
-      tx.setAttribute("x",p.x); tx.setAttribute("y", p.y - 16);
-      tx.textContent = h.t.slice(0,2);
-      g.appendChild(tx);
-    }
     const go = () => open(i);
     g.addEventListener("click", go);
     g.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); go(); } });
@@ -1149,7 +1178,6 @@ function buildHours(){
   PLAN.forEach((h,i) => {
     const row = el("section","hour");
     row.id = "hour"+i;
-    row.appendChild(el("div","clock", h.t + "<small>stop " + (i+1) + " of " + PLAN.length + "</small>"));
     const right = el("div");
     right.appendChild(el("h2", null, h.title));
     right.appendChild(el("p", null, h.line));
@@ -1187,7 +1215,7 @@ function showStage(i){
   dropSubs(); dropTimers();
   openIndex = i;
 
-  $("#stageWhen").textContent = h.t;
+  $("#stageWhen").textContent = "stop " + (i+1) + " of " + PLAN.length;
   $("#stageTitle").textContent = h.title;
   const body = $("#stageBody");
   body.innerHTML = "";
@@ -1245,7 +1273,7 @@ const ensure    = (k, make) => { let v = SYNC.get(k, null); if(v === null){ v = 
 
 /* --- 10:00 chai --- */
 ACTS.chai = b => {
-  lede(b, "Hold the button until the cup is full. You're both pouring the same cup — hold together and it fills twice as fast. When it's full, hold yours up to the camera and drink at the same time.");
+  lede(b, "Hold to pour. Same cup, so hold together and it fills twice as fast.");
   const box = el("div","card");
   const c = el("div","chai");
   c.innerHTML = `
@@ -1323,7 +1351,7 @@ ACTS.chai = b => {
 
 /* --- 10:30 question roulette --- */
 ACTS.wheel = b => {
-  lede(b, "Spin, then both of you answer the same question. She answers first. Two skips for the whole hour and they don't roll over. Either of you can spin — the wheel turns on both screens.");
+  lede(b, "Both answer the same question. She goes first. Two skips.");
   const box = el("div","card");
   const w = el("div","wheelbox");
   const N = 10, colors = ["#F4A93C","#E2707E","#3FA396","#FFD79A","#2A3C78"];
@@ -1387,7 +1415,7 @@ ACTS.wheel = b => {
 
 /* --- 12:00 same order --- */
 ACTS.menu = b => {
-  lede(b, "Pick four each, on your own screen. You can't see the other list until you've both locked in — but you can see how far along they are. Whatever you both picked is what actually gets ordered.");
+  lede(b, "Four each, on your own screen. Hidden until you both lock in.");
   const box = el("div","card");
   const turn = el("div","turnbar","");
   box.appendChild(turn);
@@ -1468,7 +1496,7 @@ ACTS.menu = b => {
 
 /* --- 13:00 ninety seconds to draw me --- */
 ACTS.draw = b => {
-  lede(b, "Ninety seconds, no reference, no erasing. Both pads are live — you can watch the line move on the other side as it happens, which is the whole point.");
+  lede(b, "Ninety seconds, no erasing. Both pads are live, so you watch each other draw.");
   const box = el("div","card");
   box.appendChild(el("div","qnum","draw this"));
   const prompt = el("div","prompt-card","");
@@ -1574,7 +1602,7 @@ ACTS.draw = b => {
 
 /* --- 13:30 memory match --- */
 ACTS.match = b => {
-  lede(b, "Take turns, two flips each. The board is the same board — whatever you flip, she watches flip.");
+  lede(b, "Take turns. Same board, so she watches every flip.");
   const box = el("div","card");
   const status = el("div","turnbar","");
   box.appendChild(status);
@@ -1649,7 +1677,7 @@ ACTS.match = b => {
 
 /* --- 16:00 how well do you know me --- */
 ACTS.quiz = b => {
-  lede(b, "Eight about me. Either of you can tap the answer — the result lands on both screens at once, so no pretending you knew it after.");
+  lede(b, "Either of you can answer. It lands on both screens, so no pretending after.");
   const box = el("div","card");
   b.appendChild(box);
 
@@ -1702,7 +1730,7 @@ ACTS.quiz = b => {
 
 /* --- 17:30 wish jar --- */
 ACTS.jar = b => {
-  lede(b, "One line each, taking turns, until the jar is full. Nothing sensible, nothing about money, nothing that starts with 'maybe'. Both of you write into the same jar.");
+  lede(b, "One line each into the same jar. Nothing sensible, nothing about money.");
   const box = el("div","card");
   const w = el("div","jarwrap");
   const left = el("div");
@@ -1769,7 +1797,7 @@ ACTS.jar = b => {
 
 /* --- 17:00 one song each --- */
 ACTS.song = b => {
-  lede(b, "Type the song you're giving the other person — they see it appear as you type. Then press play together and don't talk until it's over.");
+  lede(b, "Type your song, she sees it appear. Press play together, then don't talk.");
   const box = el("div","card");
   box.innerHTML = `<svg class="record" viewBox="0 0 200 200">
     <circle cx="100" cy="100" r="96" fill="#141C3F" stroke="#F4EDE0" stroke-width="1.5" opacity=".9"/>
@@ -1860,7 +1888,7 @@ ACTS.letter = b => {
 
 /* --- 11:00 the arcade --- */
 ACTS.arcade = b => {
-  lede(b, "Five games, all shared. Whichever one you open, opens on her screen too, and every move lands on both boards.");
+  lede(b, "Five games, all shared. Every move lands on both boards.");
   const hub = el("div","tiles");
   const panel = el("div"); panel.style.marginTop = "10px";
   const GAMES = [
@@ -2145,7 +2173,7 @@ function likelyGame(host, gbind){
 
 /* --- 14:00 watch party --- */
 ACTS.watch = b => {
-  lede(b, "This page can't play Netflix for you, and nothing that claims to is safe. What it does is pick the film and get both of you on the same frame. For actual synced playback use the Teleparty extension on Chrome, or just count down together — the countdown below runs off the same clock on both screens, so it really is the same second.");
+  lede(b, "This can't play Netflix — it picks the film and counts you both in. The countdown runs off one clock, so it really is the same second. For synced playback use Teleparty.");
 
   const s1 = el("div","card");
   s1.appendChild(el("div","qnum","step one — build the shortlist"));
@@ -2277,7 +2305,7 @@ ACTS.watch = b => {
 
 /* --- 16:30 truth or dare --- */
 ACTS.dare = b => {
-  lede(b, "She goes first. You can't pick truth twice in a row, and a dare not done in five minutes counts as a forfeit. Whichever card comes up, you both see it.");
+  lede(b, "She goes first. No truth twice in a row. Five minutes or it's a forfeit.");
   const box = el("div","card");
   const kind = el("div","qnum","pick one");
   const card2 = el("div","prompt-card");
@@ -2366,9 +2394,9 @@ function nameGate(){
 function onKnown(){
   const sub = $("#heroSub");
   const greet = ME.side === "guest"
-    ? "Hello " + ME.name + ". You've walked into someone else's day, but stay."
+    ? "Hello " + ME.name + ". Someone else's day, but stay."
     : "Hello " + ME.name + ".";
-  sub.innerHTML = '<span class="hello">' + esc(greet) + '</span> Same sun, two windows, one page between them. Whatever you open, they see open. Whatever you pick, they watch you pick.';
+  sub.innerHTML = '<span class="hello">' + esc(greet) + '</span> Same sun, two windows. Whatever you open, she sees.';
   renderPresence();
 }
 
