@@ -121,11 +121,25 @@ one of the twelve stops. It opens on both screens, and whoever presses it, the
 hug plays on both at once.
 
 It is a framed picture rather than a stage: a warm paper sky going cream to
-coral, film grain over the top, and the two of them cropped at the thigh and
-drawn as flat shapes with one soft brown outline. Long dark hair, a pale knit,
-teal trousers; a green jumper over a shirt collar, round glasses. Faces are
-four marks each — brows, a nose, a mouth, blush — and the eyes close for the
-hug, which is most of what sells it.
+coral, a soft glow behind them, a vignette and film grain over the top, and the
+two of them cropped at the thigh. Long dark hair, a pale knit, teal trousers; a
+green jumper over a shirt collar, round glasses. Faces are a few marks each —
+brows, a nose, a mouth, blush — and the eyes close for the hug, which is most
+of what sells it.
+
+Flat shapes, but not clip art. What keeps it from looking like clip art:
+
+- **Two line weights.** Silhouettes take a 2.3 stroke, interior shapes (an ear,
+  a collar, a hand) take 1.5. One weight everywhere is the giveaway.
+- **One light source**, upper left: every fill is a diagonal two-stop gradient,
+  with highlight shapes on the lit side and shade shapes on the other.
+- **Shadows they cast on each other** — her head on his chest, his sleeve on
+  her knit — blurred, and faded in only once they are actually touching.
+- **Cloth and hair detail**: fold lines at the hem and the sleeve, ribbing down
+  the V-neck, strands of sheen through the hair, a lens tint and a glint on
+  each side of his glasses.
+- A soft drop shadow under the pair so they sit in the picture rather than on
+  top of it.
 
 Nothing here is a jointed rig. This close in, limbs that swing on hinges read
 as machinery, so the whole thing is two drawings and a handful of transforms:
