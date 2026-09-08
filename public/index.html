@@ -791,6 +791,11 @@ const shuffle = a => a.map(v => [Math.random(), v]).sort((x,y) => x[0]-y[0]).map
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const ME = { name:"", side:"guest", other:"" };
 
+/* Who *this tab* is. Message ownership keys off this rather than the side,
+   because two people can land on the same side — anyone not named as the
+   other half is a guest, and guests share a seat. */
+const CID = (Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 18);
+
 /* =======================================================================
    REALTIME. One room, two people, one shared copy of everything.
    SYNC.get/set is the whole state model: every activity renders from it
@@ -2340,6 +2345,7 @@ function nameGate(){
     const v = inp.value.trim().replace(/</g,"").slice(0,24);
     if(!v) return;
     ME.name = v;
+    CHIME.arm();            // inside a real click, which is what browsers want
     const low = v.toLowerCase();
     if(low === CFG.her.toLowerCase()){ ME.side = "her"; ME.other = CFG.you; }
     else if(low === CFG.you.toLowerCase()){ ME.side = "you"; ME.other = CFG.her; }
@@ -2372,21 +2378,35 @@ const CHIME = {
 
   init(){
     try { CHIME.on = localStorage.getItem("sameSunSound") !== "off"; } catch(_){}
-    // Browsers only allow audio after a gesture, so build the context on the
-    // first one and keep it warm.
-    const wake = () => {
-      if(!CHIME.ctx){
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if(AC) CHIME.ctx = new AC();
-      }
-      if(CHIME.ctx && CHIME.ctx.state === "suspended") CHIME.ctx.resume();
-    };
-    ["pointerdown","keydown"].forEach(e => window.addEventListener(e, wake, {passive:true}));
+    // Browsers refuse audio until the page has been interacted with, so arm on
+    // any gesture. The name gate also arms it directly, which is the earliest
+    // and most reliable one we get.
+    ["pointerdown","keydown","touchend"].forEach(e =>
+      window.addEventListener(e, CHIME.arm, {passive:true}));
   },
 
+  arm(){
+    if(!CHIME.ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC) CHIME.ctx = new AC();
+    }
+    if(CHIME.ctx && CHIME.ctx.state === "suspended") CHIME.ctx.resume().catch(() => {});
+    return CHIME.ctx;
+  },
+
+  /* Never give up because the context is asleep — wake it and play after. */
   play(){
-    if(!CHIME.on || !CHIME.ctx || CHIME.ctx.state !== "running") return;
-    const c = CHIME.ctx, t0 = c.currentTime;
+    if(!CHIME.on) return;
+    const c = CHIME.arm();
+    if(!c) return;
+    if(c.state === "running") return CHIME.blip(c);
+    c.resume().then(() => { if(c.state === "running") CHIME.blip(c); }).catch(() => {});
+  },
+
+  blocked(){ return !CHIME.ctx || CHIME.ctx.state !== "running"; },
+
+  blip(c){
+    const t0 = c.currentTime;
     // Two soft notes, a rising fifth. Short enough to never be annoying.
     [[784, 0], [1175, 0.09]].forEach(([hz, at]) => {
       const osc = c.createOscillator(), gain = c.createGain();
@@ -2467,6 +2487,8 @@ const PICS = {
   let seen = 0, unseen = 0, known = null, pending = [];
 
   const stamp = at => new Date(at).toLocaleTimeString(undefined,{hour:"2-digit", minute:"2-digit"});
+  // Older messages predate the tab id; fall back to the side for those.
+  const mine = m => m.cid ? m.cid === CID : m.s === mySide();
 
   const bubble = (m, mine) => {
     const b = el("div","bubble " + (mine ? "mine" : "theirs"));
@@ -2491,7 +2513,7 @@ const PICS = {
     const msgs = SYNC.get("chat.msgs", []);
     list.innerHTML = "";
     if(!msgs.length && !pending.length){ list.appendChild(empty); }
-    msgs.forEach(m => list.appendChild(bubble(m, m.s === mySide())));
+    msgs.forEach(m => list.appendChild(bubble(m, mine(m))));
     pending.forEach(p => {
       const b = el("div","bubble mine sending");
       b.appendChild(el("span", null, p.failed ? "" : "sending " + p.name + "…"));
@@ -2500,11 +2522,15 @@ const PICS = {
     });
     list.scrollTop = list.scrollHeight;
 
-    // Chime for anything that arrived from the other side. `known === null`
-    // is the first paint after connecting, which is history, not news.
+    // Chime only for something that genuinely just arrived from someone else.
+    // The paint before we connect, and the first paint after (which replays the
+    // whole history), both only set the baseline.
+    const live = SYNC.id !== null;
     const last = msgs[msgs.length - 1];
-    if(known !== null && msgs.length > known && last && last.s !== mySide()) CHIME.play();
-    known = msgs.length;
+    if(live){
+      if(known !== null && msgs.length > known && last && !mine(last)) CHIME.play();
+      known = msgs.length;
+    }
 
     if(box.classList.contains("on")){ seen = msgs.length; unseen = 0; badge.classList.remove("on"); }
     else {
@@ -2515,7 +2541,7 @@ const PICS = {
   };
 
   const post = (extra) => SYNC.push("chat.msgs", Object.assign({
-    who: ME.name || "me", s: mySide(), at: Date.now()
+    who: ME.name || "me", s: mySide(), cid: CID, at: Date.now()
   }, extra), 400);
 
   function pushText(){
@@ -2590,10 +2616,14 @@ const PICS = {
 
   /* --- sound toggle --- */
   const paintSound = () => {
-    soundBtn.textContent = CHIME.on ? "Sound on" : "Sound off";
-    soundBtn.classList.toggle("off", !CHIME.on);
+    soundBtn.textContent = !CHIME.on ? "Sound off"
+      : CHIME.blocked() ? "Sound — tap to enable" : "Sound on";
+    soundBtn.classList.toggle("off", !CHIME.on || CHIME.blocked());
   };
+  setInterval(paintSound, 2000);
   soundBtn.addEventListener("click", () => {
+    CHIME.arm();
+    if(CHIME.on && CHIME.blocked()){ paintSound(); CHIME.play(); return; }
     CHIME.on = !CHIME.on;
     try { localStorage.setItem("sameSunSound", CHIME.on ? "on" : "off"); } catch(_){}
     paintSound();
