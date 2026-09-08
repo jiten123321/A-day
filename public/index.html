@@ -730,17 +730,27 @@ input[type=text], .close, .open{
 .hugwrap{margin:6px 0 4px}
 .hugscene{width:100%;height:auto;display:block;overflow:visible}
 .hugscene .ground{stroke:var(--line);stroke-width:2;stroke-dasharray:5 8}
-.hugscene .ink{stroke:var(--ink);fill:none;stroke-linecap:round;stroke-linejoin:round}
-.hugscene .skin,.hugscene .cloth{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .hugscene .ink-f{fill:var(--ink)}
-.hugscene .skin-f,.hugscene .cloth-f,.hugscene .hair-f{stroke:none}
-.hugscene .shoe{fill:#2E3C5E}
-.hugscene .blush{fill:rgba(207,62,87,.32)}
+.hugscene path[fill^="url"], .hugscene ellipse[fill^="url"]{stroke:none}
+.hugscene .blush{fill:rgba(206,86,96,.3)}
+.hugscene .brow{stroke:rgba(40,26,18,.75);stroke-width:1.5;fill:none;stroke-linecap:round}
+.hugscene .lash{stroke:var(--ink);stroke-width:1.7;fill:none;stroke-linecap:round}
+.hugscene .nose{stroke:rgba(120,74,48,.55);stroke-width:1.3;fill:none;stroke-linecap:round}
+.hugscene .mouth{stroke:rgba(90,40,40,.8);stroke-width:1.6;fill:none;stroke-linecap:round}
+.hugscene .neckshade{fill:rgba(60,36,22,.22)}
+/* contact shadows on the ground, and the shading where he is behind her */
+.hugscene .contact{fill:rgba(48,40,30,.30);transition:transform .62s cubic-bezier(.34,.9,.3,1)}
+.hugscene .depth{fill:rgba(40,28,18,.0);transition:fill .5s}
+.hugwrap.hugging .hugscene .depth{fill:rgba(40,28,18,.30)}
+.hugwrap.stepping .contact.figL{transform:translateX(80px)}
+.hugwrap.stepping .contact.figR{transform:translateX(-80px)}
 /* eyes close for the hug, which is most of what sells it */
 .hugscene .eyes-shut{opacity:0}
 .hugwrap.hugging .hugscene .eyes-open{opacity:0}
 .hugwrap.hugging .hugscene .eyes-shut{opacity:1}
 .hugscene .eyes-open,.hugscene .eyes-shut{transition:opacity .25s}
+/* hair lags a beat behind the head — secondary motion, and it reads */
+.hugscene .hairback .head, .hugscene .hairback{transition-delay:.07s}
 
 /* Joints. Every angle is written for the left figure; --dir mirrors it. */
 .hugscene .up, .hugscene .fore, .hugscene .torso, .hugscene .head, .hugscene .fig{
@@ -1784,99 +1794,127 @@ ACTS.hug = b => {
   const box = el("div","card");
   const wrap = el("div","hugwrap");
 
-  const W = 420, GROUND = 262;
-  const HIP = 178, SH = HIP - 52, NECK = HIP - 60, HEADY = HIP - 80;
-  const UP = 34, FORE = 32;                       // upper arm / forearm length
+  const W = 420, GROUND = 300;
+  const HIP = 196, SH = 148, NECK = 140, HEADY = 112;   // ~6.8 heads tall
+  const UP = 38, FORE = 36;
 
-  /* One person, laid out around the hip. Every joint angle is written for the
-     left figure and mirrored by --dir, so both are built from one description.
-     Limbs are round-capped strokes — an ink one under a colour one — which
-     gives properly rounded arms without hand-authoring each shape. */
+  /* A limb that narrows from one end to the other — a uniform capsule is the
+     main thing that makes a figure read as a toy rather than a person. */
+  const taper = (x, y0, y1, r0, r1) =>
+    `M${x-r0},${y0} A${r0},${r0} 0 0 1 ${x+r0},${y0} L${x+r1},${y1} A${r1},${r1} 0 0 1 ${x-r1},${y1} Z`;
+
   const person = (o) => {
-    const x = o.x, dir = o.dir, girl = o.girl;
-    const limb = (d, w, colour) =>
-      `<path class="ink"  d="${d}" stroke-width="${w+5}"/>
-       <path class="skin" d="${d}" stroke-width="${w}" style="stroke:${colour}"/>`;
+    const x = o.x, dir = o.dir, girl = o.girl, g = (n) => `url(#${o.id}-${n})`;
 
     const arm = (cls, dx) => { const ax = x + dx; return `
       <g class="${cls}">
         <g class="up" style="transform-origin:${ax}px ${SH}px">
-          ${limb(`M${ax},${SH} L${ax},${SH+UP}`, 12.5, o.cloth)}
+          <path class="ink-f" d="${taper(ax, SH, SH+UP, 8.4, 6.6)}" stroke-width="3.2" stroke="var(--ink)"/>
+          <path fill="${g('cloth')}" d="${taper(ax, SH, SH+UP, 7.6, 5.8)}"/>
           <g class="fore" style="transform-origin:${ax}px ${SH+UP}px">
-            ${limb(`M${ax},${SH+UP} L${ax},${SH+UP+FORE}`, 9.5, o.skin)}
-            <circle class="ink-f" cx="${ax}" cy="${SH+UP+FORE+2}" r="7.5"/>
-            <circle class="skin-f" cx="${ax}" cy="${SH+UP+FORE+2}" r="5.8" style="fill:${o.skin}"/>
+            <path class="ink-f" d="${taper(ax, SH+UP, SH+UP+FORE, 6.4, 4.6)}" stroke-width="3.2" stroke="var(--ink)"/>
+            <path fill="${g('skin')}" d="${taper(ax, SH+UP, SH+UP+FORE, 5.6, 3.8)}"/>
+            <ellipse class="ink-f" cx="${ax}" cy="${SH+UP+FORE+4}" rx="6.2" ry="7.4"/>
+            <ellipse fill="${g('skin')}" cx="${ax}" cy="${SH+UP+FORE+3.4}" rx="5" ry="6.2"/>
           </g>
         </g>
       </g>`; };
 
-    // legs start below the skirt for her, at the hip for him
-    const legTop = girl ? HIP + 20 : HIP + 2;
-    const leg = (s) => { const lx = x + s*11; return `
-      ${limb(`M${lx},${legTop} L${lx+s*1},${legTop+34} L${lx},${GROUND-8}`, girl ? 11 : 14, girl ? o.skin : o.trouser)}
-      <path class="ink-f" d="M${lx-9},${GROUND-9} h17 a5,5 0 0 1 5,5 v3 a4,4 0 0 1-4,4 h-19 a4,4 0 0 1-4,-4 v-3 a5,5 0 0 1 5,-5 z"/>
-      <path class="shoe"  d="M${lx-7},${GROUND-8} h14 a4,4 0 0 1 4,4 v2 a3,3 0 0 1-3,3 h-16 a3,3 0 0 1-3,-3 v-2 a4,4 0 0 1 4,-4 z"/>`; };
+    const legTop = girl ? HIP + 24 : HIP + 4;
+    const leg = (sd) => { const lx = x + sd*10, kx = lx + sd*1.5; return `
+      <path class="ink-f" d="${taper(lx, legTop, legTop+52, girl?10:11.5, girl?7.4:8.6)}" stroke-width="3.2" stroke="var(--ink)"/>
+      <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(lx, legTop, legTop+52, girl?9.2:10.7, girl?6.6:7.8)}"/>
+      <path class="ink-f" d="${taper(kx, legTop+52, GROUND-10, girl?7.2:8.4, girl?5.6:6.6)}" stroke-width="3.2" stroke="var(--ink)"/>
+      <path fill="${girl ? g('skin') : g('trouser')}" d="${taper(kx, legTop+52, GROUND-10, girl?6.4:7.6, girl?4.8:5.8)}"/>
+      <path class="ink-f" d="M${kx-8},${GROUND-12} h16 a6,6 0 0 1 6,6 v3 a4,4 0 0 1-4,4 h-20 a4,4 0 0 1-4,-4 v-3 a6,6 0 0 1 6,-6 z"/>
+      <path fill="${g('shoe')}" d="M${kx-6.5},${GROUND-11} h13 a5,5 0 0 1 5,5 v2 a3,3 0 0 1-3,3 h-17 a3,3 0 0 1-3,-3 v-2 a5,5 0 0 1 5,-5 z"/>`; };
 
+    // shoulders taper to a waist, then a skirt or a hip
     const top = girl
-      ? `M${x-17},${SH-2} Q${x},${SH-9} ${x+17},${SH-2} L${x+14},${HIP-24} L${x+27},${HIP+22} Q${x},${HIP+30} ${x-27},${HIP+22} L${x-14},${HIP-24} Z`
-      : `M${x-18},${SH-2} Q${x},${SH-9} ${x+18},${SH-2} L${x+16},${HIP-18} Q${x},${HIP-13} ${x-16},${HIP-18} Z`;
-    const shorts = girl ? "" : `
-      <path class="ink-f" d="M${x-17},${HIP-20} L${x+17},${HIP-20} L${x+15},${HIP+6} L${x-15},${HIP+6} Z"/>
-      <path class="cloth-f" d="M${x-15},${HIP-19} L${x+15},${HIP-19} L${x+13},${HIP+5} L${x-13},${HIP+5} Z" style="fill:${o.trouser}"/>`;
+      ? `M${x-15},${SH-3} Q${x},${SH-10} ${x+15},${SH-3} Q${x+13},${HIP-30} ${x+10},${HIP-20} L${x+25},${HIP+26} Q${x},${HIP+34} ${x-25},${HIP+26} L${x-10},${HIP-20} Q${x-13},${HIP-30} ${x-15},${SH-3} Z`
+      : `M${x-17},${SH-3} Q${x},${SH-11} ${x+17},${SH-3} Q${x+15},${HIP-26} ${x+14},${HIP-8} Q${x},${HIP-3} ${x-14},${HIP-8} Q${x-15},${HIP-26} ${x-17},${SH-3} Z`;
+    const hips = girl ? "" : `
+      <path class="ink-f" d="M${x-15},${HIP-12} L${x+15},${HIP-12} L${x+13},${HIP+10} L${x-13},${HIP+10} Z"/>
+      <path fill="${g('trouser')}" d="M${x-13.5},${HIP-11} L${x+13.5},${HIP-11} L${x+11.5},${HIP+9} L${x-11.5},${HIP+9} Z"/>`;
 
     const hairBack = girl
-      ? `<path class="ink-f"  d="M${x-21},${HEADY-3} Q${x-28},${HEADY+28} ${x-21},${HEADY+54} L${x+21},${HEADY+54} Q${x+28},${HEADY+28} ${x+21},${HEADY-3} Z"/>
-         <path class="hair-f" d="M${x-19},${HEADY-3} Q${x-26},${HEADY+28} ${x-19},${HEADY+52} L${x+19},${HEADY+52} Q${x+26},${HEADY+28} ${x+19},${HEADY-3} Z" style="fill:${o.hair}"/>`
+      ? `<path class="ink-f"  d="M${x-16},${HEADY-3} Q${x-24},${HEADY+26} ${x-17},${HEADY+56} Q${x},${HEADY+62} ${x+17},${HEADY+56} Q${x+24},${HEADY+26} ${x+16},${HEADY-3} Z"/>
+         <path fill="${g('hair')}" d="M${x-14.5},${HEADY-3} Q${x-22},${HEADY+26} ${x-15.5},${HEADY+54} Q${x},${HEADY+60} ${x+15.5},${HEADY+54} Q${x+22},${HEADY+26} ${x+14.5},${HEADY-3} Z"/>`
       : "";
     const hairFront = girl
-      ? `<path class="ink-f"  d="M${x-19},${HEADY-2} Q${x-18},${HEADY-24} ${x},${HEADY-23} Q${x+18},${HEADY-24} ${x+19},${HEADY-2} Q${x+8},${HEADY-13} ${x-4},${HEADY-8} Q${x-13},${HEADY-5} ${x-19},${HEADY-2} Z"/>
-         <path class="hair-f" d="M${x-18},${HEADY-3} Q${x-17},${HEADY-23} ${x},${HEADY-22} Q${x+17},${HEADY-23} ${x+18},${HEADY-3} Q${x+8},${HEADY-13} ${x-4},${HEADY-8} Q${x-13},${HEADY-6} ${x-18},${HEADY-3} Z" style="fill:${o.hair}"/>`
-      : `<path class="ink-f"  d="M${x-18},${HEADY-4} Q${x-17},${HEADY-25} ${x},${HEADY-24} Q${x+17},${HEADY-25} ${x+18},${HEADY-4} Q${x+10},${HEADY-14} ${x-2},${HEADY-11} Q${x-11},${HEADY-9} ${x-18},${HEADY-4} Z"/>
-         <path class="hair-f" d="M${x-17},${HEADY-5} Q${x-16},${HEADY-24} ${x},${HEADY-23} Q${x+16},${HEADY-24} ${x+17},${HEADY-5} Q${x+10},${HEADY-14} ${x-2},${HEADY-11} Q${x-11},${HEADY-9} ${x-17},${HEADY-5} Z" style="fill:${o.hair}"/>`;
+      ? `<path class="ink-f"  d="M${x-14.6},${HEADY-1} Q${x-14},${HEADY-19} ${x},${HEADY-18.5} Q${x+14},${HEADY-19} ${x+14.6},${HEADY-1} Q${x+7},${HEADY-10} ${x-2},${HEADY-6.5} Q${x-9},${HEADY-4} ${x-14.6},${HEADY-1} Z"/>
+         <path fill="${g('hair')}" d="M${x-13.6},${HEADY-2} Q${x-13},${HEADY-18} ${x},${HEADY-17.5} Q${x+13},${HEADY-18} ${x+13.6},${HEADY-2} Q${x+7},${HEADY-10} ${x-2},${HEADY-7} Q${x-9},${HEADY-4.6} ${x-13.6},${HEADY-2} Z"/>`
+      : `<path class="ink-f"  d="M${x-14},${HEADY-3} Q${x-13.4},${HEADY-20} ${x},${HEADY-19.5} Q${x+13.4},${HEADY-20} ${x+14},${HEADY-3} Q${x+8},${HEADY-11} ${x-1.5},${HEADY-8.6} Q${x-8.6},${HEADY-7} ${x-14},${HEADY-3} Z"/>
+         <path fill="${g('hair')}" d="M${x-13},${HEADY-4} Q${x-12.6},${HEADY-19} ${x},${HEADY-18.6} Q${x+12.6},${HEADY-19} ${x+13},${HEADY-4} Q${x+8},${HEADY-11} ${x-1.5},${HEADY-9.2} Q${x-8.6},${HEADY-7.6} ${x-13},${HEADY-4} Z"/>`;
 
-    const eye = (s) => `
+    const face = (sd) => `
+      <path class="brow" d="M${x+sd*5.6-3},${HEADY-3.6} q3,-2.2 6,-.2"/>
       <g class="eyes-open">
-        <ellipse class="ink-f" cx="${x+s*7}" cy="${HEADY+2}" rx="2.4" ry="3.1"/>
+        <ellipse class="ink-f" cx="${x+sd*5.6}" cy="${HEADY+1}" rx="1.9" ry="2.5"/>
+        <circle fill="#fff" cx="${x+sd*5.6+0.7}" cy="${HEADY+0.2}" r="0.7"/>
       </g>
-      <g class="eyes-shut">
-        <path class="ink" d="M${x+s*7-4},${HEADY+3} q4,-4.5 8,0" stroke-width="2.1" fill="none"/>
-      </g>`;
+      <g class="eyes-shut"><path class="lash" d="M${x+sd*5.6-3.2},${HEADY+1.6} q3.2,-3.4 6.4,0"/></g>`;
 
     return {
+      defs: `
+        <linearGradient id="${o.id}-skin" x1="0" y1="0" x2="1" y2="0.2">
+          <stop offset="0" stop-color="${o.skin}"/><stop offset="1" stop-color="${o.skinDark}"/></linearGradient>
+        <linearGradient id="${o.id}-cloth" x1="0" y1="0" x2="1" y2="0.25">
+          <stop offset="0" stop-color="${o.cloth}"/><stop offset="1" stop-color="${o.clothDark}"/></linearGradient>
+        <linearGradient id="${o.id}-hair" x1="0.15" y1="0" x2="1" y2="0.4">
+          <stop offset="0" stop-color="${o.hair2}"/><stop offset="1" stop-color="${o.hair}"/></linearGradient>
+        <linearGradient id="${o.id}-trouser" x1="0" y1="0" x2="1" y2="0.25">
+          <stop offset="0" stop-color="#48608F"/><stop offset="1" stop-color="#2F3F62"/></linearGradient>
+        <linearGradient id="${o.id}-shoe" x1="0" y1="0" x2="1" y2="0.3">
+          <stop offset="0" stop-color="#3A4A6B"/><stop offset="1" stop-color="#26314A"/></linearGradient>`,
+      shadow: `<ellipse class="contact ${o.id}" cx="${x}" cy="${GROUND+1}" rx="30" ry="6"/>`,
       back: `<g class="fig ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">
-        <g class="head" style="transform-origin:${x}px ${SH}px">${hairBack}</g></g>`,
-      farArm: `<g class="fig arm-far ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armFar", -13*dir)}</g>`,
+        <g class="head hairback" style="transform-origin:${x}px ${SH}px">${hairBack}</g></g>`,
+      farArm: `<g class="fig arm-far ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armFar", -14.5*dir)}</g>`,
       body: `<g class="fig body ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">
         <g class="legs">${leg(-1)}${leg(1)}</g>
         <g class="torso" style="transform-origin:${x}px ${HIP}px">
-          ${shorts}
-          <path class="ink-f" d="${top}" stroke-width="5"/>
-          <path class="cloth-f" d="${top}" style="fill:${o.cloth}" transform="translate(0 0) scale(1)"/>
-          ${limb(`M${x},${NECK+6} L${x},${NECK-4}`, 12, o.skin)}
+          ${hips}
+          <path class="ink-f" d="${top}" stroke="var(--ink)" stroke-width="3.4"/>
+          <path fill="${g('cloth')}" d="${top}"/>
+          <path class="ink-f" d="${taper(x, NECK-6, NECK+9, 6.4, 7.4)}" stroke="var(--ink)" stroke-width="3"/>
+          <path fill="${g('skin')}" d="${taper(x, NECK-6, NECK+9, 5.6, 6.6)}"/>
+          <path class="neckshade" d="${taper(x, NECK-5, NECK+4, 5.4, 6.2)}"/>
           <g class="head" style="transform-origin:${x}px ${SH}px">
-            <ellipse class="ink-f"  cx="${x}" cy="${HEADY}" rx="19.5" ry="21"/>
-            <ellipse class="skin-f" cx="${x}" cy="${HEADY}" rx="17" ry="18.6" style="fill:${o.skin}"/>
-            <circle class="blush" cx="${x-11}" cy="${HEADY+7}" r="4"/>
-            <circle class="blush" cx="${x+11}" cy="${HEADY+7}" r="4"/>
-            ${eye(-1)}${eye(1)}
-            <path class="ink" d="M${x-5},${HEADY+10} q5,5 10,0" stroke-width="2.2" fill="none"/>
+            <ellipse class="ink-f"  cx="${x}" cy="${HEADY}" rx="15.4" ry="17.2"/>
+            <ellipse fill="${g('skin')}" cx="${x}" cy="${HEADY}" rx="14" ry="15.8"/>
+            <ellipse class="blush" cx="${x-8.4}" cy="${HEADY+5.4}" rx="3.4" ry="2.4"/>
+            <ellipse class="blush" cx="${x+8.4}" cy="${HEADY+5.4}" rx="3.4" ry="2.4"/>
+            ${face(-1)}${face(1)}
+            <path class="nose" d="M${x+dir*1.4},${HEADY+2.6} q${dir*2.2},2 ${dir*.2},3.2"/>
+            <path class="mouth" d="M${x-3.4},${HEADY+8.6} q3.4,3.4 6.8,0"/>
             ${hairFront}
           </g>
         </g>
       </g>`,
-      nearArm: `<g class="fig arm-near ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armNear", 13*dir)}</g>`
+      nearArm: `<g class="fig arm-near ${o.id}" style="--dir:${dir};transform-origin:${x}px ${HIP}px">${arm("armNear", 14.5*dir)}</g>`
     };
   };
 
-  const L = person({ id:"figL", x:120, dir:1,  girl:true,
-                     skin:"#E8B48C", hair:"#3A2418", cloth:"var(--rose)",   trouser:"#3A4E7A" });
-  const R = person({ id:"figR", x:300, dir:-1, girl:false,
-                     skin:"#D79A6A", hair:"#241812", cloth:"var(--marigold)", trouser:"#3A4E7A" });
+  const L = person({ id:"figL", x:126, dir:1,  girl:true,
+                     skin:"#F0C39B", skinDark:"#D39C71", hair:"#2A1A12", hair2:"#4A3122",
+                     cloth:"#E4536B", clothDark:"#B8324A" });
+  const R = person({ id:"figR", x:294, dir:-1, girl:false,
+                     skin:"#E0A776", skinDark:"#BC8352", hair:"#1B1009", hair2:"#3A2617",
+                     cloth:"#EFA22A", clothDark:"#C57A0C" });
 
   wrap.innerHTML = `
-    <svg class="hugscene" viewBox="0 0 ${W} 300" role="img" aria-label="a girl and a boy hugging">
-      <line class="ground" x1="34" y1="${GROUND}" x2="${W-34}" y2="${GROUND}"/>
+    <svg class="hugscene" viewBox="0 0 ${W} 330" role="img" aria-label="a girl and a boy hugging">
+      <defs>
+        ${L.defs}${R.defs}
+        <filter id="softshadow" x="-40%" y="-60%" width="180%" height="220%">
+          <feGaussianBlur stdDeviation="5"/></filter>
+        <filter id="depth" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="6"/></filter>
+      </defs>
+      <g class="shadows" filter="url(#softshadow)">${L.shadow}${R.shadow}</g>
       ${R.back}${R.body}
+      <ellipse class="depth" cx="210" cy="${HIP-20}" rx="34" ry="60" filter="url(#depth)"/>
       ${L.back}${L.body}
       ${L.farArm}${L.nearArm}
       ${R.farArm}${R.nearArm}

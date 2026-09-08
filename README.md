@@ -120,9 +120,13 @@ A **hug** button sits above the chat, available at any hour rather than being
 one of the twelve stops. It opens on both screens, and whoever presses it, the
 hug plays on both at once.
 
-A girl and a boy — long hair and a dress, short hair and a shirt — drawn as
-flat colour under ink outlines like the rest of the page. They have faces, and
-their eyes close for the hug, which is most of what sells it.
+A girl and a boy, drawn at about seven heads tall rather than the five that
+makes a figure read as a toy. Limbs taper from shoulder to wrist and hip to
+ankle; every form is filled with a two-stop gradient so it has a lit and a
+shaded side; they cast soft contact shadows that slide together as they close
+in, and a blurred shape darkens him where she stands in front. Faces carry
+brows, a nose, a mouth and a little blush — and the eyes close for the hug,
+which is most of what sells it.
 
 Both are built from rotating joints — shoulder, elbow, neck, waist — rather
 than a canned animation, so the arms genuinely travel and the timing can be
