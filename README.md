@@ -335,14 +335,34 @@ What the sender does about it up front:
   captured screen is *detail* — sharp text, frames dropped to pay for it.
   Right for a spreadsheet, wrong for a film, where it reads as constant
   stutter at the far end. This is the single biggest one.
-- **`degradationPreference = "maintain-framerate"`** on the sender. When the
-  link tightens, lose resolution rather than frames: a softer picture that
-  moves beats a sharp one that jerks.
-- **Capture capped at 1080p30.** Uncapped, a 1440p or 4K monitor is captured
-  at full size and the encoder spends its whole budget on pixels that will
-  never reach the other end's window.
-- **`maxBitrate` of 3 Mbps**, which is more generous than the default cap for
-  screen capture and about right for a film on a home connection.
+- **`maxBitrate` of 8 Mbps.** A ceiling, not a target — the encoder stays well
+  under it on a thin line. Set too low it is simply a quality cap, which is
+  what the first attempt at 3 Mbps turned out to be.
+- **The capture is capped**, because uncapped a 4K monitor is captured at full
+  size and the encoder spends its whole budget on pixels that never reach the
+  other end's window. Where the cap sits is the button below.
+
+### Smoother or sharper
+
+A connection can be spent on frames or on pixels, and which one you want
+depends on what is on the screen. There is no right answer to pick for
+someone, so it is a button in the source bar, next to **Sound on**:
+
+| | contentHint | degradationPreference | capture |
+|---|---|---|---|
+| **Smoother picture** (default) | `motion` | `maintain-framerate` | 1080p30 |
+| **Sharper picture** | `detail` | `maintain-resolution` | 1440p30 |
+
+Smoother gives up detail when the line tightens, sharper gives up frames. All
+three settings can be changed on a **live** connection — `contentHint` on the
+track, `applyConstraints` for the capture size, `setParameters` for the sender
+— so the button takes effect on the picture in front of you without
+restarting the share or renegotiating. The choice is remembered per browser
+and shapes the next capture. Only the person sharing sees it enabled.
+
+The first version of this had no button and forced *smoother* on everyone.
+That fixed the stutter and cost visible quality, which is the other half of
+the same complaint.
 - **The confetti pauses.** `GLITTER` repaints up to 120 bits across the whole
   window every frame, out of the same budget as decoding someone's screen.
   While anything is playing it stops, on both sides. It pauses rather than

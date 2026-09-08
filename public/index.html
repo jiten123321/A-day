@@ -4249,7 +4249,8 @@ ACTS.watch = b => {
   const shareStop = el("button","btn ghost","Stop sharing");
   const sound     = el("button","btn ghost","Sound on");
   const clearAll  = el("button","btn ghost","Clear the screen");
-  [ytIn, ytGo, shareGo, shareStop, sound, clearAll].forEach(x => src.appendChild(x));
+  const look      = el("button","btn ghost","Smoother picture");
+  [ytIn, ytGo, shareGo, shareStop, sound, look, clearAll].forEach(x => src.appendChild(x));
   s4.appendChild(src);
   note(s4, "A YouTube link plays on both sides at once — whoever presses play, pauses or scrubs moves it for both of you. Screen share carries anything else that isn't copy protected: pick <b>a tab</b> in Chrome or Edge, which is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle whichever way you try it — their copy protection blanks the frames before the browser sees them, so for those, open it on both sides and press play on three.");
   const rules = el("ul","rules");
@@ -4445,21 +4446,56 @@ ACTS.watch = b => {
     } catch(_){ say("Couldn't start the stream."); }
   };
 
-  /* When the link tightens, WebRTC's default is to hold the resolution and
-     drop frames. For a film that is the wrong way round: a softer picture
-     that moves beats a sharp one that jerks. */
+  /* A connection can be spent on frames or on pixels, and which one you want
+     depends on what is on the screen. There is no right answer to pick for
+     someone, so it is a button — and both halves of it can be changed on a
+     live connection, so it takes effect on the picture in front of you
+     without restarting the share. */
+  const SHARP = {
+     hint:"detail", deg:"maintain-resolution", w:2560, h:1440,
+     label:"Sharper picture",
+     said:"Sharper now: detail held, and frames given up when the line tightens." },
+        SMOOTH = {
+     hint:"motion", deg:"maintain-framerate", w:1920, h:1080,
+     label:"Smoother picture",
+     said:"Smoother now: frames held, and detail given up when the line tightens." };
+  let want = SMOOTH;
+  try { if(localStorage.getItem("sameSunShare") === "sharp") want = SHARP; } catch(_){}
+
   const tune = async pc => {
     const snd = pc.getSenders().find(x => x.track && x.track.kind === "video");
     if(!snd || !snd.getParameters) return;
     try {
       const p = snd.getParameters();
       if(!p.encodings || !p.encodings.length) p.encodings = [{}];
-      p.degradationPreference = "maintain-framerate";
+      p.degradationPreference = want.deg;
       p.encodings[0].maxFramerate = 30;
-      p.encodings[0].maxBitrate = 3000000;   // the default cap is meaner than most home links
+      /* Not a target — a ceiling, and the encoder stays well under it on a
+         thin line. Set too low it is just a quality cap, which is what 3Mbps
+         turned out to be. */
+      p.encodings[0].maxBitrate = 8000000;
       await snd.setParameters(p);
     } catch(_){}
   };
+
+  const applyLook = async () => {
+    look.textContent = want.label;
+    look.title = want === SMOOTH
+      ? "Holding the frame rate. Press for detail instead."
+      : "Holding the detail. Press for a smoother picture instead.";
+    const t = local && local.getVideoTracks()[0];
+    if(t){
+      t.contentHint = want.hint;
+      try { await t.applyConstraints({ frameRate:{ max:30 }, width:{ max:want.w }, height:{ max:want.h } }); } catch(_){}
+    }
+    pcs.forEach(pc => tune(pc));
+  };
+  look.addEventListener("click", () => {
+    want = want === SMOOTH ? SHARP : SMOOTH;
+    try { localStorage.setItem("sameSunShare", want === SHARP ? "sharp" : "smooth"); } catch(_){}
+    applyLook();
+    if(local) say(want.said);
+  });
 
   /* "It's laggy" has four different causes and four different answers. The
      connection knows which one it is, so ask it rather than leaving them to
@@ -4530,6 +4566,7 @@ ACTS.watch = b => {
   };
 
   NET.relay();                         // fetched once, before anyone presses anything
+  applyLook();
   const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
   if(!canShare){
     shareGo.disabled = true;
@@ -4541,10 +4578,9 @@ ACTS.watch = b => {
     say("Pick the tab you're playing it in…");
     try {
       local = await navigator.mediaDevices.getDisplayMedia({
-        /* Uncapped, a 1440p or 4K monitor is captured at full size and the
-           encoder spends its whole budget on pixels nobody can see at the
-           other end. 1080p is more than the far side's window. */
-        video: { frameRate: { ideal: 30, max: 30 }, width: { max: 1920 }, height: { max: 1080 } },
+        /* Uncapped, a 4K monitor is captured at full size and the encoder
+           spends its whole budget on pixels nobody can see at the other end. */
+        video: { frameRate: { ideal: 30, max: 30 }, width: { max: want.w }, height: { max: want.h } },
         audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
       });
     } catch(err){
@@ -4560,7 +4596,7 @@ ACTS.watch = b => {
     /* The default for a captured screen is "detail" — sharp text, and frames
        dropped to pay for it. That is right for a spreadsheet and wrong for a
        film, where it reads as constant stutter on the far side. */
-    track.contentHint = "motion";
+    track.contentHint = want.hint;
     track.addEventListener("ended", stopShare);                       // the browser's own stop button
     vid.muted = true;                                                  // never echo your own audio back
     showStream(local);
@@ -4620,6 +4656,7 @@ ACTS.watch = b => {
     shareStop.disabled = !mine;
     sound.disabled     = !sh || mine;
     sound.textContent  = vid.muted ? "Sound on" : "Sound off";
+    look.disabled      = !mine;
     const onYt = !!SYNC.get("yt.v", "");
     if(!sh){
       if(vid.srcObject){ vid.srcObject = null; vid.muted = true; screen.classList.remove("on","needtap"); }
