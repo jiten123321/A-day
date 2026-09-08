@@ -21,6 +21,8 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* class selectors beat the UA's [hidden] rule, so make it explicit */
+[hidden]{display:none!important}
 body{
   background:var(--night);
   color:var(--paper);
@@ -488,6 +490,82 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 .hour.live{border-left:2px solid var(--marigold);padding-left:14px}
 .typing{color:var(--mango);font-size:.72rem;padding:0 18px 8px;min-height:1em}
 
+/* ===== arcade: chess, tic tac toe, dots and boxes, rock paper scissors ===== */
+.chess{
+  display:grid;grid-template-columns:repeat(8,1fr);margin:16px 0;max-width:460px;
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.35)
+}
+.sq{
+  aspect-ratio:1;border:none;padding:0;position:relative;
+  display:grid;place-items:center;line-height:1;
+  font-size:clamp(1.4rem,5.2vw,2.1rem);transition:filter .15s
+}
+.sq.lt{background:#E6DAC2}
+.sq.dk{background:#6B79AE}
+.sq.w{color:#FFFCF5;text-shadow:0 0 1px #2a2a2a,0 1px 2px rgba(0,0,0,.5)}
+.sq.b{color:#1A2144;text-shadow:0 1px 1px rgba(255,255,255,.18)}
+.sq.last{box-shadow:inset 0 0 0 3px rgba(244,169,60,.55)}
+.sq.sel{box-shadow:inset 0 0 0 3px var(--marigold)}
+.sq.chk{box-shadow:inset 0 0 0 3px var(--rose)}
+.sq.go::after{
+  content:"";position:absolute;width:26%;height:26%;border-radius:50%;
+  background:rgba(27,40,86,.42)
+}
+.sq.take{box-shadow:inset 0 0 0 4px rgba(226,112,126,.75)}
+.sq:disabled{cursor:default}
+.promo{display:flex;align-items:center;gap:10px;margin:10px 0;color:var(--muted);font-size:.85rem}
+.promo-pick{
+  width:46px;height:46px;border-radius:10px;border:1px solid var(--line);
+  background:#E6DAC2;font-size:1.6rem;line-height:1;display:grid;place-items:center
+}
+.promo-pick.w{color:#FFFCF5;text-shadow:0 0 1px #2a2a2a}
+.promo-pick.b{color:#1A2144}
+
+.ttt{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0;
+  max-width:300px;background:rgba(42,60,120,.55);border-radius:14px;padding:8px
+}
+.tcell{
+  aspect-ratio:1;border:none;border-radius:10px;background:#101A3C;
+  font-family:var(--serif);font-size:clamp(2rem,9vw,2.8rem);line-height:1;
+  color:var(--paper);transition:background .18s,transform .18s
+}
+.tcell:hover:not(:disabled){transform:scale(1.05)}
+.tcell.x{color:var(--rose)}
+.tcell.o{color:var(--marigold)}
+.tcell.win{background:rgba(63,163,150,.3)}
+
+.dots{display:grid;justify-content:start;align-items:center;margin:18px 0;gap:0}
+.dots .dot{width:9px;height:9px;border-radius:50%;background:var(--mango);display:block}
+.dots .edge{border:none;background:rgba(244,237,224,.12);border-radius:3px;padding:0}
+.dots .edge.h{width:clamp(28px,7vw,44px);height:9px}
+.dots .edge.v{width:9px;height:clamp(28px,7vw,44px)}
+.dots .edge:hover:not(.on){background:rgba(244,237,224,.34)}
+.dots .edge.on{background:var(--paper)}
+.dots .boxfill{
+  display:grid;place-items:center;font-size:.72rem;font-weight:700;color:#101A3C;
+  width:clamp(28px,7vw,44px);height:clamp(28px,7vw,44px)
+}
+.dots .boxfill.own.her{background:rgba(226,112,126,.85)}
+.dots .boxfill.own.you{background:rgba(244,169,60,.85)}
+
+.rps-face{display:flex;align-items:center;justify-content:center;gap:18px;margin:18px 0}
+.rps-side{display:grid;justify-items:center;gap:8px}
+.rps-side label{font-size:.72rem;letter-spacing:.06em;color:var(--muted)}
+.rps-hand{
+  width:clamp(72px,20vw,96px);height:clamp(72px,20vw,96px);border-radius:18px;
+  border:1px dashed var(--line);display:grid;place-items:center;
+  font-size:clamp(2rem,8vw,2.6rem);color:var(--muted)
+}
+.rps-hand.set{border-style:solid;border-color:var(--marigold)}
+.rps-v{color:var(--muted);font-size:.8rem;letter-spacing:.1em}
+
+@media (max-width:640px){
+  .chess{max-width:100%}
+  .dots{justify-content:center}
+}
+
 /* ===== chat: shared pictures and GIFs ===== */
 .bubble img.shot{
   display:block;max-width:100%;height:auto;border-radius:10px;margin:2px 0 4px;
@@ -615,7 +693,7 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
   <img alt="">
 </div>
 
-<div class="stage" id="stage" role="dialog aria-modal="true" aria-labelledby="stageTitle">
+<div class="stage" id="stage" role="dialog" aria-modal="true" aria-labelledby="stageTitle">
   <div class="stage-inner" id="stageInner">
     <div class="stage-head">
       <div>
@@ -788,7 +866,7 @@ const CFG = {
 const PLAN = [
   {t:"10:00", title:"Chai to start",       line:"Two cups, one call. Clink through the camera.", k:"chai"},
   {t:"10:30", title:"Question roulette",   line:"Spin it, answer it. Two skips all day.", k:"wheel"},
-  {t:"11:00", title:"The arcade",          line:"Five games. Connect four, emoji films, word chain.", k:"arcade"},
+  {t:"11:00", title:"The arcade",          line:"Nine games. Chess, connect four, dots and boxes.", k:"arcade"},
   {t:"12:00", title:"Same order",          line:"Four picks each, blind. Then count the overlap.", k:"menu"},
   {t:"13:00", title:"Ninety seconds to draw me", line:"From memory. No photos, no undo, no being nice.", k:"draw"},
   {t:"13:30", title:"Memory match",        line:"Sixteen cards, eight things that already happened.", k:"match"},
@@ -1888,11 +1966,15 @@ ACTS.letter = b => {
 
 /* --- 11:00 the arcade --- */
 ACTS.arcade = b => {
-  lede(b, "Five games, all shared. Every move lands on both boards.");
+  lede(b, "Nine games, all shared. Every move lands on both boards.");
   const hub = el("div","tiles");
   const panel = el("div"); panel.style.marginTop = "10px";
   const GAMES = [
-    {n:"Connect four", d:"Seven columns, four in a row. Proper turns, properly enforced.", f:c4},
+    {n:"Chess", d:"Real rules. Castling, en passant, checkmate.", f:chessGame},
+    {n:"Tic tac toe", d:"Three in a row. Loser starts the next one.", f:tttGame},
+    {n:"Dots and boxes", d:"Close a box, go again. Sixteen to take.", f:dotsGame},
+    {n:"Rock paper scissors", d:"Both pick in secret, both reveal at once.", f:rpsGame},
+    {n:"Connect four", d:"Seven columns, four in a row.", f:c4},
     {n:"Emoji films", d:"Sixteen films in emoji. First to shout it gets the point.", f:emojiGame},
     {n:"Never have I ever", d:"Twenty of them, all about us. Ten fingers each.", f:nhieGame},
     {n:"Word chain", d:"Twenty seconds a turn, last letter starts the next word.", f:chainGame},
@@ -2168,6 +2250,577 @@ function likelyGame(host, gbind){
   nx.addEventListener("click", () => SYNC.set("likely.i", SYNC.get("likely.i", 0) + 1));
 
   ["likely.deck","likely.i","likely.a","likely.c"].forEach(k => gbind(k, render));
+  render();
+}
+
+/* ===================== chess rules =====================
+   Board is 64 entries, index 0 = a8 … 63 = h1. A square holds "" or a
+   two-character piece such as "wQ". Everything below is pure: it takes a
+   position and returns a new one, which keeps it trivial to sync. */
+const CH = {
+  START: (() => {
+    const back = ["R","N","B","Q","K","B","N","R"];
+    const b = Array(64).fill("");
+    back.forEach((p,i) => { b[i] = "b" + p; b[56+i] = "w" + p; });
+    for(let i = 0; i < 8; i++){ b[8+i] = "bP"; b[48+i] = "wP"; }
+    return b;
+  })(),
+
+  fresh(){
+    return { b: CH.START.slice(), turn:"w", cast:{wK:1,wQ:1,bK:1,bQ:1}, ep:-1, half:0, last:null };
+  },
+
+  rf: i => [Math.floor(i/8), i%8],
+  at: (r,f) => (r < 0 || r > 7 || f < 0 || f > 7) ? -1 : r*8 + f,
+  side: p => p ? p[0] : "",
+  kind: p => p ? p[1] : "",
+
+  /* Squares a piece could move to ignoring king safety. */
+  pseudo(st, from){
+    const p = st.b[from];
+    if(!p) return [];
+    const me = p[0], them = me === "w" ? "b" : "w", k = p[1];
+    const [r,f] = CH.rf(from);
+    const out = [];
+    const empty = i => i >= 0 && !st.b[i];
+    const enemy = i => i >= 0 && st.b[i] && st.b[i][0] === them;
+    const free  = i => i >= 0 && (!st.b[i] || st.b[i][0] === them);
+
+    const ray = (dr,df) => {
+      for(let n = 1; n < 8; n++){
+        const i = CH.at(r + dr*n, f + df*n);
+        if(i < 0 || (st.b[i] && st.b[i][0] === me)) break;
+        out.push(i);
+        if(st.b[i]) break;
+      }
+    };
+
+    if(k === "P"){
+      const dir = me === "w" ? -1 : 1, home = me === "w" ? 6 : 1;
+      const one = CH.at(r + dir, f);
+      if(empty(one)){
+        out.push(one);
+        const two = CH.at(r + 2*dir, f);
+        if(r === home && empty(two)) out.push(two);
+      }
+      for(const df of [-1,1]){
+        const i = CH.at(r + dir, f + df);
+        if(enemy(i)) out.push(i);
+        if(i >= 0 && i === st.ep) out.push(i);       // en passant
+      }
+    }
+    else if(k === "N"){
+      [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]]
+        .forEach(([dr,df]) => { const i = CH.at(r+dr, f+df); if(free(i)) out.push(i); });
+    }
+    else if(k === "B") [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(d => ray(d[0],d[1]));
+    else if(k === "R") [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => ray(d[0],d[1]));
+    else if(k === "Q") [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]].forEach(d => ray(d[0],d[1]));
+    else if(k === "K"){
+      [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]]
+        .forEach(([dr,df]) => { const i = CH.at(r+dr, f+df); if(free(i)) out.push(i); });
+
+      // Castling: rights held, squares empty, and the king never crosses check.
+      const rank = me === "w" ? 7 : 0;
+      if(from === CH.at(rank,4) && !CH.attacked(st, from, them)){
+        if(st.cast[me+"K"] && !st.b[CH.at(rank,5)] && !st.b[CH.at(rank,6)]
+           && !CH.attacked(st, CH.at(rank,5), them) && !CH.attacked(st, CH.at(rank,6), them))
+          out.push(CH.at(rank,6));
+        if(st.cast[me+"Q"] && !st.b[CH.at(rank,3)] && !st.b[CH.at(rank,2)] && !st.b[CH.at(rank,1)]
+           && !CH.attacked(st, CH.at(rank,3), them) && !CH.attacked(st, CH.at(rank,2), them))
+          out.push(CH.at(rank,2));
+      }
+    }
+    return out;
+  },
+
+  /* Is `sq` attacked by `by`? Pawns are handled directly so this cannot
+     recurse back into castling. */
+  attacked(st, sq, by){
+    const [r,f] = CH.rf(sq);
+    const dir = by === "w" ? -1 : 1;
+    for(const df of [-1,1]){
+      const i = CH.at(r - dir, f + df);          // squares a `by` pawn attacks from
+      if(i >= 0 && st.b[i] === by + "P") return true;
+    }
+    for(const [dr,df] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]]){
+      const i = CH.at(r+dr, f+df);
+      if(i >= 0 && st.b[i] === by + "N") return true;
+    }
+    for(const [dr,df] of [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]]){
+      const i = CH.at(r+dr, f+df);
+      if(i >= 0 && st.b[i] === by + "K") return true;
+    }
+    const slide = (dirs, kinds) => {
+      for(const [dr,df] of dirs){
+        for(let n = 1; n < 8; n++){
+          const i = CH.at(r + dr*n, f + df*n);
+          if(i < 0) break;
+          const p = st.b[i];
+          if(!p) continue;
+          if(p[0] === by && kinds.indexOf(p[1]) !== -1) return true;
+          break;
+        }
+      }
+      return false;
+    };
+    if(slide([[1,1],[1,-1],[-1,1],[-1,-1]], ["B","Q"])) return true;
+    if(slide([[1,0],[-1,0],[0,1],[0,-1]], ["R","Q"])) return true;
+    return false;
+  },
+
+  kingOf(st, side){ return st.b.indexOf(side + "K"); },
+
+  inCheck(st, side){
+    const k = CH.kingOf(st, side);
+    return k >= 0 && CH.attacked(st, k, side === "w" ? "b" : "w");
+  },
+
+  /* Pseudo-legal minus anything that leaves your own king attacked. */
+  legal(st, from){
+    const p = st.b[from];
+    if(!p || p[0] !== st.turn) return [];
+    return CH.pseudo(st, from).filter(to => !CH.inCheck(CH.apply(st, from, to, "Q"), p[0]));
+  },
+
+  every(st){
+    const out = [];
+    st.b.forEach((p,i) => {
+      if(p && p[0] === st.turn) CH.legal(st, i).forEach(to => out.push([i,to]));
+    });
+    return out;
+  },
+
+  apply(st, from, to, promo){
+    const b = st.b.slice();
+    const p = b[from], me = p[0], k = p[1];
+    const cast = Object.assign({}, st.cast);
+    let ep = -1;
+
+    if(k === "P" && to === st.ep && !b[to]){
+      // en passant: the captured pawn is beside the destination, not on it
+      b[CH.at(CH.rf(from)[0], CH.rf(to)[1])] = "";
+    }
+    if(k === "P" && Math.abs(CH.rf(to)[0] - CH.rf(from)[0]) === 2){
+      ep = CH.at((CH.rf(from)[0] + CH.rf(to)[0]) / 2, CH.rf(from)[1]);
+    }
+    if(k === "K" && Math.abs(CH.rf(to)[1] - CH.rf(from)[1]) === 2){
+      const rank = CH.rf(from)[0], kingSide = CH.rf(to)[1] === 6;
+      const rFrom = CH.at(rank, kingSide ? 7 : 0), rTo = CH.at(rank, kingSide ? 5 : 3);
+      b[rTo] = b[rFrom]; b[rFrom] = "";
+    }
+    if(k === "K"){ cast[me+"K"] = 0; cast[me+"Q"] = 0; }
+    if(k === "R"){
+      const [r,f] = CH.rf(from);
+      if(r === (me === "w" ? 7 : 0)){ if(f === 7) cast[me+"K"] = 0; if(f === 0) cast[me+"Q"] = 0; }
+    }
+    // a rook captured on its home square also loses that right
+    [["w",7],["b",0]].forEach(([s,rank]) => {
+      if(to === CH.at(rank,7)) cast[s+"K"] = 0;
+      if(to === CH.at(rank,0)) cast[s+"Q"] = 0;
+    });
+
+    b[to] = p; b[from] = "";
+    const lastRank = me === "w" ? 0 : 7;
+    if(k === "P" && CH.rf(to)[0] === lastRank) b[to] = me + (promo || "Q");
+
+    const capture = !!st.b[to] || (k === "P" && to === st.ep);
+    return {
+      b, turn: me === "w" ? "b" : "w", cast, ep,
+      half: (k === "P" || capture) ? 0 : st.half + 1,
+      last: { from, to }
+    };
+  },
+
+  /* "" | check | checkmate | stalemate | draw */
+  status(st){
+    const any = CH.every(st).length;
+    if(!any) return CH.inCheck(st, st.turn) ? "checkmate" : "stalemate";
+    if(st.half >= 100) return "draw";
+    return CH.inCheck(st, st.turn) ? "check" : "";
+  },
+
+  // One filled glyph set; colour tells the sides apart, which stays legible
+  // on both square colours where the outline glyphs do not.
+  GLYPH: { K:"\u265A", Q:"\u265B", R:"\u265C", B:"\u265D", N:"\u265E", P:"\u265F" },
+  NAME: (i) => "abcdefgh"[i%8] + (8 - Math.floor(i/8))
+};
+
+/* --- arcade: chess --- */
+function chessGame(host, gbind){
+  const myColour = () => mySide() === "her" ? "w" : "b";
+  const nameOfColour = c => c === "w" ? CFG.her : CFG.you;
+
+  const box = el("div","card");
+  const status = el("div","turnbar","");
+  box.appendChild(status);
+  const board = el("div","chess");
+  const squares = [];
+  for(let vi = 0; vi < 64; vi++){
+    const b = el("button","sq");
+    // vi is the position on screen; the board square under it depends on which
+    // way round the board is, and flipping must not rewire the handlers.
+    b.addEventListener("click", () => tap(view(vi)));
+    board.appendChild(b);
+    squares.push(b);
+  }
+  box.appendChild(board);
+
+  const promo = el("div","promo"); promo.hidden = true;
+  promo.appendChild(el("span", null, "Promote to"));
+  box.appendChild(promo);
+
+  const r = el("div","row");
+  const again = el("button","btn ghost","New game");
+  const flip = el("button","btn ghost","Flip board");
+  r.appendChild(again); r.appendChild(flip); box.appendChild(r);
+  const taken = el("div","qnum"); taken.style.marginTop = "12px";
+  box.appendChild(taken);
+  host.appendChild(box);
+
+  let sel = null, pending = null, forceFlip = null;
+  const st = () => SYNC.get("chess.st", null) || CH.fresh();
+  const flipped = () => forceFlip !== null ? forceFlip : myColour() === "b";
+  const view = i => flipped() ? 63 - i : i;
+
+  const render = () => {
+    const s = st();
+    const legal = sel === null ? [] : CH.legal(s, sel);
+    const st8 = CH.status(s);
+    const kingSq = CH.kingOf(s, s.turn);
+
+    squares.forEach((b, vi) => {
+      const i = view(vi);
+      const p = s.b[i];
+      const [rr, ff] = CH.rf(i);
+      b.className = "sq " + ((rr + ff) % 2 ? "dk" : "lt");
+      if(p) b.classList.add(p[0] === "w" ? "w" : "b");
+      if(sel === i) b.classList.add("sel");
+      if(legal.indexOf(i) !== -1) b.classList.add(p ? "take" : "go");
+      if(s.last && (s.last.from === i || s.last.to === i)) b.classList.add("last");
+      if((st8 === "check" || st8 === "checkmate") && i === kingSq) b.classList.add("chk");
+      b.textContent = p ? CH.GLYPH[p[1]] : "";
+      b.setAttribute("aria-label", CH.NAME(i) + (p ? " " + p : " empty"));
+    });
+
+    const mine = s.turn === myColour();
+    status.classList.toggle("mine", mine && !st8.startsWith("check"));
+    if(st8 === "checkmate")      status.textContent = nameOfColour(s.turn === "w" ? "b" : "w") + " wins by checkmate.";
+    else if(st8 === "stalemate") status.textContent = "Stalemate. Nobody wins.";
+    else if(st8 === "draw")      status.textContent = "Draw — fifty moves without a pawn or a capture.";
+    else if(st8 === "check")     status.textContent = (mine ? "You are" : nameOfColour(s.turn) + " is") + " in check.";
+    else                         status.textContent = mine ? "Your move." : nameOfColour(s.turn) + " to move.";
+    status.style.color = st8 === "checkmate" ? "var(--teal)" : st8 === "check" ? "var(--rose)" : "";
+
+    // what has come off the board
+    const start = {}, now = {};
+    CH.START.forEach(p => { if(p) start[p] = (start[p]||0) + 1; });
+    s.b.forEach(p => { if(p) now[p] = (now[p]||0) + 1; });
+    const gone = side => Object.keys(start).filter(p => p[0] === side)
+      .map(p => CH.GLYPH[p[1]].repeat(start[p] - (now[p]||0))).join("");
+    const w = gone("w"), b2 = gone("b");
+    taken.textContent = (w || b2) ? "Taken — " + CFG.her + ": " + (b2 || "nothing") + "   " + CFG.you + ": " + (w || "nothing") : "";
+  };
+
+  function tap(i){
+    const s = st();
+    if(CH.status(s) === "checkmate" || CH.status(s) === "stalemate") return;
+    if(s.turn !== myColour()) return;
+    const p = s.b[i];
+
+    if(sel !== null && CH.legal(s, sel).indexOf(i) !== -1){
+      const moving = s.b[sel];
+      const lastRank = moving[0] === "w" ? 0 : 7;
+      if(moving[1] === "P" && Math.floor(i/8) === lastRank){
+        pending = { from: sel, to: i };
+        askPromo();
+        return;
+      }
+      SYNC.set("chess.st", CH.apply(s, sel, i, "Q"));
+      sel = null; render();
+      return;
+    }
+    sel = (p && p[0] === myColour() && sel !== i) ? i : null;
+    render();
+  }
+
+  function askPromo(){
+    promo.innerHTML = "";
+    promo.hidden = false;
+    promo.appendChild(el("span", null, "Promote to"));
+    ["Q","R","B","N"].forEach(k => {
+      const b = el("button","promo-pick", CH.GLYPH[k]);
+      b.classList.add(myColour() === "w" ? "w" : "b");
+      b.addEventListener("click", () => {
+        SYNC.set("chess.st", CH.apply(st(), pending.from, pending.to, k));
+        pending = null; sel = null; promo.hidden = true; render();
+      });
+      promo.appendChild(b);
+    });
+  }
+
+  again.addEventListener("click", () => {
+    if(!confirm("Start a new game? The board is shared.")) return;
+    sel = null; pending = null; promo.hidden = true;
+    SYNC.set("chess.st", CH.fresh());
+  });
+  flip.addEventListener("click", () => { forceFlip = !flipped(); render(); });
+
+  gbind("chess.st", () => { sel = null; promo.hidden = true; render(); });
+  render();
+}
+
+/* --- arcade: tic tac toe --- */
+function tttGame(host, gbind){
+  const box = el("div","card");
+  const status = el("div","turnbar","");
+  box.appendChild(status);
+  const grid = el("div","ttt");
+  const cells = [];
+  for(let i = 0; i < 9; i++){
+    const b = el("button","tcell");
+    b.addEventListener("click", () => play(i));
+    grid.appendChild(b); cells.push(b);
+  }
+  box.appendChild(grid);
+  const r = el("div","row");
+  const again = el("button","btn ghost","New round");
+  r.appendChild(again); box.appendChild(r);
+  const tally = el("div","qnum"); tally.style.marginTop = "12px";
+  box.appendChild(tally);
+  host.appendChild(box);
+
+  const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const markOf = side => side === "her" ? "X" : "O";
+  const winner = b => {
+    for(const L of LINES) if(b[L[0]] && b[L[0]] === b[L[1]] && b[L[1]] === b[L[2]]) return {mark:b[L[0]], line:L};
+    return b.every(x => x) ? {mark:"draw", line:[]} : null;
+  };
+
+  const render = () => {
+    const b = SYNC.get("ttt.b", Array(9).fill(""));
+    const turn = SYNC.get("ttt.turn", "her");
+    const sc = SYNC.get("ttt.score", {her:0, you:0, draw:0});
+    const w = winner(b);
+    cells.forEach((c,i) => {
+      c.textContent = b[i];
+      c.className = "tcell" + (b[i] === "X" ? " x" : b[i] === "O" ? " o" : "") +
+                    (w && w.line.indexOf(i) !== -1 ? " win" : "");
+      c.disabled = !!w || turn !== mySide() || !!b[i];
+    });
+    if(w){
+      // the winner is whoever owns the mark, not whoever is "next" — the turn
+      // never advances past a winning move
+      const won = w.mark === "X" ? "her" : "you";
+      status.textContent = w.mark === "draw" ? "Draw. Go again."
+        : (won === mySide() ? "You win." : nameOf(won) + " wins.");
+      status.style.color = "var(--teal)";
+      status.classList.remove("mine");
+    } else {
+      status.style.color = "";
+      status.textContent = turn === mySide() ? "Your turn — you are " + markOf(mySide()) : nameOf(turn) + " is thinking.";
+      status.classList.toggle("mine", turn === mySide());
+    }
+    tally.textContent = CFG.her + " " + sc.her + "  ·  " + CFG.you + " " + sc.you + "  ·  drawn " + sc.draw;
+  };
+
+  function play(i){
+    const b = SYNC.get("ttt.b", Array(9).fill("")).slice();
+    const turn = SYNC.get("ttt.turn", "her");
+    if(turn !== mySide() || b[i] || winner(b)) return;
+    b[i] = markOf(turn);
+    SYNC.set("ttt.b", b);
+    const w = winner(b);
+    if(w){
+      const sc = Object.assign({her:0, you:0, draw:0}, SYNC.get("ttt.score", {}));
+      if(w.mark === "draw") sc.draw++; else sc[turn]++;
+      SYNC.set("ttt.score", sc);
+    } else {
+      SYNC.set("ttt.turn", turn === "her" ? "you" : "her");
+    }
+  }
+
+  again.addEventListener("click", () => {
+    SYNC.set("ttt.b", Array(9).fill(""));
+    SYNC.set("ttt.turn", SYNC.get("ttt.turn", "her") === "her" ? "you" : "her");
+  });
+
+  ["ttt.b","ttt.turn","ttt.score"].forEach(k => gbind(k, render));
+  render();
+}
+
+/* --- arcade: dots and boxes --- */
+function dotsGame(host, gbind){
+  const N = 4;                                   // 4x4 boxes, 5x5 dots
+  const H = (N+1) * N, V = N * (N+1);            // horizontal / vertical edges
+  const box = el("div","card");
+  const status = el("div","turnbar","");
+  box.appendChild(status);
+  const grid = el("div","dots");
+  grid.style.gridTemplateColumns = "repeat(" + (2*N+1) + ",auto)";
+  const hEdges = [], vEdges = [], boxes = [];
+
+  for(let r = 0; r <= N; r++){
+    for(let c = 0; c < 2*N + 1; c++){
+      if(c % 2 === 0) grid.appendChild(el("i","dot"));
+      else {
+        const idx = r*N + (c-1)/2;
+        const e = el("button","edge h");
+        e.addEventListener("click", () => draw("h", idx));
+        grid.appendChild(e); hEdges[idx] = e;
+      }
+    }
+    if(r === N) break;
+    for(let c = 0; c < 2*N + 1; c++){
+      if(c % 2 === 0){
+        const idx = r*(N+1) + c/2;
+        const e = el("button","edge v");
+        e.addEventListener("click", () => draw("v", idx));
+        grid.appendChild(e); vEdges[idx] = e;
+      } else {
+        const idx = r*N + (c-1)/2;
+        const s = el("i","boxfill");
+        grid.appendChild(s); boxes[idx] = s;
+      }
+    }
+  }
+  box.appendChild(grid);
+  const r2 = el("div","row");
+  const again = el("button","btn ghost","New grid");
+  r2.appendChild(again); box.appendChild(r2);
+  host.appendChild(box);
+
+  const get = () => ({
+    h: SYNC.get("dab.h", Array(H).fill(0)),
+    v: SYNC.get("dab.v", Array(V).fill(0)),
+    own: SYNC.get("dab.own", Array(N*N).fill("")),
+    turn: SYNC.get("dab.turn", "her")
+  });
+
+  const closes = (h, v, bi) => {
+    const r = Math.floor(bi/N), c = bi%N;
+    return h[r*N + c] && h[(r+1)*N + c] && v[r*(N+1) + c] && v[r*(N+1) + c + 1];
+  };
+
+  const render = () => {
+    const s = get();
+    hEdges.forEach((e,i) => e.className = "edge h" + (s.h[i] ? " on" : ""));
+    vEdges.forEach((e,i) => e.className = "edge v" + (s.v[i] ? " on" : ""));
+    boxes.forEach((b,i) => {
+      b.className = "boxfill" + (s.own[i] ? " own " + s.own[i] : "");
+      b.textContent = s.own[i] ? nameOf(s.own[i])[0] : "";
+    });
+    const mine = s.own.filter(x => x === "her").length, yours = s.own.filter(x => x === "you").length;
+    const done = s.own.every(x => x);
+    if(done){
+      status.textContent = mine === yours ? "Dead level." : (mine > yours ? CFG.her : CFG.you) + " takes it, " + Math.max(mine,yours) + "–" + Math.min(mine,yours) + ".";
+      status.style.color = "var(--teal)"; status.classList.remove("mine");
+    } else {
+      status.style.color = "";
+      status.textContent = (s.turn === mySide() ? "Your line" : nameOf(s.turn) + "'s line") +
+        " · " + CFG.her + " " + mine + " · " + CFG.you + " " + yours;
+      status.classList.toggle("mine", s.turn === mySide());
+    }
+  };
+
+  function draw(kind, idx){
+    const s = get();
+    if(s.turn !== mySide()) return;
+    const h = s.h.slice(), v = s.v.slice(), own = s.own.slice();
+    if(kind === "h"){ if(h[idx]) return; h[idx] = 1; } else { if(v[idx]) return; v[idx] = 1; }
+    let claimed = 0;
+    own.forEach((o,bi) => { if(!o && closes(h, v, bi)){ own[bi] = s.turn; claimed++; } });
+    SYNC.set("dab.h", h); SYNC.set("dab.v", v); SYNC.set("dab.own", own);
+    // closing a box earns another go, which is the whole game
+    if(!claimed) SYNC.set("dab.turn", s.turn === "her" ? "you" : "her");
+  }
+
+  again.addEventListener("click", () => {
+    SYNC.set("dab.h", Array(H).fill(0)); SYNC.set("dab.v", Array(V).fill(0));
+    SYNC.set("dab.own", Array(N*N).fill("")); SYNC.set("dab.turn", "her");
+  });
+
+  ["dab.h","dab.v","dab.own","dab.turn"].forEach(k => gbind(k, render));
+  render();
+}
+
+/* --- arcade: rock paper scissors --- */
+function rpsGame(host, gbind){
+  const THROWS = [{k:"rock", e:"\u{1FAA8}"}, {k:"paper", e:"\u{1F4C4}"}, {k:"scissors", e:"✂️"}];
+  const beats = { rock:"scissors", paper:"rock", scissors:"paper" };
+
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","pick in secret — it reveals when you both have"));
+  const face = el("div","rps-face");
+  const mineFace = el("div","rps-hand"), themFace = el("div","rps-hand");
+  const wrapA = el("div","rps-side"), wrapB = el("div","rps-side");
+  wrapA.appendChild(el("label", null, "you")); wrapA.appendChild(mineFace);
+  wrapB.appendChild(el("label", null, nameOf(theirSide()))); wrapB.appendChild(themFace);
+  face.appendChild(wrapA); face.appendChild(el("div","rps-v","vs")); face.appendChild(wrapB);
+  box.appendChild(face);
+  const verdict = el("div","prompt-card","Pick one.");
+  box.appendChild(verdict);
+  const r = el("div","row");
+  const btns = THROWS.map(t => {
+    const b = el("button","btn", t.e + " " + t.k);
+    b.addEventListener("click", () => pick(t.k));
+    r.appendChild(b); return b;
+  });
+  const next = el("button","btn ghost","Next round");
+  r.appendChild(next);
+  box.appendChild(r);
+  const tally = el("div","qnum"); tally.style.marginTop = "12px";
+  box.appendChild(tally);
+  host.appendChild(box);
+
+  const emoji = k => (THROWS.find(t => t.k === k) || {}).e || "";
+
+  const render = () => {
+    const mine = SYNC.get("rps.pick." + mySide(), "");
+    const theirs = SYNC.get("rps.pick." + theirSide(), "");
+    const sc = SYNC.get("rps.score", {her:0, you:0, draw:0});
+    const both = mine && theirs;
+
+    mineFace.textContent = mine ? emoji(mine) : "?";
+    themFace.textContent = both ? emoji(theirs) : (theirs ? "\u{1F512}" : "?");
+    mineFace.classList.toggle("set", !!mine);
+    themFace.classList.toggle("set", !!theirs);
+
+    btns.forEach((b,i) => {
+      b.disabled = !!mine;
+      b.classList.toggle("ghost", mine !== THROWS[i].k);
+    });
+    next.hidden = !both;
+
+    if(both){
+      verdict.textContent = mine === theirs ? "Both " + mine + ". Again."
+        : beats[mine] === theirs ? "You win this one." : nameOf(theirSide()) + " takes it.";
+    } else if(mine){
+      verdict.textContent = "Locked in. Waiting for " + nameOf(theirSide()) + ".";
+    } else {
+      verdict.textContent = theirs ? nameOf(theirSide()) + " has picked. Your turn." : "Pick one.";
+    }
+    tally.textContent = CFG.her + " " + sc.her + "  ·  " + CFG.you + " " + sc.you + "  ·  drawn " + sc.draw;
+  };
+
+  function pick(k){
+    if(SYNC.get("rps.pick." + mySide(), "")) return;
+    SYNC.set("rps.pick." + mySide(), k);
+    const theirs = SYNC.get("rps.pick." + theirSide(), "");
+    if(!theirs) return;
+    // whoever completes the pair scores it, so it is counted once
+    const sc = Object.assign({her:0, you:0, draw:0}, SYNC.get("rps.score", {}));
+    if(k === theirs) sc.draw++;
+    else if(beats[k] === theirs) sc[mySide()]++;
+    else sc[theirSide()]++;
+    SYNC.set("rps.score", sc);
+  }
+
+  next.addEventListener("click", () => {
+    SYNC.set("rps.pick.her", ""); SYNC.set("rps.pick.you", "");
+  });
+
+  ["rps.pick.her","rps.pick.you","rps.score"].forEach(k => gbind(k, render));
   render();
 }
 

@@ -44,6 +44,24 @@ your own. **Sound on / Sound off** in the chat toolbar toggles it, and the
 choice is remembered per browser. Browsers only allow audio after a click or
 keypress, so the first gesture on the page arms it.
 
+## The arcade
+
+Nine games, all shared — every move lands on both boards.
+
+**Chess** is the real thing: legal move generation, castling (including through
+check), en passant, promotion with a picker, check, checkmate, stalemate and the
+fifty-move draw. The board is flipped for whoever is playing black. Rules are
+verified by perft — 197,281 nodes at depth 4 from the start, and 97,862 at depth
+3 from the Kiwipete position, both exact.
+
+Also **tic tac toe**, **dots and boxes** (close a box, go again) and
+**rock paper scissors** (both pick in secret, both reveal at once), alongside
+the original connect four, emoji films, never have I ever, word chain and who's
+more likely.
+
+Ladoo plays white, X, and moves first; Jitendra and any guest take the other
+seat.
+
 ## The page
 
 The header carries an analog watch rather than a digital clock, and the hour
