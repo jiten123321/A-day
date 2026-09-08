@@ -103,8 +103,28 @@ and publishes a compact frame ten times a second.
 
 `ARC` holds what they share: a canvas at twice the pixels, a frame loop that
 stops when you swap cabinets, held keys that ignore what you are typing into
-the chat and clear on a tab switch, pointer dragging, and a row of touch
+the chat and clear on a tab switch, dragging and swiping, and a row of touch
 buttons for phones with no arrow keys.
+
+**Playing by finger.** Pong takes a drag up and down the glass, breakout a
+drag across it, doodle jump a drag along the tower, and pac-man a swipe. The
+first version had only the buttons, and the buttons only worked while held —
+a tap is about thirty milliseconds, which moved a bat by nothing at all, so
+the three hold-to-move games were unplayable on a phone. A short press is now
+held for a beat.
+
+**Who runs the physics** is claimed rather than assumed. It used to be the
+first seat outright, which took for granted that the tab was awake and had the
+cabinet open — a phone that locks its screen stops painting frames and the
+other side's ball simply stopped. Each side now writes only that it is here,
+in a key of its own, and both read both keys and apply the same rule.
+
+One shared key was the obvious way to write that, and it does not work here:
+**the room broadcasts a `set` to everyone except whoever sent it.** Two tabs
+claiming the same key at the same moment each keep their own answer and never
+find out they disagree — the server has one of them stored, but neither
+learns which. Anything that needs two tabs to agree has to be written so they
+never race for the same key.
 
 **Two things that bit, both worth keeping in mind.**
 

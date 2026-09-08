@@ -3877,9 +3877,6 @@ function rpsGame(host, gbind, gevery, gclean){
      own and watch the other's, the way the snakes work.
    ======================================================================= */
 const ARC = {
-  /* Someone has to own the physics. The first seat drives; on your own, you. */
-  drives(){ const s = seats(); return !s.her || s.her.id === SYNC.id; },
-
   screen(host, w, h, cls){
     const cv = el("canvas", "arcscreen" + (cls ? " " + cls : ""));
     cv.width = w * 2; cv.height = h * 2;          // crisp where the screen is
@@ -3951,18 +3948,80 @@ const ARC = {
     });
   },
 
-  /* Buttons for the phones, which have no arrow keys. */
+  /* Buttons for the phones, which have no arrow keys. A tap is about thirty
+     milliseconds long, which moved a bat by nothing at all and made three of
+     these unplayable by finger — so a short press is held for a beat. */
   pad(host, list, press){
     const row = el("div","arcpad");
     list.forEach(([label, k]) => {
       const b = el("button","padkey", label);
-      b.addEventListener("pointerdown", e => { e.preventDefault(); press(k, true); });
-      ["pointerup","pointerleave","pointercancel"].forEach(ev =>
-        b.addEventListener(ev, () => press(k, false)));
+      let since = 0, later = null;
+      const down = e => { e.preventDefault(); clearTimeout(later); since = Date.now(); press(k, true); };
+      const up = () => {
+        const held = Date.now() - since;
+        clearTimeout(later);
+        if(held >= 190) press(k, false);
+        else later = setTimeout(() => press(k, false), 190 - held);
+      };
+      b.addEventListener("pointerdown", down);
+      ["pointerup","pointerleave","pointercancel"].forEach(ev => b.addEventListener(ev, up));
       row.appendChild(b);
     });
     host.appendChild(row);
     return row;
+  },
+
+  /* A flick across the glass, as a direction. For the maze, where holding a
+     button is the wrong shape and a swipe is the obvious one. */
+  swipe(cv, fn, gclean){
+    let from = null, sent = false;
+    const d = e => { from = [e.clientX, e.clientY]; sent = false; };
+    const m = e => {
+      if(!from || sent) return;
+      const dx = e.clientX - from[0], dy = e.clientY - from[1];
+      if(Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+      sent = true;
+      fn(Math.abs(dx) > Math.abs(dy) ? [dx > 0 ? 1 : -1, 0] : [0, dy > 0 ? 1 : -1]);
+    };
+    const u = () => { from = null; };
+    cv.addEventListener("pointerdown", d);
+    window.addEventListener("pointermove", m);
+    window.addEventListener("pointerup", u);
+    gclean(() => {
+      cv.removeEventListener("pointerdown", d);
+      window.removeEventListener("pointermove", m);
+      window.removeEventListener("pointerup", u);
+    });
+  },
+
+  /* Who runs the physics. This used to be the first seat outright, which
+     assumed that tab was awake and had the cabinet open — a phone that locks
+     its screen stops painting frames, and the other side's ball simply
+     stopped.
+
+     Each side now says only that it is here, in a key of its own, and both
+     sides read both keys and apply the same rule. One shared key was the
+     obvious way to write this and it does not work: the room broadcasts a
+     set to everyone EXCEPT whoever sent it, so two tabs claiming at the same
+     moment each keep their own answer and never find out they disagree. */
+  own(key, gevery, gclean){
+    const K = side => "arc.at." + key + "." + side;
+    const beat = () => SYNC.set(K(mySide()), { id: SYNC.id, at: SYNC.now() });
+    const here = side => {
+      const o = SYNC.get(K(side), null);
+      if(!o || !o.id) return null;
+      if(!SYNC.peers.some(p => p.id === o.id)) return null;      // that tab has gone
+      if(SYNC.now() - (o.at || 0) > 5000) return null;           // that tab went quiet
+      return o;
+    };
+    gevery(2000, beat);
+    gclean(() => SYNC.set(K(mySide()), null));
+    return () => {
+      const a = here("her"), b = here("you");
+      if(!a && !b) return true;                                  // on your own, you
+      const pick = (a && b) ? (a.id < b.id ? a : b) : (a || b);   // same answer both sides
+      return pick.id === SYNC.id;
+    };
   },
 
   round(ctx, x, y, w, h, r){
@@ -3981,7 +4040,7 @@ const ARC = {
 function pongGame(host, gbind, gevery, gclean){
   const W = 420, H = 250, PW = 9, PH = 54, TO = 7;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","W and S, the arrows, or drag on the screen — first to seven"));
+  box.appendChild(el("div","qnum","W and S, the arrows, the buttons, or drag up and down the glass — first to seven"));
   const line = el("div","arc-score","");
   box.appendChild(line);
   const sc = ARC.screen(box, W, H, "pong");
@@ -3997,6 +4056,7 @@ function pongGame(host, gbind, gevery, gclean){
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
   const held = {};
   const keys = ARC.keys(gclean);
+  const drives = ARC.own("pong", gevery, gclean);
   const pads = { her: H/2, you: H/2 };
   let ball = { x: W/2, y: H/2, vx: 0, vy: 0 };
   let live = false, beat = 0, last = "";
@@ -4013,16 +4073,16 @@ function pongGame(host, gbind, gevery, gclean){
 
   gev("pong.pad", (m, by) => { if(m && m.s && m.s !== mySide()) pads[m.s] = m.y; });
   gev("pong.ball", m => {
-    if(ARC.drives() || !m) return;                 // the driver never takes dictation
+    if(drives() || !m) return;                 // the driver never takes dictation
     ball = { x:m.x, y:m.y, vx:m.vx, vy:m.vy };
     live = !!m.live;
     if(m.pads) Object.keys(m.pads).forEach(k => { if(k !== mySide()) pads[k] = m.pads[k]; });
   });
-  gev("pong.serve", () => { if(ARC.drives() && !live && !won(score())) serve(Math.random() < .5); });
+  gev("pong.serve", () => { if(drives() && !live && !won(score())) serve(Math.random() < .5); });
 
   go.addEventListener("click", () => {
     if(won(score())) return;
-    if(ARC.drives()){ if(!live) serve(Math.random() < .5); }
+    if(drives()){ if(!live) serve(Math.random() < .5); }
     else SYNC.ev("pong.serve", {});
   });
   zero.addEventListener("click", () => { SYNC.set("pong.score", {her:0, you:0}); live = false; });
@@ -4033,7 +4093,7 @@ function pongGame(host, gbind, gevery, gclean){
     if(up)   setMe(mePad() - 260 * dt);
     if(down) setMe(mePad() + 260 * dt);
 
-    if(ARC.drives()){
+    if(drives()){
       if(live){
         ball.x += ball.vx * dt; ball.y += ball.vy * dt;
         if(ball.y < 6){ ball.y = 6; ball.vy = Math.abs(ball.vy); }
@@ -4088,10 +4148,11 @@ function pongGame(host, gbind, gevery, gclean){
     line.textContent = CFG.her + " " + s.her + "  —  " + s.you + " " + CFG.you;
     go.disabled = won(s) || live;
     go.textContent = live ? "In play" : "Serve";
-    const tag = ARC.drives() ? "you" : nameOf("her");
+    const tag = drives() ? "you" : nameOf("her");
     if(tag !== last){ last = tag; who.textContent = "You are " + (mySide() === "her" ? "the gold bat on the left" : "the green bat on the right") + "."; }
   };
 
+  ARC.drag(sc.cv, (fx, fy) => setMe(fy * H), gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gbind("pong.score", paint);
   gevery(400, paint);
@@ -4102,7 +4163,7 @@ function pongGame(host, gbind, gevery, gclean){
 function brickGame(host, gbind, gevery, gclean){
   const W = 420, H = 300, COLS = 9, ROWS = 5, BW = 42, BH = 14, TOP = 34, PW = 62, PH = 10;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","a bat each on the same floor — clear the wall between you"));
+  box.appendChild(el("div","qnum","arrows, the buttons, or drag along the glass — a bat each on the same floor, clear the wall between you"));
   const line = el("div","arc-score","");
   box.appendChild(line);
   const sc = ARC.screen(box, W, H, "brick");
@@ -4118,6 +4179,7 @@ function brickGame(host, gbind, gevery, gclean){
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
   const held = {};
   const keys = ARC.keys(gclean);
+  const drives = ARC.own("brick", gevery, gclean);
   const pads = { her: W * 0.33, you: W * 0.66 };
   let wall = [], ball = { x: W/2, y: H - 40, vx: 0, vy: 0 }, live = false;
   let lives = 3, hits = 0, beat = 0, done = "";
@@ -4136,10 +4198,10 @@ function brickGame(host, gbind, gevery, gclean){
     ball = { x: W/2, y: H - 40, vx: (Math.random() < .5 ? -1 : 1) * 150, vy: -215 }; };
 
   gev("brick.pad", m => { if(m && m.s && m.s !== mySide()) pads[m.s] = m.x; });
-  gev("brick.go", () => { if(ARC.drives()) push(); });
-  gev("brick.new", () => { if(ARC.drives()){ build(); blast(); } });
+  gev("brick.go", () => { if(drives()) push(); });
+  gev("brick.new", () => { if(drives()){ build(); blast(); } });
   gev("brick.state", m => {
-    if(ARC.drives() || !m) return;
+    if(drives() || !m) return;
     ball = { x:m.x, y:m.y, vx:m.vx, vy:m.vy };
     live = !!m.live; lives = m.l; hits = m.h; done = m.done || "";
     if(m.w) wall = m.w.split("").map(Number);
@@ -4148,9 +4210,9 @@ function brickGame(host, gbind, gevery, gclean){
   const blast = () => SYNC.ev("brick.state", { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy,
     live, l:lives, h:hits, done, w:wall.join(""), pads });
 
-  go.addEventListener("click", () => ARC.drives() ? push() : SYNC.ev("brick.go", {}));
+  go.addEventListener("click", () => drives() ? push() : SYNC.ev("brick.go", {}));
   again.addEventListener("click", () => {
-    if(ARC.drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
+    if(drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
   });
 
   const step = dt => {
@@ -4159,7 +4221,7 @@ function brickGame(host, gbind, gevery, gclean){
     if(l)  pads[mySide()] = Math.max(PW/2, pads[mySide()] - 300 * dt);
     if(rr) pads[mySide()] = Math.min(W - PW/2, pads[mySide()] + 300 * dt);
 
-    if(!ARC.drives()){
+    if(!drives()){
       if(live){ ball.x += ball.vx * dt; ball.y += ball.vy * dt; }
       if((beat += dt) > 0.05){ beat = 0; SYNC.ev("brick.pad", { s: mySide(), x: pads[mySide()] }); }
       return;
@@ -4228,10 +4290,11 @@ function brickGame(host, gbind, gevery, gclean){
     go.textContent = live ? "In play" : "Push off";
     const b = SYNC.get("brick.best", 0);
     best.textContent = b ? "Best wall between you: " + b + " bricks." : "";
-    if(done && ARC.drives() && hits > b) SYNC.set("brick.best", hits);
+    if(done && drives() && hits > b) SYNC.set("brick.best", hits);
   };
 
   build();
+  ARC.drag(sc.cv, fx => { pads[mySide()] = Math.max(PW/2, Math.min(W - PW/2, fx * W)); }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gbind("brick.best", paint);
   gevery(300, paint);
@@ -4262,6 +4325,7 @@ function moleGame(host, gbind, gevery, gclean){
   host.appendChild(box);
 
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+  const drives = ARC.own("mole", gevery, gclean);
   let up = {}, hitBy = {}, endsAt = 0, spawnAt = 0;
   const tally = () => Object.assign({her:0, you:0}, SYNC.get("mole.score", {}));
 
@@ -4274,10 +4338,10 @@ function moleGame(host, gbind, gevery, gclean){
   };
   const blast = () => SYNC.ev("mole.up", { up, hit: hitBy });
 
-  gev("mole.up", m => { if(!ARC.drives() && m){ up = m.up || {}; hitBy = m.hit || {}; } });
-  gev("mole.go", () => { if(ARC.drives()) start(); });
+  gev("mole.up", m => { if(!drives() && m){ up = m.up || {}; hitBy = m.hit || {}; } });
+  gev("mole.go", () => { if(drives()) start(); });
   gev("mole.hit", (m, by) => {
-    if(!ARC.drives() || !m) return;
+    if(!drives() || !m) return;
     land(m.i, m.s);
   });
 
@@ -4292,15 +4356,15 @@ function moleGame(host, gbind, gevery, gclean){
   function whack(i){
     if(SYNC.now() > (SYNC.get("mole.ends", 0) || 0)) return;
     if(!up[i] || hitBy[i]) return;
-    if(ARC.drives()) land(i, mySide());
+    if(drives()) land(i, mySide());
     else { hitBy[i] = mySide(); paint(); SYNC.ev("mole.hit", { i, s: mySide() }); }
   }
 
-  go.addEventListener("click", () => ARC.drives() ? start() : SYNC.ev("mole.go", {}));
+  go.addEventListener("click", () => drives() ? start() : SYNC.ev("mole.go", {}));
 
   const tick = () => {
     const ends = SYNC.get("mole.ends", 0);
-    if(ARC.drives() && SYNC.now() < ends){
+    if(drives() && SYNC.now() < ends){
       const now = SYNC.now();
       if(now > spawnAt){
         spawnAt = now + 380 + Math.random() * 420;
@@ -4335,7 +4399,7 @@ function moleGame(host, gbind, gevery, gclean){
     });
     if(!on && ends){
       const b = SYNC.get("mole.best", 0), top = Math.max(t.her, t.you);
-      if(ARC.drives() && top > b) SYNC.set("mole.best", top);
+      if(drives() && top > b) SYNC.set("mole.best", top);
       best.textContent = (t.her === t.you ? "Dead level at " + t.her + "."
         : (t.her > t.you ? CFG.her : CFG.you) + " won it, " + Math.max(t.her,t.you) + " to " + Math.min(t.her,t.you) + ".")
         + (b ? "  Best round so far: " + Math.max(b, top) + "." : "");
@@ -4373,7 +4437,7 @@ const PACMAZE = [
 function pacGame(host, gbind, gevery, gclean){
   const N = 15, CELL = 15, W = N * CELL, SPD = 5.2, GSPD = 3.9;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","arrows, WASD or the buttons — a maze each, both live"));
+  box.appendChild(el("div","qnum","arrows, the buttons, or swipe your maze — one each, both live"));
   const pair = el("div","arcpair");
   const mk = side => {
     const w = el("div","arcwrap");
@@ -4569,6 +4633,7 @@ function pacGame(host, gbind, gevery, gclean){
   };
 
   go.addEventListener("click", start);
+  ARC.swipe(mineUI.s.cv, d => { if(me) me.p.want = d; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
   const paintBest = () => {
@@ -4583,7 +4648,7 @@ function pacGame(host, gbind, gevery, gclean){
 function jumpGame(host, gbind, gevery, gclean){
   const W = 180, H = 300, PW = 20, PH = 18, PLAT = 46, HOP = 430, G = 900;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","left and right, or the buttons — a tower each, highest wins"));
+  box.appendChild(el("div","qnum","arrows, the buttons, or drag your tower — one each, highest wins"));
   const pair = el("div","arcpair");
   const mk = side => {
     const w = el("div","arcwrap");
@@ -4607,13 +4672,13 @@ function jumpGame(host, gbind, gevery, gclean){
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
   const held = {};
   const keys = ARC.keys(gclean);
-  let me = null, them = null, alive = false;
+  let me = null, them = null, alive = false, aim = null;
 
   const rowY = i => -i * 62;
   const fresh = () => {
     const plats = [];
     for(let i = 0; i < 40; i++)
-      plats.push({ x: i === 0 ? W/2 - PLAT/2 : 8 + Math.random() * (W - PLAT - 16), y: rowY(i) + H - 30 });
+      plats.push({ x: i === 0 ? W/2 - PLAT/2 : Math.random() * (W - PLAT), y: rowY(i) + H - 30 });
     return { x: W/2, y: H - 60, vy: 0, top: 0, plats, high: 0, dead: false, n: 0 };
   };
 
@@ -4634,6 +4699,10 @@ function jumpGame(host, gbind, gevery, gclean){
     const rr = keys.has("ArrowRight") || keys.has("d") || held.right;
     if(l)  me.x -= 210 * dt;
     if(rr) me.x += 210 * dt;
+    if(aim !== null && !l && !rr){                    // a finger on the tower
+      const gap = aim - me.x, reach = 260 * dt;
+      me.x += Math.abs(gap) < reach ? gap : Math.sign(gap) * reach;
+    }
     if(me.x < -PW/2) me.x = W + PW/2;                 // out one side, in the other
     if(me.x > W + PW/2) me.x = -PW/2;
 
@@ -4656,7 +4725,7 @@ function jumpGame(host, gbind, gevery, gclean){
     let highest = Math.min.apply(null, me.plats.map(p => p.y));
     while(highest > me.top - 80){
       highest -= 62;
-      me.plats.push({ x: 8 + Math.random() * (W - PLAT - 16), y: highest });
+      me.plats.push({ x: Math.random() * (W - PLAT), y: highest });
     }
     me.plats = me.plats.filter(p => p.y - me.top < H + 120);
 
@@ -4697,6 +4766,7 @@ function jumpGame(host, gbind, gevery, gclean){
   };
 
   go.addEventListener("click", start);
+  ARC.drag(mineUI.s.cv, fx => { aim = fx * W; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
   const paintBest = () => {
