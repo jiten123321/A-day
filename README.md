@@ -260,12 +260,42 @@ neither showed up on a loopback:
   actually died; the sharer ignores a request from a peer it is already
   negotiating with.
 
-There is no TURN server, so the two browsers still have to reach each other
-over STUN. That covers most home connections and fails on some mobile ones.
-The panel says which it is: waiting for an answer, connecting, connecting for
-suspiciously long, or failed — and if no reflexive candidate was ever gathered
-it says that instead, because that means STUN itself could not be reached
-rather than the two ends failing to meet.
+### When they still can't reach each other
+
+STUN only tells each side what its own public address is. Plenty of networks —
+mobile data especially, and anything behind carrier-grade NAT — will not then
+let two browsers connect to each other directly, and no amount of code fixes
+that. The picture needs somewhere to bounce off: a TURN relay.
+
+`GET /ice` hands the page short-lived credentials for one. Set two secrets and
+it is on; leave them unset and the page falls back to STUN alone and says so
+when a connection fails.
+
+1. Cloudflare dashboard → **Realtime** → **TURN**, create a TURN key. Note the
+   **Turn Token ID** and the **API token**.
+2. `npx wrangler secret put TURN_KEY_ID`
+3. `npx wrangler secret put TURN_KEY_API_TOKEN`
+
+The API token never leaves the Worker; the browser only ever sees a credential
+that expires in four hours. Cloudflare's free tier covers 1TB of relayed
+traffic a month, which is far more than two people watching films.
+
+Note that a relay carries the picture, so the screen share stops being purely
+peer to peer when one is in use — WebRTC still encrypts it end to end, and
+Cloudflare's own documentation is explicit that they relay without being able
+to decrypt it, but it is worth knowing.
+
+The panel says which stage it is stuck at: waiting for an answer, connecting,
+connecting for suspiciously long, or failed. On a failure it distinguishes
+three cases — no reflexive candidate at all (STUN itself unreachable, usually a
+VPN or a locked-down network), reachable but no relay configured (with a
+pointer to the steps above), and reachable with a relay and still nothing.
+
+**Not verified here.** The sandbox this was built in cannot reach
+`rtc.live.cloudflare.com`, so the credential call has never run for real. What
+is tested is the endpoint's shape, the unconfigured fallback, the normalising
+of Cloudflare's response into what `RTCPeerConnection` wants, and that
+whatever `/ice` returns reaches the connection with its credentials intact.
 
 ## Rooms
 

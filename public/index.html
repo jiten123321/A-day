@@ -4154,10 +4154,23 @@ ACTS.watch = b => {
     makePlayer(id);
   };
 
-  const RTC = { iceServers: [{ urls: ["stun:stun.l.google.com:19302",
-                                      "stun:stun1.l.google.com:19302",
-                                      "stun:stun2.l.google.com:19302",
-                                      "stun:stun.cloudflare.com:3478"] }] };
+  const STUN = [{ urls: ["stun:stun.l.google.com:19302",
+                         "stun:stun1.l.google.com:19302",
+                         "stun:stun2.l.google.com:19302",
+                         "stun:stun.cloudflare.com:3478"] }];
+  /* STUN only tells each side its own public address; when the two networks
+     still won't let them meet, the picture needs a relay to bounce off. The
+     Worker hands out short-lived credentials for one if it has been set up. */
+  let ICE = null, noRelay = false, iceAsked = null;
+  const getIce = () => iceAsked || (iceAsked = fetch("/ice", { cache: "no-store" })
+    .then(r => r.json())
+    .then(j => {
+      ICE = (j.iceServers && j.iceServers.length) ? j.iceServers : null;
+      noRelay = !j.turn;
+      return ICE;
+    })
+    .catch(() => { noRelay = true; return null; }));
+  const rtcConfig = () => ({ iceServers: (ICE || []).concat(STUN) });
   const pcs = new Map(), pend = new Map();
   let local = null, msg = "";
   let askedFor = "", askedAt = 0;      // which share we asked to see, and when
@@ -4197,7 +4210,7 @@ ACTS.watch = b => {
   });
 
   const makePc = id => {
-    const pc = new RTCPeerConnection(RTC);
+    const pc = new RTCPeerConnection(rtcConfig());
     pcs.set(id, pc);
     pc.__sent = false;      // has our offer or answer gone out yet?
     pc.__out  = [];         // candidates gathered before it did
@@ -4217,9 +4230,11 @@ ACTS.watch = b => {
     pc.onconnectionstatechange = () => {
       const st = stateOf(pc);
       if(st === "failed"){
-        msg = pc.__srflx
-          ? "The two browsers couldn't reach each other — some networks won't let them talk directly. Try again, or one of you on wifi rather than mobile data."
-          : "Couldn't get out to work out this connection's address. A strict network or a VPN will do that. Try again on another connection.";
+        msg = !pc.__srflx
+          ? "Couldn't get out to work out this connection's address. A strict network or a VPN will do that. Try again on another connection."
+          : noRelay
+            ? "The two browsers couldn't reach each other directly, and this room has no relay set up to bounce the picture off. Turning one on is a few minutes in the Cloudflare dashboard — the README has the steps under Watch party."
+            : "The two browsers couldn't reach each other, even through the relay. Try again, or one of you on wifi rather than mobile data.";
       }
       paintShare();
     };
@@ -4237,6 +4252,7 @@ ACTS.watch = b => {
 
   const offerTo = async id => {
     if(!local) return;
+    await getIce();                     // a relay is no use once the pc exists
     dropPc(id);
     const pc = makePc(id);
     local.getTracks().forEach(t => pc.addTrack(t, local));
@@ -4255,6 +4271,7 @@ ACTS.watch = b => {
     paintShare();
   };
 
+  getIce();                            // fetched once, before anyone presses anything
   const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
   if(!canShare){
     shareGo.disabled = true;
@@ -4306,6 +4323,7 @@ ACTS.watch = b => {
     let pc = pcs.get(by);
     try {
       if(m.kind === "offer"){
+        await getIce();
         dropPc(by); pc = makePc(by);
         await pc.setRemoteDescription(m.sdp);
         await pc.setLocalDescription(await pc.createAnswer());

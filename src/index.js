@@ -231,6 +231,16 @@ const roomName = (url) =>
   (url.searchParams.get("r") || "same-sun")
     .toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40) || "same-sun";
 
+/* Cloudflare returns one iceServers object; RTCPeerConnection wants a list of
+   them. Accept either, and drop anything that has no urls. */
+export function normaliseIce(body) {
+  const raw = body && body.iceServers;
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  return list
+    .map((s) => (s && s.urls ? { ...s, urls: Array.isArray(s.urls) ? s.urls : [s.urls] } : null))
+    .filter((s) => s && s.urls.length);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -240,6 +250,33 @@ export default {
         return new Response("expected websocket", { status: 426 });
       }
       return env.ROOM.get(env.ROOM.idFromName(roomName(url))).fetch(request);
+    }
+
+    /* Two browsers that cannot reach each other directly need a relay. This
+       hands the page short-lived credentials for Cloudflare's own TURN
+       service; the API token never leaves the Worker. Unset, it says so and
+       the page falls back to STUN alone. */
+    if (url.pathname === "/ice") {
+      const id = env.TURN_KEY_ID, token = env.TURN_KEY_API_TOKEN;
+      const out = body => new Response(JSON.stringify(body), {
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+      if (!id || !token) return out({ turn: false, iceServers: [] });
+      try {
+        const r = await fetch(
+          `https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(id)}/credentials/generate`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ ttl: 14400 }),   // four hours; a long film fits
+          },
+        );
+        const text = await r.text();
+        if (!r.ok) return out({ turn: false, error: `turn ${r.status}`, detail: text.slice(0, 300) });
+        return out({ turn: true, iceServers: normaliseIce(JSON.parse(text)) });
+      } catch (e) {
+        return out({ turn: false, error: "turn unreachable", detail: String(e).slice(0, 300) });
+      }
     }
 
     if (url.pathname === "/upload" || url.pathname === "/img") {
