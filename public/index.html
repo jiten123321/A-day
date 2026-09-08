@@ -418,6 +418,42 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .stagebox.mode-yt .ytbox{display:block}
 .stagebox.mode-yt video{display:none}
 .stagebox .ytbox iframe{width:100%;height:100%;border:0;display:block}
+/* the arcade cabinets with moving parts */
+.arcscreen{
+  width:100%;display:block;margin:0 auto;border-radius:12px 10px 13px 9px;
+  background:#12203F;border:2px solid var(--line);touch-action:none;
+}
+.arc-score{
+  font-family:var(--serif);font-size:1.15rem;margin:6px 0 10px;color:var(--paper);
+  letter-spacing:.02em
+}
+.arcpair{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:6px 0 4px}
+.arcwrap{display:grid;justify-items:center;gap:6px;flex:1 1 190px;max-width:240px;min-width:150px}
+.arcwrap label{font-size:.72rem;letter-spacing:.06em;color:var(--muted)}
+.arcpad{display:flex;gap:8px;justify-content:center;margin:10px 0 2px;flex-wrap:wrap}
+.padkey{
+  width:52px;height:44px;border-radius:12px 10px 13px 9px;
+  border:1px solid var(--line);background:rgba(36,51,80,.06);color:var(--paper);
+  font-size:1.05rem;line-height:1;touch-action:none;user-select:none;
+  transition:background .12s,transform .12s
+}
+.padkey:active{background:var(--marigold);color:#12203F;transform:translateY(1px)}
+
+.moles{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  max-width:320px;margin:8px auto 4px
+}
+.moles .hole{
+  aspect-ratio:1;border-radius:50%;border:2px solid var(--line);
+  background:rgba(36,51,80,.09);display:flex;align-items:center;justify-content:center;
+  font-size:1.9rem;padding:0;overflow:hidden;transition:background .12s
+}
+.moles .hole .mole{transform:translateY(120%);transition:transform .11s ease-out;line-height:1}
+.moles .hole.up .mole{transform:translateY(6%)}
+.moles .hole.bop .mole{transform:translateY(6%) scale(.72) rotate(-14deg)}
+.moles .hole.hers{background:rgba(228,179,60,.4)}
+.moles .hole.yours{background:rgba(126,208,195,.45)}
+
 .dare-btn{background:var(--rose);color:#2A0B12}
 
 
@@ -2924,7 +2960,12 @@ ACTS.arcade = b => {
     {n:"Emoji films", d:"Sixteen films in emoji. First to shout it gets the point.", f:emojiGame},
     {n:"Never have I ever", d:"Twenty of them, all about us. Ten fingers each.", f:nhieGame},
     {n:"Word chain", d:"Twenty seconds a turn, last letter starts the next word.", f:chainGame},
-    {n:"Who's more likely", d:"Point at the screen at the same time. Argue about it after.", f:likelyGame}
+    {n:"Who's more likely", d:"Point at the screen at the same time. Argue about it after.", f:likelyGame},
+    {n:"Pong", d:"A bat each, one ball, first to seven.", f:pongGame},
+    {n:"Breakout", d:"A bat each on the same floor. Clear the wall together.", f:brickGame},
+    {n:"Whack-a-mole", d:"Nine holes, two hands. Thirty seconds.", f:moleGame},
+    {n:"Pac-man", d:"A maze each, both live. Pellets, ghosts, three lives.", f:pacGame},
+    {n:"Doodle jump", d:"A tower each, both live. Highest wins.", f:jumpGame}
   ];
 
   /* the open game owns its own subscriptions, dropped when you switch */
@@ -3821,6 +3862,850 @@ function rpsGame(host, gbind, gevery, gclean){
   render();
 }
 
+
+/* =======================================================================
+   THE MACHINES WITH MOVING PARTS. Five arcade cabinets, all of them for
+   two people, which is the whole difficulty: a ball simulated on both
+   screens is two different balls inside a second. So there are two shapes
+   here and no third.
+
+     One ball, two chairs — pong, breakout, whack-a-mole. The tab in the
+     first seat does the thinking and says where everything is; the other
+     sends its controls up. Nobody else guesses.
+
+     One machine each, both lit — pac-man, doodle jump. You each play your
+     own and watch the other's, the way the snakes work.
+   ======================================================================= */
+const ARC = {
+  /* Someone has to own the physics. The first seat drives; on your own, you. */
+  drives(){ const s = seats(); return !s.her || s.her.id === SYNC.id; },
+
+  screen(host, w, h, cls){
+    const cv = el("canvas", "arcscreen" + (cls ? " " + cls : ""));
+    cv.width = w * 2; cv.height = h * 2;          // crisp where the screen is
+    cv.style.aspectRatio = w + " / " + h;
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
+    if(host) host.appendChild(cv);
+    return { cv, ctx, w, h };
+  },
+
+  loop(fn, gclean){
+    let raf = 0, last = performance.now();
+    const frame = now => {
+      const dt = Math.min(0.05, (now - last) / 1000);   // a backgrounded tab
+      last = now;                                        // must not teleport
+      fn(dt);
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    gclean(() => cancelAnimationFrame(raf));
+  },
+
+  /* Held keys — without stealing what someone is typing into the chat. */
+  keys(gclean){
+    const down = new Set();
+    const named = e => {
+      const t = e.target || {};
+      if(/^(INPUT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable) return "";
+      const k = e.key || "";
+      return k.length === 1 ? k.toLowerCase() : k;
+    };
+    const on = e => {
+      const k = named(e); if(!k) return;
+      if(k === " " || k.indexOf("Arrow") === 0) e.preventDefault();
+      down.add(k);
+    };
+    const off = e => { const k = named(e); if(k) down.delete(k); };
+    const blur = () => down.clear();                    // a tab swap holds keys down forever
+    window.addEventListener("keydown", on);
+    window.addEventListener("keyup", off);
+    window.addEventListener("blur", blur);
+    gclean(() => {
+      window.removeEventListener("keydown", on);
+      window.removeEventListener("keyup", off);
+      window.removeEventListener("blur", blur);
+    });
+    return down;
+  },
+
+  /* A finger or a mouse along the glass, as a fraction across and down. */
+  drag(cv, fn, gclean){
+    let on = false;
+    const at = e => {
+      const r = cv.getBoundingClientRect();
+      if(!r.width) return;
+      fn(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
+         Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)));
+    };
+    const d = e => { on = true; at(e); e.preventDefault(); };
+    const m = e => { if(on) at(e); };
+    const u = () => { on = false; };
+    cv.addEventListener("pointerdown", d);
+    window.addEventListener("pointermove", m);
+    window.addEventListener("pointerup", u);
+    gclean(() => {
+      cv.removeEventListener("pointerdown", d);
+      window.removeEventListener("pointermove", m);
+      window.removeEventListener("pointerup", u);
+    });
+  },
+
+  /* Buttons for the phones, which have no arrow keys. */
+  pad(host, list, press){
+    const row = el("div","arcpad");
+    list.forEach(([label, k]) => {
+      const b = el("button","padkey", label);
+      b.addEventListener("pointerdown", e => { e.preventDefault(); press(k, true); });
+      ["pointerup","pointerleave","pointercancel"].forEach(ev =>
+        b.addEventListener(ev, () => press(k, false)));
+      row.appendChild(b);
+    });
+    host.appendChild(row);
+    return row;
+  },
+
+  round(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+/* --- arcade: pong --- */
+function pongGame(host, gbind, gevery, gclean){
+  const W = 420, H = 250, PW = 9, PH = 54, TO = 7;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","W and S, the arrows, or drag on the screen — first to seven"));
+  const line = el("div","arc-score","");
+  box.appendChild(line);
+  const sc = ARC.screen(box, W, H, "pong");
+  ARC.pad(box, [["▲","up"],["▼","down"]], (k, on) => { held[k] = on; });
+  const r = el("div","row");
+  const go = el("button","btn","Serve");
+  const zero = el("button","btn ghost","Start again");
+  r.appendChild(go); r.appendChild(zero); box.appendChild(r);
+  const who = el("div","qnum"); who.style.marginTop = "10px";
+  box.appendChild(who);
+  host.appendChild(box);
+
+  const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+  const held = {};
+  const keys = ARC.keys(gclean);
+  const pads = { her: H/2, you: H/2 };
+  let ball = { x: W/2, y: H/2, vx: 0, vy: 0 };
+  let live = false, beat = 0, last = "";
+
+  const serve = toward => {
+    ball = { x: W/2, y: H/2, vx: (toward ? 1 : -1) * 190, vy: (Math.random()*2 - 1) * 120 };
+    live = true;
+  };
+  const score = () => Object.assign({her:0, you:0}, SYNC.get("pong.score", {}));
+  const won = s => s.her >= TO || s.you >= TO;
+
+  const mePad = () => pads[mySide()];
+  const setMe = y => { pads[mySide()] = Math.max(PH/2, Math.min(H - PH/2, y)); };
+
+  gev("pong.pad", (m, by) => { if(m && m.s && m.s !== mySide()) pads[m.s] = m.y; });
+  gev("pong.ball", m => {
+    if(ARC.drives() || !m) return;                 // the driver never takes dictation
+    ball = { x:m.x, y:m.y, vx:m.vx, vy:m.vy };
+    live = !!m.live;
+    if(m.pads) Object.keys(m.pads).forEach(k => { if(k !== mySide()) pads[k] = m.pads[k]; });
+  });
+  gev("pong.serve", () => { if(ARC.drives() && !live && !won(score())) serve(Math.random() < .5); });
+
+  go.addEventListener("click", () => {
+    if(won(score())) return;
+    if(ARC.drives()){ if(!live) serve(Math.random() < .5); }
+    else SYNC.ev("pong.serve", {});
+  });
+  zero.addEventListener("click", () => { SYNC.set("pong.score", {her:0, you:0}); live = false; });
+
+  const step = dt => {
+    const up   = keys.has("ArrowUp")   || keys.has("w") || held.up;
+    const down = keys.has("ArrowDown") || keys.has("s") || held.down;
+    if(up)   setMe(mePad() - 260 * dt);
+    if(down) setMe(mePad() + 260 * dt);
+
+    if(ARC.drives()){
+      if(live){
+        ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+        if(ball.y < 6){ ball.y = 6; ball.vy = Math.abs(ball.vy); }
+        if(ball.y > H - 6){ ball.y = H - 6; ball.vy = -Math.abs(ball.vy); }
+        const hits = (px, py) => ball.y > py - PH/2 - 5 && ball.y < py + PH/2 + 5;
+        if(ball.vx < 0 && ball.x < 14 + PW + 5 && ball.x > 14 && hits(14, pads.her)){
+          ball.x = 14 + PW + 5; ball.vx = Math.abs(ball.vx) * 1.06;
+          ball.vy += (ball.y - pads.her) * 3.2;
+        }
+        if(ball.vx > 0 && ball.x > W - 14 - PW - 5 && ball.x < W - 14 && hits(W - 14 - PW, pads.you)){
+          ball.x = W - 14 - PW - 5; ball.vx = -Math.abs(ball.vx) * 1.06;
+          ball.vy += (ball.y - pads.you) * 3.2;
+        }
+        ball.vy = Math.max(-300, Math.min(300, ball.vy));
+        if(ball.x < -10 || ball.x > W + 10){
+          const s = score();
+          s[ball.x < 0 ? "you" : "her"]++;
+          SYNC.set("pong.score", s);
+          live = false;
+          if(!won(s)) setTimeout(() => { if(!live) serve(ball.x < 0); }, 700);
+        }
+      }
+      if((beat += dt) > 0.05){
+        beat = 0;
+        SYNC.ev("pong.ball", { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy, live, pads });
+      }
+    } else {
+      if(live){ ball.x += ball.vx * dt; ball.y += ball.vy * dt; }   // between updates
+      if((beat += dt) > 0.05){ beat = 0; SYNC.ev("pong.pad", { s: mySide(), y: mePad() }); }
+    }
+  };
+
+  const draw = () => {
+    const c = sc.ctx;
+    c.fillStyle = "#12203F"; c.fillRect(0, 0, W, H);
+    c.setLineDash([5, 9]); c.strokeStyle = "rgba(255,246,238,.22)"; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(W/2, 8); c.lineTo(W/2, H - 8); c.stroke(); c.setLineDash([]);
+    c.fillStyle = "#E4B33C"; ARC.round(c, 14, pads.her - PH/2, PW, PH, 4);
+    c.fillStyle = "#7ED0C3"; ARC.round(c, W - 14 - PW, pads.you - PH/2, PW, PH, 4);
+    if(live){ c.fillStyle = "#FFF6EE"; c.beginPath(); c.arc(ball.x, ball.y, 5.5, 0, 7); c.fill(); }
+    const s = score();
+    if(won(s)){
+      c.fillStyle = "rgba(18,32,63,.7)"; c.fillRect(0, H/2 - 26, W, 52);
+      c.fillStyle = "#FFF6EE"; c.font = "20px sans-serif"; c.textAlign = "center";
+      c.fillText((s.her >= TO ? CFG.her : CFG.you) + " takes it", W/2, H/2 + 7);
+      c.textAlign = "left";
+    }
+  };
+
+  const paint = () => {
+    const s = score();
+    line.textContent = CFG.her + " " + s.her + "  —  " + s.you + " " + CFG.you;
+    go.disabled = won(s) || live;
+    go.textContent = live ? "In play" : "Serve";
+    const tag = ARC.drives() ? "you" : nameOf("her");
+    if(tag !== last){ last = tag; who.textContent = "You are " + (mySide() === "her" ? "the gold bat on the left" : "the green bat on the right") + "."; }
+  };
+
+  ARC.loop(dt => { step(dt); draw(); }, gclean);
+  gbind("pong.score", paint);
+  gevery(400, paint);
+  paint();
+}
+
+/* --- arcade: breakout, with a bat each --- */
+function brickGame(host, gbind, gevery, gclean){
+  const W = 420, H = 300, COLS = 9, ROWS = 5, BW = 42, BH = 14, TOP = 34, PW = 62, PH = 10;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","a bat each on the same floor — clear the wall between you"));
+  const line = el("div","arc-score","");
+  box.appendChild(line);
+  const sc = ARC.screen(box, W, H, "brick");
+  ARC.pad(box, [["◀","left"],["▶","right"]], (k, on) => { held[k] = on; });
+  const r = el("div","row");
+  const go = el("button","btn","Push off");
+  const again = el("button","btn ghost","New wall");
+  r.appendChild(go); r.appendChild(again); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "10px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+  const held = {};
+  const keys = ARC.keys(gclean);
+  const pads = { her: W * 0.33, you: W * 0.66 };
+  let wall = [], ball = { x: W/2, y: H - 40, vx: 0, vy: 0 }, live = false;
+  let lives = 3, hits = 0, beat = 0, done = "";
+
+  const build = () => {
+    wall = [];
+    for(let y = 0; y < ROWS; y++)
+      for(let x = 0; x < COLS; x++) wall.push(1);
+    lives = 3; hits = 0; live = false; done = "";
+    ball = { x: W/2, y: H - 40, vx: 0, vy: 0 };
+  };
+  const brickAt = i => ({ x: 12 + (i % COLS) * (BW + 1), y: TOP + Math.floor(i / COLS) * (BH + 4) });
+  const left = () => wall.reduce((a,b) => a + b, 0);
+
+  const push = () => { if(live || done) return; live = true;
+    ball = { x: W/2, y: H - 40, vx: (Math.random() < .5 ? -1 : 1) * 150, vy: -215 }; };
+
+  gev("brick.pad", m => { if(m && m.s && m.s !== mySide()) pads[m.s] = m.x; });
+  gev("brick.go", () => { if(ARC.drives()) push(); });
+  gev("brick.new", () => { if(ARC.drives()){ build(); blast(); } });
+  gev("brick.state", m => {
+    if(ARC.drives() || !m) return;
+    ball = { x:m.x, y:m.y, vx:m.vx, vy:m.vy };
+    live = !!m.live; lives = m.l; hits = m.h; done = m.done || "";
+    if(m.w) wall = m.w.split("").map(Number);
+    if(m.pads) Object.keys(m.pads).forEach(k => { if(k !== mySide()) pads[k] = m.pads[k]; });
+  });
+  const blast = () => SYNC.ev("brick.state", { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy,
+    live, l:lives, h:hits, done, w:wall.join(""), pads });
+
+  go.addEventListener("click", () => ARC.drives() ? push() : SYNC.ev("brick.go", {}));
+  again.addEventListener("click", () => {
+    if(ARC.drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
+  });
+
+  const step = dt => {
+    const l = keys.has("ArrowLeft")  || keys.has("a") || held.left;
+    const rr = keys.has("ArrowRight") || keys.has("d") || held.right;
+    if(l)  pads[mySide()] = Math.max(PW/2, pads[mySide()] - 300 * dt);
+    if(rr) pads[mySide()] = Math.min(W - PW/2, pads[mySide()] + 300 * dt);
+
+    if(!ARC.drives()){
+      if(live){ ball.x += ball.vx * dt; ball.y += ball.vy * dt; }
+      if((beat += dt) > 0.05){ beat = 0; SYNC.ev("brick.pad", { s: mySide(), x: pads[mySide()] }); }
+      return;
+    }
+    if(live){
+      ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+      if(ball.x < 6){ ball.x = 6; ball.vx = Math.abs(ball.vx); }
+      if(ball.x > W - 6){ ball.x = W - 6; ball.vx = -Math.abs(ball.vx); }
+      if(ball.y < 6){ ball.y = 6; ball.vy = Math.abs(ball.vy); }
+
+      for(let i = 0; i < wall.length; i++){
+        if(!wall[i]) continue;
+        const b = brickAt(i);
+        if(ball.x > b.x - 5 && ball.x < b.x + BW + 5 && ball.y > b.y - 5 && ball.y < b.y + BH + 5){
+          wall[i] = 0; hits++;
+          const fromSide = ball.x < b.x || ball.x > b.x + BW;
+          if(fromSide) ball.vx = -ball.vx; else ball.vy = -ball.vy;
+          break;                                    // one brick a frame, or it tunnels
+        }
+      }
+      const floor = H - 18;
+      if(ball.vy > 0 && ball.y > floor - 6 && ball.y < floor + 10){
+        [["her", pads.her], ["you", pads.you]].forEach(([s, px]) => {
+          if(ball.x > px - PW/2 - 4 && ball.x < px + PW/2 + 4){
+            ball.y = floor - 6; ball.vy = -Math.abs(ball.vy) * 1.02;
+            ball.vx += (ball.x - px) * 3.6;
+            ball.vx = Math.max(-320, Math.min(320, ball.vx));
+          }
+        });
+      }
+      if(ball.y > H + 12){
+        live = false; lives--;
+        ball = { x: W/2, y: H - 40, vx: 0, vy: 0 };
+        if(lives <= 0) done = "out";
+      }
+      if(!left()) done = "clear";
+      if(done) live = false;
+    }
+    if((beat += dt) > 0.05){ beat = 0; blast(); }
+  };
+
+  const TINT = ["#E4B33C","#CF3E57","#7ED0C3","#8FB8F0","#E08A3C"];
+  const draw = () => {
+    const c = sc.ctx;
+    c.fillStyle = "#12203F"; c.fillRect(0, 0, W, H);
+    wall.forEach((on, i) => {
+      if(!on) return;
+      const b = brickAt(i);
+      c.fillStyle = TINT[Math.floor(i / COLS) % TINT.length];
+      ARC.round(c, b.x, b.y, BW, BH, 3);
+    });
+    c.fillStyle = "#E4B33C"; ARC.round(c, pads.her - PW/2, H - 18, PW, PH, 5);
+    c.fillStyle = "#7ED0C3"; ARC.round(c, pads.you - PW/2, H - 18, PW, PH, 5);
+    c.fillStyle = "#FFF6EE"; c.beginPath(); c.arc(ball.x, ball.y, 5.5, 0, 7); c.fill();
+    if(done){
+      c.fillStyle = "rgba(18,32,63,.72)"; c.fillRect(0, H/2 - 26, W, 52);
+      c.fillStyle = "#FFF6EE"; c.font = "19px sans-serif"; c.textAlign = "center";
+      c.fillText(done === "clear" ? "Wall cleared. " + hits + " bricks." : "Out of balls at " + hits + ".", W/2, H/2 + 7);
+      c.textAlign = "left";
+    }
+  };
+
+  const paint = () => {
+    line.textContent = hits + " down, " + left() + " to go  ·  " + lives + " ball" + (lives === 1 ? "" : "s") + " left";
+    go.disabled = live || !!done;
+    go.textContent = live ? "In play" : "Push off";
+    const b = SYNC.get("brick.best", 0);
+    best.textContent = b ? "Best wall between you: " + b + " bricks." : "";
+    if(done && ARC.drives() && hits > b) SYNC.set("brick.best", hits);
+  };
+
+  build();
+  ARC.loop(dt => { step(dt); draw(); }, gclean);
+  gbind("brick.best", paint);
+  gevery(300, paint);
+  paint();
+}
+
+/* --- arcade: whack-a-mole, both hands on the same nine holes --- */
+function moleGame(host, gbind, gevery, gclean){
+  const N = 9, RUN = 30000;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","nine holes, two of you — whoever gets there first keeps it"));
+  const line = el("div","arc-score","");
+  box.appendChild(line);
+  const grid = el("div","moles");
+  const holes = [];
+  for(let i = 0; i < N; i++){
+    const h = el("button","hole");
+    h.appendChild(el("span","mole","\u{1F42D}"));
+    h.addEventListener("click", () => whack(i));
+    grid.appendChild(h); holes.push(h);
+  }
+  box.appendChild(grid);
+  const r = el("div","row");
+  const go = el("button","btn","Thirty seconds");
+  r.appendChild(go); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "10px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+  let up = {}, hitBy = {}, endsAt = 0, spawnAt = 0;
+  const tally = () => Object.assign({her:0, you:0}, SYNC.get("mole.score", {}));
+
+  const start = () => {
+    up = {}; hitBy = {};
+    endsAt = SYNC.now() + RUN; spawnAt = 0;
+    SYNC.set("mole.score", {her:0, you:0});
+    SYNC.set("mole.ends", endsAt);
+    blast();
+  };
+  const blast = () => SYNC.ev("mole.up", { up, hit: hitBy });
+
+  gev("mole.up", m => { if(!ARC.drives() && m){ up = m.up || {}; hitBy = m.hit || {}; } });
+  gev("mole.go", () => { if(ARC.drives()) start(); });
+  gev("mole.hit", (m, by) => {
+    if(!ARC.drives() || !m) return;
+    land(m.i, m.s);
+  });
+
+  function land(i, side){
+    if(!up[i] || hitBy[i]) return;                 // first hand only
+    hitBy[i] = side;
+    const t = tally(); t[side]++;
+    SYNC.set("mole.score", t);
+    setTimeout(() => { delete up[i]; delete hitBy[i]; blast(); }, 180);
+    blast();
+  }
+  function whack(i){
+    if(SYNC.now() > (SYNC.get("mole.ends", 0) || 0)) return;
+    if(!up[i] || hitBy[i]) return;
+    if(ARC.drives()) land(i, mySide());
+    else { hitBy[i] = mySide(); paint(); SYNC.ev("mole.hit", { i, s: mySide() }); }
+  }
+
+  go.addEventListener("click", () => ARC.drives() ? start() : SYNC.ev("mole.go", {}));
+
+  const tick = () => {
+    const ends = SYNC.get("mole.ends", 0);
+    if(ARC.drives() && SYNC.now() < ends){
+      const now = SYNC.now();
+      if(now > spawnAt){
+        spawnAt = now + 380 + Math.random() * 420;
+        const free = [];
+        for(let i = 0; i < N; i++) if(!up[i]) free.push(i);
+        if(free.length){
+          const i = free[Math.floor(Math.random() * free.length)];
+          up[i] = now + 700 + Math.random() * 700;
+          blast();
+        }
+      }
+      let changed = false;
+      Object.keys(up).forEach(k => { if(now > up[k] && !hitBy[k]){ delete up[k]; changed = true; } });
+      if(changed) blast();
+    }
+    paint();
+  };
+
+  function paint(){
+    const t = tally(), ends = SYNC.get("mole.ends", 0);
+    const on = SYNC.now() < ends;
+    const leftMs = Math.max(0, ends - SYNC.now());
+    line.textContent = CFG.her + " " + t.her + "  —  " + t.you + " " + CFG.you +
+      (on ? "   ·   " + Math.ceil(leftMs / 1000) + "s" : (ends ? "   ·   time" : ""));
+    go.disabled = on;
+    go.textContent = on ? "Go" : "Thirty seconds";
+    holes.forEach((h, i) => {
+      h.classList.toggle("up", !!up[i] && !hitBy[i]);
+      h.classList.toggle("bop", !!hitBy[i]);
+      h.classList.toggle("hers", hitBy[i] === "her");
+      h.classList.toggle("yours", hitBy[i] === "you");
+    });
+    if(!on && ends){
+      const b = SYNC.get("mole.best", 0), top = Math.max(t.her, t.you);
+      if(ARC.drives() && top > b) SYNC.set("mole.best", top);
+      best.textContent = (t.her === t.you ? "Dead level at " + t.her + "."
+        : (t.her > t.you ? CFG.her : CFG.you) + " won it, " + Math.max(t.her,t.you) + " to " + Math.min(t.her,t.you) + ".")
+        + (b ? "  Best round so far: " + Math.max(b, top) + "." : "");
+    } else best.textContent = "";
+  }
+
+  ["mole.score","mole.ends","mole.best"].forEach(k => gbind(k, paint));
+  gevery(90, tick);
+  paint();
+}
+
+/* --- arcade: pac-man, a maze each --- */
+/* Five corridors across and five down, so every open cell is on one of them
+   and the whole maze is connected by construction. The hand-drawn one this
+   replaced looked better and had a sealed pocket in the middle of it: both
+   ghosts started inside, could never get out, and seven pellets in there with
+   them meant the maze could never be cleared either. */
+const PACMAZE = [
+  "###############",
+  "#o...........o#",
+  "#.##.##.##.##.#",
+  "#.##.##.##.##.#",
+  "#.............#",
+  "#.##.##.##.##.#",
+  "#.##.##.##.##.#",
+  "#.............#",
+  "#.##.##.##.##.#",
+  "#.##.##.##.##.#",
+  "#.............#",
+  "#.##.##.##.##.#",
+  "#.##.##.##.##.#",
+  "#o...........o#",
+  "###############"
+];
+function pacGame(host, gbind, gevery, gclean){
+  const N = 15, CELL = 15, W = N * CELL, SPD = 5.2, GSPD = 3.9;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","arrows, WASD or the buttons — a maze each, both live"));
+  const pair = el("div","arcpair");
+  const mk = side => {
+    const w = el("div","arcwrap");
+    w.appendChild(el("label", null, side === mySide() ? "yours" : nameOf(side) + "'s"));
+    const s = ARC.screen(w, W, W, "pac");
+    const sc = el("div","sscore","0");
+    w.appendChild(sc);
+    pair.appendChild(w);
+    return { s, sc };
+  };
+  const mineUI = mk(mySide()), themUI = mk(theirSide());
+  box.appendChild(pair);
+  ARC.pad(box, [["◀","ArrowLeft"],["▲","ArrowUp"],["▼","ArrowDown"],["▶","ArrowRight"]],
+          (k, on) => { on ? held.add(k) : held.delete(k); });
+  const r = el("div","row");
+  const go = el("button","btn","Start");
+  r.appendChild(go); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "10px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+  const held = new Set();
+  const keys = ARC.keys(gclean);
+  const open = (x, y) => x >= 0 && y >= 0 && x < N && y < N && PACMAZE[y][x] !== "#";
+  const DIRS = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
+  const ALL = [DIRS.ArrowLeft, DIRS.ArrowRight, DIRS.ArrowUp, DIRS.ArrowDown];
+
+  let me = null, them = null, alive = false;
+
+  /* Everything in the maze lives on a cell with a fraction of the way to the
+     next one, rather than a loose x and y that has to be caught near a centre.
+     Catching it near a centre worked at sixty frames a second and stopped
+     working the moment a frame ran long — the ghosts sailed past every
+     junction and parked in the first wall they met. */
+  const at = m => [m.cx + m.d[0] * m.t, m.cy + m.d[1] * m.t];
+  const walk = (m, dt, spd, pick) => {
+    if(!m.d[0] && !m.d[1]){
+      const d = pick(m);
+      if(d && open(m.cx + d[0], m.cy + d[1])){ m.d = d; m.t = 0; }
+      else { m.t = 0; return; }
+    }
+    m.t += spd * dt;
+    let guard = 0;
+    while(m.t >= 1 && guard++ < 20){
+      m.cx += m.d[0]; m.cy += m.d[1]; m.t -= 1;
+      const d = pick(m);
+      if(d && open(m.cx + d[0], m.cy + d[1])) m.d = d;
+      if(!open(m.cx + m.d[0], m.cy + m.d[1])){ m.d = [0,0]; m.t = 0; return; }
+    }
+  };
+
+  const fresh = () => {
+    const pel = [];
+    for(let y = 0; y < N; y++) for(let x = 0; x < N; x++){
+      const c = PACMAZE[y][x];
+      pel.push(c === "." ? 1 : c === "o" ? 2 : 0);
+    }
+    return {
+      pel, n: 0, lives: 3, scared: 0, dead: false,
+      p: { cx: 7, cy: 13, d: [0,0], t: 0, want: null },
+      g: [ { cx:6, cy:7, d:[-1,0], t:0, home:[6,7] },
+           { cx:8, cy:7, d:[1,0],  t:0, home:[8,7] } ]
+    };
+  };
+  const home = st => {
+    st.p = { cx: 7, cy: 13, d: [0,0], t: 0, want: null };
+    st.g.forEach((g,i) => { g.cx = g.home[0]; g.cy = g.home[1]; g.d = [i ? 1 : -1, 0]; g.t = 0; });
+    st.scared = 0;
+  };
+
+  const ghostPick = (g, st) => {
+    const back = [-g.d[0], -g.d[1]];
+    const outs = ALL.filter(d => open(g.cx + d[0], g.cy + d[1]))
+                    .filter(d => !(d[0] === back[0] && d[1] === back[1]));
+    const list = outs.length ? outs : [back];
+    if(Math.random() < 0.2) return list[Math.floor(Math.random() * list.length)];
+    const p = at(st.p), want = st.scared > 0 ? -1 : 1;
+    let best = list[0], score = -1e9;
+    list.forEach(d => {
+      const dx = (g.cx + d[0]) - p[0], dy = (g.cy + d[1]) - p[1];
+      const v = -Math.sqrt(dx*dx + dy*dy) * want;
+      if(v > score){ score = v; best = d; }
+    });
+    return best;
+  };
+
+  const start = () => { me = fresh(); alive = true; go.textContent = "Restart"; send(); };
+
+  const send = () => {
+    if(!me) return;
+    const p = at(me.p);
+    SYNC.ev("pac.live", { s: mySide(), n: me.n, l: me.lives, dead: me.dead,
+      px: +p[0].toFixed(2), py: +p[1].toFixed(2), sc: me.scared > 0,
+      g: me.g.map(g => { const q = at(g); return [+q[0].toFixed(2), +q[1].toFixed(2)]; }),
+      pel: me.pel.join("") });
+  };
+  gev("pac.live", m => { if(m && m.s !== mySide()) them = m; });
+
+  const step = dt => {
+    if(!alive || !me) return;
+    let want = null;
+    Object.keys(DIRS).forEach(k => { if(keys.has(k) || held.has(k)) want = DIRS[k]; });
+    if(keys.has("a")) want = DIRS.ArrowLeft;
+    if(keys.has("d")) want = DIRS.ArrowRight;
+    if(keys.has("w")) want = DIRS.ArrowUp;
+    if(keys.has("s")) want = DIRS.ArrowDown;
+    if(want){
+      /* Turning back on yourself works anywhere, which is how the cabinet
+         felt; every other turn waits for the next junction. */
+      if((me.p.d[0] || me.p.d[1]) && want[0] === -me.p.d[0] && want[1] === -me.p.d[1]){
+        me.p.cx += me.p.d[0]; me.p.cy += me.p.d[1];
+        me.p.t = 1 - me.p.t; me.p.d = want;
+      }
+      me.p.want = want;
+    }
+
+    walk(me.p, dt, SPD, m => m.want);
+    if(me.scared > 0) me.scared -= dt;
+
+    const p = at(me.p);
+    const i = Math.round(p[1]) * N + Math.round(p[0]);
+    if(me.pel[i] === 1){ me.pel[i] = 0; me.n += 10; }
+    else if(me.pel[i] === 2){ me.pel[i] = 0; me.n += 50; me.scared = 6; }
+
+    me.g.forEach(g => {
+      walk(g, dt, me.scared > 0 ? GSPD * 0.55 : GSPD, gg => ghostPick(gg, me));
+      const q = at(g);
+      if(Math.abs(q[0] - p[0]) < 0.62 && Math.abs(q[1] - p[1]) < 0.62){
+        if(me.scared > 0){ me.n += 200; g.cx = g.home[0]; g.cy = g.home[1]; g.t = 0; }
+        else {
+          me.lives--;
+          if(me.lives <= 0){ me.dead = true; alive = false; over(); }
+          else home(me);
+        }
+      }
+    });
+    if(!me.pel.some(v => v)){ me.n += 500; me.dead = true; alive = false; over(); }
+  };
+
+  const over = () => {
+    go.textContent = "Go again";
+    const k = "pac.best." + mySide();
+    if(me.n > SYNC.get(k, 0)) SYNC.set(k, me.n);
+    send();
+  };
+
+  const drawMaze = (c, st, mineOne) => {
+    c.fillStyle = "#12203F"; c.fillRect(0, 0, W, W);
+    for(let y = 0; y < N; y++) for(let x = 0; x < N; x++){
+      if(PACMAZE[y][x] !== "#") continue;
+      c.fillStyle = "#2E4272";
+      ARC.round(c, x*CELL + 1, y*CELL + 1, CELL - 2, CELL - 2, 3);
+    }
+    if(!st){
+      c.fillStyle = "rgba(255,246,238,.45)"; c.font = "12px sans-serif"; c.textAlign = "center";
+      c.fillText("not started", W/2, W/2); c.textAlign = "left";
+      return;
+    }
+    const pel = typeof st.pel === "string" ? st.pel : st.pel.join("");
+    for(let i = 0; i < pel.length; i++){
+      const v = pel[i]; if(v === "0") continue;
+      const x = (i % N) * CELL + CELL/2, y = Math.floor(i / N) * CELL + CELL/2;
+      c.fillStyle = v === "2" ? "#E4B33C" : "rgba(255,246,238,.62)";
+      c.beginPath(); c.arc(x, y, v === "2" ? 4 : 1.7, 0, 7); c.fill();
+    }
+    const p = mineOne ? at(st.p) : [st.px, st.py];
+    const px = p[0]*CELL + CELL/2, py = p[1]*CELL + CELL/2;
+    c.fillStyle = mineOne ? "#E4B33C" : "#7ED0C3";
+    c.beginPath(); c.arc(px, py, CELL/2 - 2, 0.32, Math.PI*2 - 0.32); c.lineTo(px, py); c.fill();
+    const scared = mineOne ? st.scared > 0 : st.sc;
+    const gs = mineOne ? st.g.map(at) : (st.g || []);
+    gs.forEach((g, i) => {
+      c.fillStyle = scared ? "#8FB8F0" : (i ? "#CF3E57" : "#E08A3C");
+      const gx = g[0]*CELL + CELL/2, gy = g[1]*CELL + CELL/2;
+      c.beginPath(); c.arc(gx, gy - 1, CELL/2 - 2.5, Math.PI, 0);
+      c.lineTo(gx + CELL/2 - 2.5, gy + CELL/2 - 3);
+      c.lineTo(gx - CELL/2 + 2.5, gy + CELL/2 - 3);
+      c.closePath(); c.fill();
+    });
+    if(st.dead){
+      c.fillStyle = "rgba(18,32,63,.72)"; c.fillRect(0, W/2 - 15, W, 30);
+      c.fillStyle = "#FFF6EE"; c.font = "13px sans-serif"; c.textAlign = "center";
+      c.fillText("out", W/2, W/2 + 5); c.textAlign = "left";
+    }
+  };
+
+  const draw = () => {
+    drawMaze(mineUI.s.ctx, me, true);
+    drawMaze(themUI.s.ctx, them, false);
+    mineUI.sc.textContent = me ? me.n + (me.dead ? " — out" : "") + "  ·  " + Math.max(0, me.lives) + " left" : "0";
+    themUI.sc.textContent = them ? them.n + (them.dead ? " — out" : "") + "  ·  " + Math.max(0, them.l) + " left" : "–";
+  };
+
+  go.addEventListener("click", start);
+  ARC.loop(dt => { step(dt); draw(); }, gclean);
+  gevery(110, send);
+  const paintBest = () => {
+    const a = SYNC.get("pac.best.her", 0), b = SYNC.get("pac.best.you", 0);
+    best.textContent = "best  ·  " + CFG.her + " " + a + "  ·  " + CFG.you + " " + b;
+  };
+  ["pac.best.her","pac.best.you"].forEach(k => gbind(k, paintBest));
+  paintBest(); draw();
+}
+
+/* --- arcade: doodle jump, a tower each --- */
+function jumpGame(host, gbind, gevery, gclean){
+  const W = 180, H = 300, PW = 20, PH = 18, PLAT = 46, HOP = 430, G = 900;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","left and right, or the buttons — a tower each, highest wins"));
+  const pair = el("div","arcpair");
+  const mk = side => {
+    const w = el("div","arcwrap");
+    w.appendChild(el("label", null, side === mySide() ? "yours" : nameOf(side) + "'s"));
+    const s = ARC.screen(w, W, H, "jump");
+    const sc = el("div","sscore","0");
+    w.appendChild(sc);
+    pair.appendChild(w);
+    return { s, sc };
+  };
+  const mineUI = mk(mySide()), themUI = mk(theirSide());
+  box.appendChild(pair);
+  ARC.pad(box, [["◀","left"],["▶","right"]], (k, on) => { held[k] = on; });
+  const r = el("div","row");
+  const go = el("button","btn","Start");
+  r.appendChild(go); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "10px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+  const held = {};
+  const keys = ARC.keys(gclean);
+  let me = null, them = null, alive = false;
+
+  const rowY = i => -i * 62;
+  const fresh = () => {
+    const plats = [];
+    for(let i = 0; i < 40; i++)
+      plats.push({ x: i === 0 ? W/2 - PLAT/2 : 8 + Math.random() * (W - PLAT - 16), y: rowY(i) + H - 30 });
+    return { x: W/2, y: H - 60, vy: 0, top: 0, plats, high: 0, dead: false, n: 0 };
+  };
+
+  const start = () => { me = fresh(); alive = true; go.textContent = "Restart"; send(); };
+
+  const send = () => {
+    if(!me) return;
+    SYNC.ev("jump.live", { s: mySide(), n: me.n, dead: me.dead,
+      x: +me.x.toFixed(1), y: +me.y.toFixed(1), top: +me.top.toFixed(1),
+      p: me.plats.filter(p => p.y - me.top > -40 && p.y - me.top < H + 40)
+                 .map(p => [Math.round(p.x), Math.round(p.y - me.top)]) });
+  };
+  gev("jump.live", m => { if(m && m.s !== mySide()) them = m; });
+
+  const step = dt => {
+    if(!alive || !me) return;
+    const l = keys.has("ArrowLeft") || keys.has("a") || held.left;
+    const rr = keys.has("ArrowRight") || keys.has("d") || held.right;
+    if(l)  me.x -= 210 * dt;
+    if(rr) me.x += 210 * dt;
+    if(me.x < -PW/2) me.x = W + PW/2;                 // out one side, in the other
+    if(me.x > W + PW/2) me.x = -PW/2;
+
+    me.vy += G * dt;
+    me.y += me.vy * dt;
+
+    if(me.vy > 0) me.plats.forEach(p => {
+      if(me.y + PH/2 > p.y && me.y + PH/2 < p.y + 16 &&
+         me.x + PW/2 > p.x && me.x - PW/2 < p.x + PLAT){
+        me.vy = -HOP;
+      }
+    });
+
+    // the camera only ever climbs, and the tower grows above it
+    const lift = H * 0.42;
+    if(me.y - me.top < lift){
+      me.top = me.y - lift;
+      me.n = Math.max(me.n, Math.round((H - 60 - me.top - lift) / 10));
+    }
+    let highest = Math.min.apply(null, me.plats.map(p => p.y));
+    while(highest > me.top - 80){
+      highest -= 62;
+      me.plats.push({ x: 8 + Math.random() * (W - PLAT - 16), y: highest });
+    }
+    me.plats = me.plats.filter(p => p.y - me.top < H + 120);
+
+    if(me.y - me.top > H + 40){
+      me.dead = true; alive = false;
+      go.textContent = "Go again";
+      const k = "jump.best." + mySide();
+      if(me.n > SYNC.get(k, 0)) SYNC.set(k, me.n);
+      send();
+    }
+  };
+
+  const drawTower = (c, st, mineOne) => {
+    c.fillStyle = "#12203F"; c.fillRect(0, 0, W, H);
+    if(!st){
+      c.fillStyle = "rgba(255,246,238,.45)"; c.font = "12px sans-serif"; c.textAlign = "center";
+      c.fillText("not started", W/2, H/2); c.textAlign = "left";
+      return;
+    }
+    const plats = mineOne ? st.plats.map(p => [p.x, p.y - st.top]) : (st.p || []);
+    c.fillStyle = mineOne ? "#7ED0C3" : "#8FB8F0";
+    plats.forEach(p => { if(p[1] > -20 && p[1] < H + 20) ARC.round(c, p[0], p[1], PLAT, 8, 4); });
+    const px = mineOne ? st.x : st.x, py = (mineOne ? st.y - st.top : st.y - st.top);
+    c.fillStyle = mineOne ? "#E4B33C" : "#CF3E57";
+    ARC.round(c, px - PW/2, py - PH/2, PW, PH, 6);
+    if(st.dead){
+      c.fillStyle = "rgba(18,32,63,.72)"; c.fillRect(0, H/2 - 15, W, 30);
+      c.fillStyle = "#FFF6EE"; c.font = "13px sans-serif"; c.textAlign = "center";
+      c.fillText("fell", W/2, H/2 + 5); c.textAlign = "left";
+    }
+  };
+
+  const draw = () => {
+    drawTower(mineUI.s.ctx, me, true);
+    drawTower(themUI.s.ctx, them, false);
+    mineUI.sc.textContent = me ? me.n + (me.dead ? " — fell" : "") : "0";
+    themUI.sc.textContent = them ? them.n + (them.dead ? " — fell" : "") : "–";
+  };
+
+  go.addEventListener("click", start);
+  ARC.loop(dt => { step(dt); draw(); }, gclean);
+  gevery(110, send);
+  const paintBest = () => {
+    best.textContent = "best  ·  " + CFG.her + " " + SYNC.get("jump.best.her", 0) +
+                       "  ·  " + CFG.you + " " + SYNC.get("jump.best.you", 0);
+  };
+  ["jump.best.her","jump.best.you"].forEach(k => gbind(k, paintBest));
+  paintBest(); draw();
+}
 
 /* --- arcade: ludo --- */
 const LU = {
