@@ -84,6 +84,23 @@ failure paths — runs for real in the suite.
 ## The arcade games
 
 
+### An icon on every button
+
+The page builds its buttons in forty different places and rewrites their
+labels as it goes — "Start" becomes "Restart", "Sound on" becomes "Sound
+off" — so an icon placed by hand at each call site is lost the first time the
+text changes, because setting `textContent` takes the whole child with it.
+
+`dressButtons` picks the mark from the words on the button instead, and a
+`MutationObserver` puts it back whenever a label is rewritten (coalesced to
+five times a second, because the arcade repaints a score every frame). Add a
+button anywhere and it gets its icon without anyone remembering to ask.
+
+Only buttons carrying words are dressed — the game tiles, the pad keys, the
+mole holes and the little round ones already say what they are, and anything
+under three characters (`+`, `−`, `→`, `✕`, the arrows) is left alone.
+
+
 ### The five with moving parts
 
 Pong, breakout, whack-a-mole, pac-man and doodle jump. Arcade cabinets are

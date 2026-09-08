@@ -454,6 +454,15 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .moles .hole.hers{background:rgba(228,179,60,.4)}
 .moles .hole.yours{background:rgba(126,208,195,.45)}
 
+.bi{
+  display:inline-block;width:15px;height:15px;flex:0 0 auto;
+  margin-right:7px;vertical-align:-2px;opacity:.9
+}
+.bi svg{width:100%;height:100%;display:block}
+.btn .bi{margin-right:8px}
+.chat-tools button .bi, .cbtns button .bi{width:13px;height:13px;margin-right:5px}
+.open .bi{width:14px;height:14px}
+
 .dare-btn{background:var(--rose);color:#2A0B12}
 
 
@@ -1458,6 +1467,127 @@ const SYNC = {
   fire(k){ const s = SYNC.subs.get(k); if(s) s.forEach(fn => fn(SYNC.get(k))); },
   fireAll(){ SYNC.subs.forEach((set, k) => set.forEach(fn => fn(SYNC.get(k)))); }
 };
+
+/* =======================================================================
+   A MARK ON EVERY BUTTON. The page builds its buttons in forty different
+   places and rewrites their labels as it goes — "Start" becomes "Restart",
+   "Sound on" becomes "Sound off" — so hand-placing an icon at each call
+   site would lose it the first time the text changed. The icon is chosen
+   from the words on the button instead, and put back whenever the label is
+   rewritten.
+   ======================================================================= */
+const GLYPH = {
+  play:  '<path d="M8 5.5 19 12 8 18.5z"/>',
+  redo:  '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.5 3.5v4.2h-4.2"/>',
+  next:  '<path d="M5 12h12.5"/><path d="M12.5 6.5 18 12l-5.5 5.5"/>',
+  plus:  '<path d="M12 5.2v13.6M5.2 12h13.6"/>',
+  bin:   '<path d="M4.2 7h15.6"/><path d="M9.2 7V4.7h5.6V7"/><path d="M6.6 7l.9 12.3h9l.9-12.3"/>',
+  copy:  '<rect x="9" y="9" width="10.5" height="10.5" rx="2.4"/><path d="M15 5.4H6.4a2 2 0 0 0-2 2V16"/>',
+  save:  '<path d="M12 3.8v10.4"/><path d="M8 10.4 12 14.4l4-4"/><path d="M4.8 19.2h14.4"/>',
+  screen:'<rect x="3" y="5" width="18" height="12" rx="2.6"/><path d="M9 20h6"/>',
+  noscr: '<rect x="3" y="5" width="18" height="12" rx="2.6"/><path d="M4.5 19.5 19.5 4.5"/>',
+  sound: '<path d="M4.8 9.4h3.4L12.6 6v12L8.2 14.6H4.8z"/><path d="M16 9.6a3.8 3.8 0 0 1 0 4.8"/>',
+  cam:   '<rect x="2.6" y="6.4" width="11.6" height="11.2" rx="2.8"/><path d="m14.2 12 6-3.4v6.8z"/>',
+  mic:   '<rect x="9.3" y="3.4" width="5.4" height="9.8" rx="2.7"/><path d="M6.2 11.6a5.8 5.8 0 0 0 11.6 0"/><path d="M12 17.4V20"/>',
+  phone: '<path d="M6.2 3.6h3l1.5 3.6-1.9 1.4a12 12 0 0 0 5.6 5.6l1.4-1.9 3.6 1.5v3a1.7 1.7 0 0 1-1.9 1.7A15.5 15.5 0 0 1 4.5 5.5 1.7 1.7 0 0 1 6.2 3.6z"/>',
+  hang:  '<path d="M3.4 13.4a12 12 0 0 1 17.2 0l-2.5 2.5-2.8-1.6v-2a10 10 0 0 0-6.6 0v2l-2.8 1.6z"/>',
+  heart: '<path d="M12 19.6S5.2 15.2 5.2 10.6A3.8 3.8 0 0 1 12 8.3a3.8 3.8 0 0 1 6.8 2.3c0 4.6-6.8 9-6.8 9z"/>',
+  talk:  '<path d="M20 11.4a7.3 7.3 0 0 1-7.9 7.3 7.9 7.9 0 0 1-3.4-.8L4.2 19.4l1.3-3.8A7.3 7.3 0 0 1 4 11.4a7.3 7.3 0 0 1 8-7.3 7.3 7.3 0 0 1 8 7.3z"/>',
+  flame: '<path d="M12 3.6s4.9 4.2 4.9 8.4a4.9 4.9 0 0 1-9.8 0c0-1.7 1-3.1 2-4.1 0 1.6 1 2.3 1.7 2.3 1.7 0 0-3.2 1.2-6.6z"/>',
+  eye:   '<path d="M2.6 12S6.1 6.6 12 6.6 21.4 12 21.4 12 17.9 17.4 12 17.4 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.5"/>',
+  lock:  '<rect x="5" y="10.4" width="14" height="9.2" rx="2.4"/><path d="M8.6 10.4V8a3.4 3.4 0 0 1 6.8 0v2.4"/>',
+  flip:  '<path d="M4 8.6h13l-3.2-3.2"/><path d="M20 15.4H7l3.2 3.2"/>',
+  tick:  '<path d="M5 12.4 9.8 17.4 19 6.6"/>',
+  book:  '<path d="M4 5.4h5.4A2.6 2.6 0 0 1 12 8v11a2 2 0 0 0-2-2H4z"/><path d="M20 5.4h-5.4A2.6 2.6 0 0 0 12 8v11a2 2 0 0 1 2-2h6z"/>',
+  door:  '<path d="M4.6 4.4v15.2"/><path d="M9 12h9.4"/><path d="M15 8.4 18.8 12 15 15.6"/>',
+  clock: '<circle cx="12" cy="13.2" r="7.4"/><path d="M12 9.4v3.8l2.6 1.6"/><path d="M9.4 3.4h5.2"/>',
+  cup:   '<path d="M4.8 7h11.4v5.8a5.7 5.7 0 0 1-11.4 0z"/><path d="M16.2 8.6h1.6a2.2 2.2 0 0 1 0 4.4h-1.6"/><path d="M3.6 19.6h13.8"/>',
+  dial:  '<path d="M4 8.4h9M17 8.4h3M4 15.6h4M12 15.6h8"/><circle cx="15" cy="8.4" r="2"/><circle cx="10" cy="15.6" r="2"/>',
+  hand:  '<path d="M9 11.4V5.6a1.7 1.7 0 0 1 3.4 0v5.4"/><path d="M12.4 11V6.8a1.7 1.7 0 0 1 3.4 0V13"/><path d="M15.8 13v-.4a1.7 1.7 0 0 1 3.4 0v2.6a5.4 5.4 0 0 1-5.4 5.4h-1.9a5.2 5.2 0 0 1-4.5-2.6L5.7 13.4a1.7 1.7 0 0 1 2.8-1.9l.5.8"/>',
+  sun:   '<circle cx="12" cy="12" r="3.9"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.7 5.7l1.6 1.6M16.7 16.7l1.6 1.6M18.3 5.7l-1.6 1.6M7.3 16.7l-1.6 1.6"/>',
+  spark: '<path d="M12 4.2 13.7 9.7 19.2 11.4 13.7 13.1 12 18.6 10.3 13.1 4.8 11.4 10.3 9.7z"/>',
+  send:  '<path d="M20.4 3.6 3.6 10.2l6.6 2.6 2.6 6.6z"/><path d="M20.4 3.6 10.2 12.8"/>',
+  pen:   '<path d="M4.4 19.6 4.4 15.6 15.8 4.2a2 2 0 0 1 2.8 0l1 1a2 2 0 0 1 0 2.8L8.4 19.6z"/>',
+  star:  '<path d="M12 4.4 14.3 9.6 20 10.2 15.8 14 17 19.6 12 16.7 7 19.6 8.2 14 4 10.2 9.7 9.6z"/>'
+};
+
+/* First match wins, so the specific ones come before the general. */
+const MARKS = [
+  [/^open this hour$/i,                        "door"],
+  [/^start the day$/i,                         "sun"],
+  [/hold to pour/i,                            "cup"],
+  [/^hug$/i,                                   "heart"],
+  [/^truth$/i,                                 "talk"],
+  [/^dare$/i,                                  "flame"],
+  [/forfeit|^skip$/i,                          "next"],
+  [/reveal/i,                                  "eye"],
+  [/read it again/i,                           "book"],
+  [/lock in/i,                                 "lock"],
+  [/flip/i,                                    "flip"],
+  [/^set it$/i,                                "tick"],
+  [/^answer$/i,                                "phone"],
+  [/hang up|^decline$/i,                       "hang"],
+  [/mute/i,                                    "mic"],
+  [/^camera/i,                                 "cam"],
+  [/sound/i,                                   "sound"],
+  [/sharper picture|smoother picture/i,        "dial"],
+  [/stop sharing/i,                            "noscr"],
+  [/share my screen|^sharing/i,                "screen"],
+  [/tap to start/i,                            "hand"],
+  [/seconds|reset the clock|count us down|minute break/i, "clock"],
+  [/^copy/i,                                   "copy"],
+  [/^save/i,                                   "save"],
+  [/^clear|start over|start the list over/i,   "bin"],
+  [/^add|^\+$/i,                               "plus"],
+  [/^new /i,                                   "spark"],
+  [/^next|another one|^spin$/i,                "next"],
+  [/again|^restart$/i,                         "redo"],
+  [/^send$/i,                                  "send"],
+  [/^put it on$|^both press play$|^serve$|^push off$|^start$|^go$|^in play$/i, "play"],
+  [/veto/i,                                    "star"],
+  [/^pick|^roll/i,                             "spark"],
+  [/write|^say/i,                              "pen"]
+];
+
+const markFor = txt => {
+  for(const [re, name] of MARKS) if(re.test(txt)) return GLYPH[name];
+  return null;
+};
+
+/* Only the buttons that carry words. The tiles, the pad keys, the mole holes
+   and the little round ones already say what they are. */
+const DRESSED = ".btn, .open, .chat-tools button, .cbtns button, #gateGo";
+
+function dressButtons(root){
+  (root || document).querySelectorAll(DRESSED).forEach(b => {
+    const label = (b.textContent || "").trim();
+    if(label.length < 3) return;                     // +, −, →, ✕ and the arrows
+    const had = b.querySelector(":scope > .bi");
+    const want = markFor(label);
+    if(!want){ if(had) had.remove(); return; }
+    if(had && had.dataset.g === want) return;        // already right
+    if(had) had.remove();
+    const span = el("span","bi",
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+      'stroke-linecap="round" stroke-linejoin="round">' + want + '</svg>');
+    span.dataset.g = want;
+    span.setAttribute("aria-hidden","true");
+    b.insertBefore(span, b.firstChild);
+  });
+}
+
+/* Labels are rewritten constantly — and a textContent assignment takes the
+   icon with it — so watch rather than dress once. Coalesced, because the
+   arcade repaints a score every frame. */
+function watchButtons(){
+  dressButtons(document);
+  let due = 0;
+  const obs = new MutationObserver(() => {
+    if(due) return;
+    due = setTimeout(() => { due = 0; dressButtons(document); }, 200);
+  });
+  obs.observe(document.body, { childList:true, subtree:true, characterData:true });
+}
 
 /* =======================================================================
    CARRYING PICTURES AND VOICES. The watch party and the chat both need the
@@ -4161,7 +4291,7 @@ function pongGame(host, gbind, gevery, gclean){
 
 /* --- arcade: breakout, with a bat each --- */
 function brickGame(host, gbind, gevery, gclean){
-  const W = 420, H = 300, COLS = 9, ROWS = 5, BW = 42, BH = 14, TOP = 34, PW = 62, PH = 10;
+  const W = 420, H = 300, COLS = 9, ROWS = 5, BW = 42, BH = 14, TOP = 34, PW = 78, PH = 10, BALLS = 5;
   const box = el("div","card");
   box.appendChild(el("div","qnum","arrows, the buttons, or drag along the glass — a bat each on the same floor, clear the wall between you"));
   const line = el("div","arc-score","");
@@ -4180,7 +4310,7 @@ function brickGame(host, gbind, gevery, gclean){
   const held = {};
   const keys = ARC.keys(gclean);
   const drives = ARC.own("brick", gevery, gclean);
-  const pads = { her: W * 0.33, you: W * 0.66 };
+  const pads = { her: W * 0.36, you: W * 0.64 };
   let wall = [], ball = { x: W/2, y: H - 40, vx: 0, vy: 0 }, live = false;
   let lives = 3, hits = 0, beat = 0, done = "";
 
@@ -4188,17 +4318,25 @@ function brickGame(host, gbind, gevery, gclean){
     wall = [];
     for(let y = 0; y < ROWS; y++)
       for(let x = 0; x < COLS; x++) wall.push(1);
-    lives = 3; hits = 0; live = false; done = "";
+    lives = BALLS; hits = 0; live = false; done = "";
     ball = { x: W/2, y: H - 40, vx: 0, vy: 0 };
   };
   const brickAt = i => ({ x: 12 + (i % COLS) * (BW + 1), y: TOP + Math.floor(i / COLS) * (BH + 4) });
   const left = () => wall.reduce((a,b) => a + b, 0);
 
-  const push = () => { if(live || done) return; live = true;
-    ball = { x: W/2, y: H - 40, vx: (Math.random() < .5 ? -1 : 1) * 150, vy: -215 }; };
+  /* It used to launch from the middle of the board, which is exactly the gap
+     between the two bats — so it came straight back down through it and three
+     balls were gone in five seconds. It leaves from the bat of whoever pushed
+     off, the way the machine does it. */
+  const push = from => {
+    if(live || done) return;
+    const at = pads[from] !== undefined ? pads[from] : W/2;
+    live = true;
+    ball = { x: at, y: H - 30, vx: (Math.random() < .5 ? -1 : 1) * (70 + Math.random() * 60), vy: -205 };
+  };
 
   gev("brick.pad", m => { if(m && m.s && m.s !== mySide()) pads[m.s] = m.x; });
-  gev("brick.go", () => { if(drives()) push(); });
+  gev("brick.go", (m, by) => { if(drives()) push((m && m.s) || theirSide()); });
   gev("brick.new", () => { if(drives()){ build(); blast(); } });
   gev("brick.state", m => {
     if(drives() || !m) return;
@@ -4210,7 +4348,7 @@ function brickGame(host, gbind, gevery, gclean){
   const blast = () => SYNC.ev("brick.state", { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy,
     live, l:lives, h:hits, done, w:wall.join(""), pads });
 
-  go.addEventListener("click", () => drives() ? push() : SYNC.ev("brick.go", {}));
+  go.addEventListener("click", () => drives() ? push(mySide()) : SYNC.ev("brick.go", { s: mySide() }));
   again.addEventListener("click", () => {
     if(drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
   });
@@ -4243,12 +4381,15 @@ function brickGame(host, gbind, gevery, gclean){
         }
       }
       const floor = H - 18;
-      if(ball.vy > 0 && ball.y > floor - 6 && ball.y < floor + 10){
+      if(ball.vy > 0 && ball.y > floor - 8 && ball.y < floor + 12){
         [["her", pads.her], ["you", pads.you]].forEach(([s, px]) => {
           if(ball.x > px - PW/2 - 4 && ball.x < px + PW/2 + 4){
-            ball.y = floor - 6; ball.vy = -Math.abs(ball.vy) * 1.02;
-            ball.vx += (ball.x - px) * 3.6;
+            ball.y = floor - 8; ball.vy = -Math.abs(ball.vy) * 1.02;
+            ball.vx += (ball.x - px) * 3.2;
             ball.vx = Math.max(-320, Math.min(320, ball.vx));
+            /* Off the very end of a bat the ball can end up travelling almost
+               sideways and never come back down. Keep some climb in it. */
+            if(Math.abs(ball.vy) < 150) ball.vy = -150;
           }
         });
       }
@@ -4286,6 +4427,7 @@ function brickGame(host, gbind, gevery, gclean){
 
   const paint = () => {
     line.textContent = hits + " down, " + left() + " to go  ·  " + lives + " ball" + (lives === 1 ? "" : "s") + " left";
+    go.title = "The ball leaves your own bat";
     go.disabled = live || !!done;
     go.textContent = live ? "In play" : "Push off";
     const b = SYNC.get("brick.best", 0);
@@ -6436,6 +6578,7 @@ const PICS = {
 
 /* ---- go ---- */
 buildHours();
+watchButtons();
 $("#hugLaunch").addEventListener("click", () => {
   if(SYNC.get("stage.open", null) !== "hug") SYNC.set("stage.open", "hug"); else showStage("hug");
 });
