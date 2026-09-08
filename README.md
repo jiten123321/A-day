@@ -120,12 +120,13 @@ A **hug** button sits above the chat, available at any hour rather than being
 one of the twelve stops. It opens on both screens, and whoever presses it, the
 hug plays on both at once.
 
-It is a framed picture rather than a stage: a warm paper sky going cream to
-coral, a soft glow behind them, a vignette and film grain over the top, and the
-two of them cropped at the thigh. Long dark hair, a pale knit, teal trousers; a
-green jumper over a shirt collar, round glasses. Faces are a few marks each —
-brows, a nose, a mouth, blush — and the eyes close for the hug, which is most
-of what sells it.
+It is a framed picture rather than a stage: a white-to-pink sky with soft
+blotches through it, a glow behind them, a vignette and film grain over the
+top, and the two of them cropped at the thigh. Her: an auburn bob and a red
+top. Him: a light blue collared shirt, mid-brown hair swept across, a mole on
+his cheek. Faces are a few marks each — thick brows, a small nose, a mouth,
+blush — and the eyes close into lashes for the hug, which is most of what
+sells it.
 
 Flat shapes, but not clip art. What keeps it from looking like clip art:
 

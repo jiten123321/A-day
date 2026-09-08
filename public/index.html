@@ -731,29 +731,29 @@ input[type=text], .close, .open{
 .hugscene{width:100%;max-width:360px;height:auto;display:block;margin:0 auto;overflow:visible}
 .hugscene .frameline{fill:none;stroke:var(--ink);stroke-width:2.4;opacity:.9}
 .hugscene .grain{opacity:.17;mix-blend-mode:multiply;pointer-events:none}
-.hugscene .ink-f{fill:#3E2C24}
+.hugscene .ink-f{fill:#33241F}
 /* every filled shape carries the same soft warm outline; the gradient fills
    themselves are drawn on top of an outlined copy, so .ln is the outline */
-.hugscene .ln{stroke:#43312B;stroke-width:2.3;stroke-linejoin:round;stroke-linecap:round}
+.hugscene .ln{stroke:#3A2822;stroke-width:2.3;stroke-linejoin:round;stroke-linecap:round}
 /* interior shapes take a lighter line than the silhouette — one weight
    everywhere is what makes flat art look like clip art */
-.hugscene .ln2{stroke:#43312B;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
-.hugscene .seam{fill:none;stroke:#43312B;stroke-width:1.5;opacity:.42;stroke-linecap:round}
-.hugscene .fold{fill:none;stroke:rgba(62,42,34,.24);stroke-width:1.5;stroke-linecap:round}
-.hugscene .shade{fill:rgba(98,52,36,.17);stroke:none}
+.hugscene .ln2{stroke:#3A2822;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.hugscene .seam{fill:none;stroke:#3A2822;stroke-width:1.5;opacity:.42;stroke-linecap:round}
+.hugscene .fold{fill:none;stroke:rgba(50,34,28,.26);stroke-width:1.5;stroke-linecap:round}
+.hugscene .cuff{fill:none;stroke:rgba(50,34,28,.4);stroke-width:1.8;stroke-linecap:round}
+.hugscene .button{r:2.4;fill:rgba(255,255,255,.75);stroke:rgba(50,34,28,.35);stroke-width:1}
+.hugscene .mole{fill:rgba(90,52,36,.55)}
+.hugscene .shade{fill:rgba(120,60,54,.15);stroke:none}
 .hugscene .hi{fill:rgba(255,246,234,.13);stroke:none}
 .hugscene .strand{fill:none;stroke:rgba(255,234,210,.10);stroke-width:3;stroke-linecap:round}
-.hugscene .lens{fill:rgba(255,250,240,.16);stroke:none}
-.hugscene .specs .glint{stroke:rgba(255,252,246,.7);stroke-width:1.6}
 /* the shadows they cast on each other only exist once they are touching */
 .hugscene .contactshade{opacity:0;transition:opacity .5s}
 .hugwrap.hold .contactshade{opacity:1}
-.hugscene .blush{fill:rgba(207,96,86,.34);stroke:none}
-.hugscene .brow{stroke:rgba(52,34,24,.7);stroke-width:1.6;fill:none;stroke-linecap:round}
-.hugscene .lash{stroke:#3E2C24;stroke-width:2;fill:none;stroke-linecap:round}
-.hugscene .nose{stroke:rgba(120,74,48,.6);stroke-width:1.5;fill:none;stroke-linecap:round}
-.hugscene .mouth{stroke:rgba(90,42,38,.8);stroke-width:1.7;fill:none;stroke-linecap:round}
-.hugscene .specs{fill:none;stroke:#42302A;stroke-width:1.8;opacity:.85}
+.hugscene .blush{fill:rgba(232,116,110,.38);stroke:none}
+.hugscene .brow{stroke:#43301F;stroke-width:2.6;fill:none;stroke-linecap:round}
+.hugscene .lash{stroke:#33241F;stroke-width:2.4;fill:none;stroke-linecap:round}
+.hugscene .nose{stroke:rgba(150,88,60,.6);stroke-width:1.6;fill:none;stroke-linecap:round}
+.hugscene .mouth{stroke:rgba(120,52,44,.85);stroke-width:1.9;fill:none;stroke-linecap:round}
 
 /* eyes close for the hug, which is most of what sells it */
 .hugscene .eyes-shut{opacity:0}
@@ -798,7 +798,7 @@ input[type=text], .close, .open{
 @keyframes breathe{0%,100%{transform:translateY(0)} 50%{transform:translateY(-1.2px)}}
 .hugwrap:not(.near) .hugscene .figR{animation:breathe 4.2s ease-in-out infinite}
 
-.hugscene .heart{fill:#FFF4E9;stroke:rgba(120,70,50,.25);stroke-width:1;
+.hugscene .heart{fill:#FFFFFF;stroke:rgba(180,80,90,.3);stroke-width:1;
   opacity:0;animation:rise 2.4s ease-out forwards}
 @keyframes rise{
   0%{opacity:0;transform:translateY(0) translateX(0) scale(.6)}
@@ -1808,27 +1808,27 @@ ACTS.hug = b => {
          aria-label="the two of them holding on to each other">
       <defs>
         <linearGradient id="hugSky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#F0E5D0"/>
-          <stop offset=".44" stop-color="#F3C29B"/>
-          <stop offset="1" stop-color="#E67F5C"/>
+          <stop offset="0" stop-color="#FEF8F7"/>
+          <stop offset=".5" stop-color="#F9DADB"/>
+          <stop offset="1" stop-color="#F0AEB4"/>
         </linearGradient>
-        <radialGradient id="hugGlow" cx=".52" cy=".42" r=".62">
-          <stop offset="0" stop-color="#FFF6E8" stop-opacity=".34"/>
-          <stop offset="1" stop-color="#FFF6E8" stop-opacity="0"/>
+        <radialGradient id="hugGlow" cx=".5" cy=".38" r=".62">
+          <stop offset="0" stop-color="#FFFFFF" stop-opacity=".62"/>
+          <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
         </radialGradient>
         <radialGradient id="hugVig" cx=".5" cy=".44" r=".78">
-          <stop offset=".5" stop-color="#5E2A16" stop-opacity="0"/>
-          <stop offset="1" stop-color="#5E2A16" stop-opacity=".15"/>
+          <stop offset=".52" stop-color="#B4525C" stop-opacity="0"/>
+          <stop offset="1" stop-color="#B4525C" stop-opacity=".16"/>
         </radialGradient>
-        ${g2("herHair","#553425","#2C1A12")}
-        ${g2("herSkin","#FADEC2","#E9BA95")}
-        ${g2("herKnit","#EFD8C9","#CBA894")}
-        ${g2("herLeg","#32897A","#1B564D")}
-        ${g2("hisHair","#583B29","#332017")}
-        ${g2("hisSkin","#F5D5B4","#DDB088")}
-        ${g2("hisCoat","#616D4D","#3B462E")}
-        ${g2("hisLeg","#968C74","#6A6151")}
-        ${g2("hisShirt","#EFE5D3","#CDC0A9")}
+        ${g2("herHair","#8A3A2A","#491A11")}
+        ${g2("herSkin","#FDDFC7","#F3C2A0")}
+        ${g2("herKnit","#E44C4C","#AF2830")}
+        ${g2("herLeg","#4C6193","#2C3B5C")}
+        ${g2("hisHair","#7E5433","#4A2C16")}
+        ${g2("hisSkin","#FBD8BC","#EFBB95")}
+        ${g2("hisCoat","#A9CBF2","#6C97D6")}
+        ${g2("hisLeg","#3E4A67","#242E48")}
+        ${g2("hisShirt","#C6DDF9","#8FB5E6")}
         <clipPath id="hugFrame">
           <rect x="${PX}" y="${PY}" width="${PW}" height="${PH}" rx="15"/>
         </clipPath>
@@ -1839,69 +1839,74 @@ ACTS.hug = b => {
         <filter id="hugSoft" x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="4.5"/>
         </filter>
+        <filter id="hugCloud" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="12"/>
+        </filter>
         <filter id="hugLift" x="-25%" y="-25%" width="150%" height="150%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#7A4025" flood-opacity=".2"/>
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#9A4550" flood-opacity=".22"/>
         </filter>
       </defs>
 
       <g clip-path="url(#hugFrame)">
         <rect x="${PX}" y="${PY}" width="${PW}" height="${PH}" fill="url(#hugSky)"/>
-        <ellipse cx="216" cy="146" rx="128" ry="150" fill="url(#hugGlow)"/>
+        <g filter="url(#hugCloud)" opacity=".5">
+          <ellipse cx="150" cy="70" rx="34" ry="24" fill="#F6C3C6"/>
+          <ellipse cx="276" cy="120" rx="30" ry="22" fill="#F6C3C6"/>
+          <ellipse cx="140" cy="240" rx="30" ry="26" fill="#EFA9AF"/>
+          <ellipse cx="286" cy="256" rx="26" ry="22" fill="#EFA9AF"/>
+        </g>
+        <ellipse cx="216" cy="140" rx="120" ry="140" fill="url(#hugGlow)"/>
 
         <g class="pair" filter="url(#hugLift)">
         <!-- him, behind -->
         <g class="fig figR">
           <path class="ln" fill="url(#hisLeg)" d="M176,262 L306,262 L306,322 L174,322 Z"/>
-          <path class="ln2" fill="url(#hisShirt)"
-                d="M212,141 L240,182 L268,141 C265,135 262,133 259,134
-                   L240,164 L221,134 C218,133 215,135 212,141 Z"/>
           <path class="ln" fill="url(#hisSkin)" d="M226,122 h28 v16 a14,13 0 0 1 -28,0 Z"/>
           <path class="shade" d="M226,122 h28 v5 a14,9 0 0 1 -28,0 Z"/>
           <path class="ln" fill="url(#hisCoat)"
                 d="M174,272 C172,236 173,208 177,192 C182,166 194,150 216,142
-                   L240,180 L264,142 C288,150 301,166 305,192
+                   L240,178 L264,142 C288,150 301,166 305,192
                    C309,209 310,238 308,272 C266,285 214,285 174,272 Z"/>
-          <path class="hi" d="M264,146 C286,154 297,170 301,194 C292,178 280,162 262,152 Z"/>
-          <path class="fold" d="M222,148 L240,174 L258,148"/>
-          <path class="fold" d="M290,166 C298,186 300,214 298,244"/>
-          <path class="fold" d="M252,264 q14,5 26,-2"/>
-          <path class="seam arm-down" d="M196,168 C190,198 189,232 192,270"/>
+          <path class="ln2" fill="url(#hisShirt)" d="M210,144 L240,180 L226,132 C218,132 212,137 210,144 Z"/>
+          <path class="ln2" fill="url(#hisShirt)" d="M278,146 L240,180 L256,130 C266,130 275,137 278,146 Z"/>
+          <path class="fold" d="M240,180 L241,268"/>
+          <circle class="button" cx="240.4" cy="206"/>
+          <circle class="button" cx="240.8" cy="238"/>
+          <path class="hi" d="M266,148 C288,156 299,172 303,196 C294,180 282,164 264,154 Z"/>
+          <path class="fold" d="M290,168 C298,188 300,214 298,244"/>
+          <path class="fold" d="M254,266 q14,5 26,-2"/>
+          <path class="seam arm-down" d="M196,170 C190,200 189,232 192,270"/>
           <g class="head headHim">
             <ellipse class="ln" fill="url(#hisHair)" cx="240" cy="90" rx="36" ry="37"/>
             <ellipse class="ln" fill="url(#hisSkin)" cx="240" cy="100" rx="29" ry="32"/>
             <path class="ln2" fill="url(#hisSkin)" d="M264,96 C273,94 277,102 274,110 C271,117 264,116 262,110 Z"/>
             <path class="shade" d="M266,100 q6,2 5,9 q-4,-6 -6,-6 Z"/>
             <path fill="url(#hisHair)"
-                  d="M211,94 C212,64 224,52 241,52 C260,52 272,66 270,92
-                     C264,72 253,66 240,68 C226,70 216,80 211,94 Z"/>
-            <path class="strand" d="M222,70 C230,62 244,59 256,64"/>
+                  d="M209,98 C207,62 222,48 242,48 C263,48 275,63 272,92
+                     C268,78 261,70 250,71 C240,72 231,80 224,88
+                     C218,94 212,96 209,98 Z"/>
+            <path class="strand" d="M224,68 C234,60 248,58 260,64"/>
             <path class="strand" d="M216,84 C220,74 228,68 236,66"/>
-            <path class="shade" d="M212,92 C214,72 222,60 234,55 C220,64 214,78 214,96 Z"/>
-            <path class="brow" d="M219,87 q8,-5 15,-1"/>
-            <path class="brow" d="M247,86 q8,-4 14,2"/>
+            <path class="shade" d="M211,94 C213,70 222,58 234,52 C220,62 214,78 214,98 Z"/>
+            <path class="brow" d="M218,86 C222,81 230,80 235,83"/>
+            <path class="brow" d="M246,84 C251,80 259,81 263,86"/>
             <g class="eyes-open">
-              <ellipse class="ink-f" cx="227" cy="99" rx="2.5" ry="3.1"/>
-              <ellipse class="ink-f" cx="253" cy="98" rx="2.5" ry="3.1"/>
-              <circle fill="#fff" cx="228" cy="98" r=".9"/>
-              <circle fill="#fff" cx="254" cy="97" r=".9"/>
+              <ellipse class="ink-f" cx="227" cy="98" rx="2.6" ry="3.3"/>
+              <ellipse class="ink-f" cx="253" cy="97" rx="2.6" ry="3.3"/>
+              <circle fill="#fff" cx="228" cy="97" r="1"/>
+              <circle fill="#fff" cx="254" cy="96" r="1"/>
             </g>
             <g class="eyes-shut">
-              <path class="lash" d="M220,97 q6.5,7 13,-.5"/>
-              <path class="lash" d="M246,96 q6.5,7 13,-.5"/>
+              <path class="lash" d="M219,96 C223,102 230,102 234,97"/>
+              <path class="lash" d="M245,95 C249,101 256,101 260,96"/>
+              <path class="lash" d="M234,97 l4,-2"/>
+              <path class="lash" d="M260,96 l4,-2"/>
             </g>
-            <g class="specs">
-              <circle class="lens" cx="227" cy="98" r="10.5"/>
-              <circle class="lens" cx="253" cy="97" r="10.5"/>
-              <circle cx="227" cy="98" r="10.5"/><circle cx="253" cy="97" r="10.5"/>
-              <path d="M237.5,98 q3,-2 6,-1"/>
-              <path d="M216.6,97 l-5,-2"/>
-              <path class="glint" d="M221,92 l5,-4"/>
-              <path class="glint" d="M247,91 l5,-4"/>
-            </g>
-            <ellipse class="blush" cx="218" cy="110" rx="7.5" ry="4.2"/>
-            <ellipse class="blush" cx="258" cy="109" rx="7.5" ry="4.2"/>
-            <path class="nose" d="M239,104 q4,4 0,6"/>
-            <path class="mouth" d="M234,118 q6,5.5 11,-1"/>
+            <ellipse class="blush" cx="218" cy="110" rx="8" ry="4.4"/>
+            <ellipse class="blush" cx="258" cy="109" rx="8" ry="4.4"/>
+            <path class="nose" d="M239,103 C243,106 243,109 239,110"/>
+            <circle class="mole" cx="250" cy="115" r="1.4"/>
+            <path class="mouth" d="M232,117 C236,124 244,124 248,116"/>
           </g>
         </g>
 
@@ -1923,44 +1928,43 @@ ACTS.hug = b => {
           <path class="seam arm-down" d="M167,224 C161,248 160,272 163,292"/>
           <path class="ln" fill="url(#herSkin)" d="M186,182 h24 v16 a12,11 0 0 1 -24,0 Z"/>
           <path class="shade" d="M186,182 h24 v5 a12,8 0 0 1 -24,0 Z"/>
-          <path class="ln" fill="url(#herHair)"
-                d="M170,146 C146,168 136,200 139,226 C141,246 138,266 149,278
-                   C160,291 180,295 191,287 C199,281 198,271 190,267
-                   C178,261 170,247 171,229 C165,208 165,174 170,146 Z"/>
-          <path class="shade" d="M171,168 C163,196 160,232 168,258
-                                  C176,280 186,288 191,286 C178,282 168,262 167,236
-                                  C166,212 168,186 171,168 Z"/>
-          <path class="strand" d="M152,186 C144,212 143,244 151,268"/>
-          <path class="strand" d="M166,196 C160,220 159,246 165,266"/>
           <g class="head headHer">
-            <ellipse class="ln" fill="url(#herHair)" cx="198" cy="158" rx="35" ry="37"/>
+            <ellipse class="ln" fill="url(#herHair)" cx="200" cy="158" rx="38" ry="38"/>
+            <path class="ln" fill="url(#herHair)"
+                  d="M164,156 C157,175 156,194 162,206 C167,215 179,214 182,204
+                     C176,189 175,171 178,154 Z"/>
+            <path class="ln" fill="url(#herHair)"
+                  d="M236,156 C243,174 244,192 238,204 C233,213 221,212 218,202
+                     C224,188 225,170 222,154 Z"/>
             <ellipse class="ln" fill="url(#herSkin)" cx="200" cy="172" rx="26" ry="28"/>
             <path fill="url(#herHair)"
-                  d="M176,168 C176,142 187,132 201,132 C218,132 228,144 227,166
-                     C220,148 208,143 197,146 C186,149 179,158 176,168 Z"/>
-            <path class="strand" d="M186,140 C196,134 210,135 218,142"/>
-            <path class="strand" d="M180,154 C184,144 191,138 199,136"/>
-            <path class="shade" d="M177,166 C177,146 186,135 197,131 C185,140 179,152 179,170 Z"/>
-            <path class="brow" d="M181,167 q7,-5 13,-2"/>
-            <path class="brow" d="M205,166 q7,-4 12,1"/>
+                  d="M175,170 C174,142 186,130 201,130 C218,130 228,142 227,168
+                     C221,150 210,144 198,147 C186,150 178,158 175,170 Z"/>
+            <path class="strand" d="M186,138 C196,132 210,133 219,141"/>
+            <path class="strand" d="M179,156 C183,145 190,138 198,135"/>
+            <path class="shade" d="M176,168 C176,146 185,133 196,129 C184,138 178,152 178,172 Z"/>
+            <path class="brow" d="M180,166 C184,161 191,160 196,163"/>
+            <path class="brow" d="M204,164 C209,160 216,161 220,166"/>
             <g class="eyes-open">
-              <ellipse class="ink-f" cx="188" cy="178" rx="2.4" ry="3"/>
-              <ellipse class="ink-f" cx="212" cy="177" rx="2.4" ry="3"/>
-              <circle fill="#fff" cx="189" cy="177" r=".9"/>
-              <circle fill="#fff" cx="213" cy="176" r=".9"/>
+              <ellipse class="ink-f" cx="188" cy="177" rx="2.5" ry="3.2"/>
+              <ellipse class="ink-f" cx="212" cy="176" rx="2.5" ry="3.2"/>
+              <circle fill="#fff" cx="189" cy="176" r="1"/>
+              <circle fill="#fff" cx="213" cy="175" r="1"/>
             </g>
             <g class="eyes-shut">
-              <path class="lash" d="M181,176 q6.5,7 13,-.5"/>
-              <path class="lash" d="M205,175 q6.5,7 13,-.5"/>
+              <path class="lash" d="M180,175 C184,181 191,181 195,176"/>
+              <path class="lash" d="M204,174 C208,180 215,180 219,175"/>
+              <path class="lash" d="M195,176 l4,-2"/>
+              <path class="lash" d="M219,175 l4,-2"/>
             </g>
-            <ellipse class="blush" cx="182" cy="189" rx="7.5" ry="4.2"/>
-            <ellipse class="blush" cx="216" cy="188" rx="7.5" ry="4.2"/>
-            <path class="nose" d="M198,182 q4,4 0,6"/>
-            <path class="mouth" d="M193,194 q6,5.5 11,-1"/>
+            <ellipse class="blush" cx="182" cy="188" rx="8" ry="4.4"/>
+            <ellipse class="blush" cx="216" cy="187" rx="8" ry="4.4"/>
+            <path class="nose" d="M197,181 C201,184 201,187 197,188"/>
+            <path class="mouth" d="M191,193 C195,200 203,200 207,192"/>
           </g>
         </g>
 
-        <!-- her forearms come up between them, hands together -->
+        <!-- her arms come up between them, hands together -->
         <g class="fig figL arm-wrap">
           <path class="ln" fill="url(#herKnit)"
                 d="M184,292 C182,268 190,248 204,236 L217,248
@@ -1977,7 +1981,7 @@ ACTS.hug = b => {
           <path class="seam" d="M202,243 q5,2 9,-1"/>
         </g>
 
-        <!-- what his arm casts on her knit, under the sleeve itself -->
+        <!-- what his arm casts on her top, under the sleeve itself -->
         <g class="contactshade" filter="url(#hugSoft)">
           <path class="shade" d="M172,266 C200,276 230,274 254,262 L258,274
                                   C230,288 198,290 170,280 Z"/>
@@ -1991,6 +1995,7 @@ ACTS.hug = b => {
           <path class="hi" d="M304,214 C300,246 282,270 252,281 C280,266 296,244 300,212 Z"/>
           <path class="fold" d="M236,275 q4,8 2,14"/>
           <path class="fold" d="M266,264 q5,7 4,13"/>
+          <path class="cuff" d="M192,276 C192,286 191,292 190,295"/>
           <path class="ln2" fill="url(#hisSkin)"
                 d="M177,272 C170,273 166,279 168,285 C170,292 179,295 185,291
                    C190,288 191,281 188,276 C186,272 182,271 177,272 Z"/>
