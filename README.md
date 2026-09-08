@@ -83,6 +83,34 @@ failure paths — runs for real in the suite.
 
 ## The arcade games
 
+
+### Rock paper scissors, actually in secret
+
+"Both pick in secret" has to mean it, and the first version did not. It wrote
+the throw straight into the shared room and left the hiding to the other
+screen's CSS — the value was one `SYNC.get("rps.pick.her")` away from anyone
+curious. Long before that, the live cursor gave it away outright: you could
+watch a pointer drift onto **rock** and a click ripple land on it.
+
+So: commit, then reveal.
+
+- Pressing a button sets `rps.lock.<side>`, a flag saying *a choice was made*.
+  The throw itself stays in the browser that made it.
+- When both flags are up, each side publishes its own `rps.pick.<side>`.
+  Neither can change by then: the buttons are disabled and the local throw is
+  fixed.
+- The round is counted by exactly one tab — whoever holds the first seat —
+  guarded by `rps.round` against a repaint or a reconnect counting it twice.
+- `CUR.mute` stops this browser broadcasting its pointer and its click ripple
+  while the game is open, and lets go when you leave it.
+
+Two things worth knowing about the state. The round moving on is what ends a
+throw, not the button that moved it — only one of the two tabs pressed that,
+and the other was left holding last round's hand until `render` learned to
+compare `myRound` against `rps.round`. And a reload loses the local throw but
+not the flag, so a side that is locked with nothing to publish gets its pick
+handed back rather than stranding the round: nothing was revealed, so nothing
+is lost.
 Twelve games, all shared — every move lands on both boards.
 
 **Chess** is the real thing: legal move generation, castling (including through
