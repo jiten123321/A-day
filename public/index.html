@@ -338,6 +338,24 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 }
 .countdown.big{font-size:clamp(4rem,20vw,7rem);line-height:1}
 .rules{margin:20px 0 0;padding-left:18px;color:var(--muted);font-size:.92rem;line-height:1.7}
+.screen{
+  position:relative;margin:6px 0 14px;border-radius:14px 12px 15px 11px;
+  background:rgba(36,51,80,.08);border:2px solid var(--line);
+  aspect-ratio:16/9;overflow:hidden;display:flex;align-items:center;justify-content:center
+}
+.screen video{width:100%;height:100%;object-fit:contain;background:#12203F;display:none}
+.screen.on video{display:block}
+.screen .hint{
+  padding:16px;text-align:center;color:var(--muted);font-size:.95rem;line-height:1.55;max-width:34ch
+}
+.screen.on .hint{display:none}
+.screen .tap{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(18,32,63,.55);color:#FFF6EE;font-family:var(--serif);font-size:1.3rem;border:none
+}
+.screen.needtap .tap{display:flex}
+.sharebar{font-size:.9rem;color:var(--muted);margin:0 0 10px;min-height:1.3em}
+.sharebar b{color:var(--mango);font-weight:400}
 .dare-btn{background:var(--rose);color:#2A0B12}
 
 
@@ -1135,7 +1153,7 @@ const PLAN = [
   {t:"12:00", title:"Same order",          line:"Four picks each, blind. Then count the overlap.", k:"menu"},
   {t:"13:00", title:"Ninety seconds to draw me", line:"From memory. No photos, no undo, no being nice.", k:"draw"},
   {t:"13:30", title:"Memory match",        line:"Sixteen cards, eight things that already happened.", k:"match"},
-  {t:"14:00", title:"Watch party",         line:"Shortlist it, let the page pick, press play together.", k:"watch"},
+  {t:"14:00", title:"Watch party",         line:"Shortlist it, let the page pick, share your screen.", k:"watch"},
   {t:"16:00", title:"How well do you know me", line:"Eight about me. Under five and you explain yourself.", k:"quiz"},
   {t:"16:30", title:"Truth or dare, long distance", line:"Every dare is doable from your room. No backing out.", k:"dare"},
   {t:"17:00", title:"One song each",       line:"One each. Full song, no talking, no skipping.", k:"song"},
@@ -1435,6 +1453,12 @@ buildWatch(); tick(); setInterval(tick, 1000);
 let stageTimers = [];
 const every = (ms, fn) => { fn(); const id = setInterval(fn, ms); stageTimers.push(id); return id; };
 const dropTimers = () => { stageTimers.forEach(clearInterval); stageTimers = []; };
+
+/* Anything an activity has to hand back when it closes — a media stream, a
+   peer connection. Timers and subscriptions have their own lists. */
+let stageOuts = [];
+const onClose  = fn => stageOuts.push(fn);
+const dropOuts = () => { stageOuts.forEach(f => { try { f(); } catch(_){} }); stageOuts = []; };
 const mmss = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
 
 /* A countdown both sides see identically: the end time lives in shared
@@ -1614,7 +1638,7 @@ function showStage(i){
   const h = entryOf(i);
   if(!h) return;
   lastFocus = document.activeElement;
-  dropSubs(); dropTimers();
+  dropSubs(); dropTimers(); dropOuts();
   openIndex = i;
 
   $("#stageWhen").textContent = typeof i === "number"
@@ -1640,7 +1664,7 @@ function showStage(i){
 function hideStage(){
   if(openIndex === null) return;
   openIndex = null;
-  dropSubs(); dropTimers();
+  dropSubs(); dropTimers(); dropOuts();
   $("#stage").classList.remove("on");
   $("#stageBody").innerHTML = "";
   document.body.style.overflow = "";
@@ -3890,7 +3914,7 @@ function hangmanGame(host, gbind){
 
 /* --- 14:00 watch party --- */
 ACTS.watch = b => {
-  lede(b, "This can't play Netflix — it picks the film and counts you both in. The countdown runs off one clock, so it really is the same second. For synced playback use Teleparty.");
+  lede(b, "Shortlist it, let the page pick, then share your screen and watch it on both sides at once.");
 
   const s1 = el("div","card");
   s1.appendChild(el("div","qnum","step one — build the shortlist"));
@@ -3932,6 +3956,176 @@ ACTS.watch = b => {
   CFG.watchRules.forEach(x => rules.appendChild(el("li", null, x)));
   s3.appendChild(rules);
   b.appendChild(s3);
+
+  /* ---- step four: the screen itself, over WebRTC ---- */
+  const s4 = el("div","card"); s4.style.marginTop = "18px";
+  s4.appendChild(el("div","qnum","step four — share the screen"));
+  const bar = el("div","sharebar","");
+  s4.appendChild(bar);
+  const screen = el("div","screen");
+  const vid = el("video");
+  vid.playsInline = true; vid.autoplay = true; vid.muted = true;
+  vid.setAttribute("playsinline","");   // muted so the picture always starts; sound is a press away
+  const hint = el("div","hint","Nothing on yet. Whoever has the film open presses share and picks that tab.");
+  const tap = el("button","tap","Tap to start");
+  screen.appendChild(vid); screen.appendChild(hint); screen.appendChild(tap);
+  s4.appendChild(screen);
+  const r4 = el("div","row");
+  const shareGo   = el("button","btn","Share my screen");
+  const shareStop = el("button","btn ghost","Stop sharing");
+  const sound     = el("button","btn ghost","Sound on");
+  [shareGo, shareStop, sound].forEach(x => r4.appendChild(x));
+  s4.appendChild(r4);
+  note(s4, "Chrome or Edge on a computer, and pick <b>a tab</b> rather than the whole screen — that is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle: their copy protection blanks the picture before the browser ever sees it. YouTube and anything unprotected come through fine, and for the locked ones the countdown above still gets you both to play on the same second.");
+  b.appendChild(s4);
+
+  const RTC = { iceServers: [{ urls: ["stun:stun.l.google.com:19302",
+                                      "stun:stun1.l.google.com:19302"] }] };
+  const pcs = new Map(), pend = new Map();
+  let local = null, wanted = false;
+
+  const sig = (to, kind, extra) => SYNC.ev("watch.rtc", Object.assign({ to, kind }, extra || {}));
+  const liveShare = () => {
+    const sh = SYNC.get("watch.share", null);
+    if(!sh || !sh.id) return null;
+    // a tab that closed mid-share leaves the key behind; the peer list is truth
+    if(sh.id !== SYNC.id && !SYNC.peers.some(p => p.id === sh.id)) return null;
+    return sh;
+  };
+
+  const dropPc = id => {
+    const pc = pcs.get(id);
+    if(pc){ try { pc.close(); } catch(_){} pcs.delete(id); }
+    pend.delete(id);
+  };
+  const dropAll = () => { Array.from(pcs.keys()).forEach(dropPc); };
+
+  const showStream = st => {
+    vid.srcObject = st;
+    screen.classList.add("on");
+    vid.play().then(() => screen.classList.remove("needtap"))
+              .catch(() => screen.classList.add("needtap"));
+  };
+  tap.addEventListener("click", () => {
+    vid.muted = false;
+    vid.play().then(() => { screen.classList.remove("needtap"); paintShare(); }).catch(()=>{});
+  });
+
+  const makePc = id => {
+    const pc = new RTCPeerConnection(RTC);
+    pcs.set(id, pc);
+    pc.onicecandidate = e => { if(e.candidate) sig(id, "ice", { cand: e.candidate.toJSON() }); };
+    pc.ontrack = e => showStream(e.streams[0]);
+    pc.onconnectionstatechange = () => {
+      if(pc.connectionState === "failed"){
+        bar.innerHTML = "The connection wouldn't hold. One of you press share again.";
+      }
+      paintShare();
+    };
+    return pc;
+  };
+  const flush = (id, pc) => {
+    (pend.get(id) || []).forEach(c => pc.addIceCandidate(c).catch(()=>{}));
+    pend.delete(id);
+  };
+
+  const offerTo = async id => {
+    if(!local) return;
+    dropPc(id);
+    const pc = makePc(id);
+    local.getTracks().forEach(t => pc.addTrack(t, local));
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      sig(id, "offer", { sdp: pc.localDescription });
+    } catch(_){ bar.innerHTML = "Couldn't start the stream."; }
+  };
+
+  const stopShare = () => {
+    if(local){ local.getTracks().forEach(t => t.stop()); local = null; }
+    dropAll();
+    vid.srcObject = null; screen.classList.remove("on","needtap");
+    if((SYNC.get("watch.share", null) || {}).id === SYNC.id) SYNC.set("watch.share", null);
+    paintShare();
+  };
+
+  shareGo.addEventListener("click", async () => {
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
+      bar.innerHTML = "This browser won't share a screen. Phones cannot do it at all — it needs Chrome, Edge or Firefox on a computer.";
+      return;
+    }
+    try {
+      local = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 30, max: 30 } },
+        audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      });
+    } catch(err){
+      bar.innerHTML = (err && err.name === "NotAllowedError")
+        ? "You cancelled the share." : "The browser wouldn't hand over a screen.";
+      return;
+    }
+    local.getVideoTracks()[0].addEventListener("ended", stopShare);   // the browser's own stop button
+    vid.muted = true;                                                  // never echo your own audio back
+    showStream(local);
+
+    SYNC.set("watch.share", { id: SYNC.id, name: ME.name || nameOf(mySide()) });
+    SYNC.peers.filter(p => p.id !== SYNC.id).forEach(p => offerTo(p.id));
+  });
+  shareStop.addEventListener("click", stopShare);
+  sound.addEventListener("click", () => {
+    vid.muted = !vid.muted;
+    if(!vid.muted) vid.play().catch(() => screen.classList.add("needtap"));
+    paintShare();
+  });
+
+  bindEv("watch.rtc", async (m, by) => {
+    if(!m || m.to !== SYNC.id) return;
+    if(m.kind === "want"){ offerTo(by); return; }
+    let pc = pcs.get(by);
+    try {
+      if(m.kind === "offer"){
+        dropPc(by); pc = makePc(by);
+        await pc.setRemoteDescription(m.sdp);
+        await pc.setLocalDescription(await pc.createAnswer());
+        sig(by, "answer", { sdp: pc.localDescription });
+        flush(by, pc);
+      } else if(m.kind === "answer" && pc){
+        await pc.setRemoteDescription(m.sdp);
+        flush(by, pc);
+      } else if(m.kind === "ice"){
+        if(pc && pc.remoteDescription) await pc.addIceCandidate(m.cand);
+        else { if(!pend.has(by)) pend.set(by, []); pend.get(by).push(m.cand); }
+      }
+    } catch(_){}
+  });
+
+  const paintShare = () => {
+    const sh = liveShare();
+    const mine = !!sh && sh.id === SYNC.id;
+    shareGo.disabled   = !!sh;
+    shareStop.disabled = !mine;
+    sound.disabled     = !sh || mine;
+    sound.textContent  = vid.muted ? "Sound on" : "Sound off";
+    if(!sh){
+      if(vid.srcObject){ vid.srcObject = null; vid.muted = true; screen.classList.remove("on","needtap"); }
+      bar.innerHTML = "";
+      shareGo.textContent = "Share my screen";
+      hint.textContent = "Nothing on yet. Whoever has the film open presses share and picks that tab.";
+      return;
+    }
+    if(mine){
+      bar.innerHTML = "You are sharing. This is what they see.";
+      shareGo.textContent = "Sharing…";
+    } else {
+      const st = pcs.size ? Array.from(pcs.values())[0].connectionState : "";
+      bar.innerHTML = "<b>" + esc(sh.name || "They") + "</b> is sharing" +
+        (st === "connected" ? "." : " — connecting…");
+      hint.textContent = "Connecting to " + (sh.name || "them") + "…";
+      if(!wanted){ wanted = true; sig(sh.id, "want", {}); setTimeout(() => { wanted = false; }, 4000); }
+    }
+  };
+  bind("watch.share", paintShare);
+  onClose(stopShare);
+  window.addEventListener("beforeunload", stopShare);
 
   const render = () => {
     const titles = SYNC.get("watch.titles", []);
@@ -4018,7 +4212,8 @@ ACTS.watch = b => {
   ["watch.titles","watch.veto","watch.vetoed","watch.pick"].forEach(k => bind(k, render));
   bind("watch.cd", paintCd); bind("watch.mode", paintCd);
   every(250, paintCd);
-  render();
+  every(1500, paintShare);          // the peer list decides whether a share is still live
+  render(); paintShare();
 };
 
 /* --- 16:30 truth or dare --- */
