@@ -136,9 +136,8 @@ Flat shapes, but not clip art. What keeps it from looking like clip art:
   with highlight shapes on the lit side and shade shapes on the other.
 - **Shadows they cast on each other** — her head on his chest, his sleeve on
   her knit — blurred, and faded in only once they are actually touching.
-- **Cloth and hair detail**: fold lines at the hem and the sleeve, ribbing down
-  the V-neck, strands of sheen through the hair, a lens tint and a glint on
-  each side of his glasses.
+- **Cloth and hair detail**: fold lines at the hems and along the sleeve, a
+  placket and buttons down his shirt, strands of sheen through the hair.
 - A soft drop shadow under the pair so they sit in the picture rather than on
   top of it.
 
@@ -180,6 +179,41 @@ Two class names to avoid here, learned the hard way: `close` and `wrap` are
 already used by the page (the stage's close button is a 42px square), and
 putting either on the hug container collapsed the whole picture to 42×42. The
 states are called `near` and `hold`.
+
+## Watch party
+
+Four steps: six titles alternating, a veto each, a countdown off the shared
+clock, and then the screen itself.
+
+**Screen sharing is peer to peer.** `getDisplayMedia` on one side, a
+`RTCPeerConnection` between the two browsers, and the room's existing
+WebSocket as the signalling channel — offers, answers and ICE candidates ride
+as ephemeral `watch.rtc` events addressed to one peer id, so nothing about a
+call is ever stored. Who is currently sharing lives in `watch.share`, which is
+stored, and is cross-checked against the live peer list: a tab that closes
+mid-share leaves the key behind, so the peer list is the truth.
+
+The picture starts muted, which is the only way a browser will autoplay it —
+sound is one press away, and that press is the gesture the autoplay policy
+wants. Stopping, closing the stage, or hitting the browser's own stop button
+all end the capture; the activity registers a teardown with `onClose` so a
+screen share cannot outlive the page it was started from.
+
+Three things are worth knowing before you use it:
+
+- **Netflix, Prime and Disney+ come through black.** Their copy protection
+  blanks the frames before the browser can capture them. That is not something
+  this page can work around, which is why the countdown is still there: it
+  gets you both to press play on the same second instead.
+- **Sound only comes with a tab**, not with a whole screen or a window, and
+  only on Chrome or Edge.
+- **A phone cannot share.** `getDisplayMedia` does not exist on iOS Safari or
+  Android Chrome. Watching what the other one shares works fine on a phone.
+
+There is no TURN server, so the two browsers have to reach each other over
+STUN. That covers most home connections and fails on some mobile networks;
+when it does, the panel says the connection would not hold rather than sitting
+on a spinner.
 
 ## Rooms
 
