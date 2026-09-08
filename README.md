@@ -120,12 +120,17 @@ A **hug** button sits above the chat, available at any hour rather than being
 one of the twelve stops. It opens on both screens, and whoever presses it, the
 hug plays on both at once.
 
-The two figures are built from rotating joints — shoulder, elbow, neck, waist —
-rather than a canned animation, so the arms genuinely travel around each other
-and the timing can be eased: step in, wrap, squeeze, hold, let go. Every angle
-is written once for the left figure and mirrored by a `--dir` custom property.
-One arm goes over a shoulder and the other round a waist, and the heads lean
-the same way on screen so they pass cheek to cheek instead of butting foreheads.
+A girl and a boy — long hair and a dress, short hair and a shirt — drawn as
+flat colour under ink outlines like the rest of the page. They have faces, and
+their eyes close for the hug, which is most of what sells it.
+
+Both are built from rotating joints — shoulder, elbow, neck, waist — rather
+than a canned animation, so the arms genuinely travel around each other and
+the timing can be eased: step in, wrap, squeeze, hold, let go. Every angle is
+written once for the left figure and mirrored by a `--dir` custom property, so
+the pair is one description rather than two. One arm goes over a shoulder and
+the other round a waist, and the heads lean the same way on screen so they pass
+cheek to cheek instead of butting foreheads.
 
 The near arms are drawn above both bodies and the far arms beneath, which is
 what makes the embrace read as an embrace rather than two people overlapping.

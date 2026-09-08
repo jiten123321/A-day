@@ -731,10 +731,16 @@ input[type=text], .close, .open{
 .hugscene{width:100%;height:auto;display:block;overflow:visible}
 .hugscene .ground{stroke:var(--line);stroke-width:2;stroke-dasharray:5 8}
 .hugscene .ink{stroke:var(--ink);fill:none;stroke-linecap:round;stroke-linejoin:round}
-.hugscene .tone{stroke:var(--tone);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.hugscene .skin,.hugscene .cloth{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .hugscene .ink-f{fill:var(--ink)}
-.hugscene .tone-f{fill:var(--tone)}
-.hugscene .hand{fill:var(--tone);stroke:var(--ink);stroke-width:2.5}
+.hugscene .skin-f,.hugscene .cloth-f,.hugscene .hair-f{stroke:none}
+.hugscene .shoe{fill:#2E3C5E}
+.hugscene .blush{fill:rgba(207,62,87,.32)}
+/* eyes close for the hug, which is most of what sells it */
+.hugscene .eyes-shut{opacity:0}
+.hugwrap.hugging .hugscene .eyes-open{opacity:0}
+.hugwrap.hugging .hugscene .eyes-shut{opacity:1}
+.hugscene .eyes-open,.hugscene .eyes-shut{transition:opacity .25s}
 
 /* Joints. Every angle is written for the left figure; --dir mirrors it. */
 .hugscene .up, .hugscene .fore, .hugscene .torso, .hugscene .head, .hugscene .fig{
@@ -749,8 +755,8 @@ input[type=text], .close, .open{
   /* The upper arm swings across, then the forearm bends back *down* — an arm
      draped over a shoulder and one reaching round a waist. Bending both the
      same way is what makes it a high five instead of a hug. */
-  --nearUp:-108deg; --nearFore:58deg;
-  --farUp:-72deg;   --farFore:26deg;
+  --nearUp:-96deg;  --nearFore:52deg;
+  --farUp:-68deg;   --farFore:22deg;
   --lean:5deg;      --tilt:10deg
 }
 .hugscene .armFar  .up   { transform:rotate(calc(var(--dir) * var(--farUp))) }
@@ -1765,59 +1771,107 @@ ACTS.hug = b => {
   const box = el("div","card");
   const wrap = el("div","hugwrap");
 
-  const W = 420, GROUND = 252;
-  const HIP = 176, SH = HIP - 52, HEAD = HIP - 84;
+  const W = 420, GROUND = 262;
+  const HIP = 178, SH = HIP - 52, NECK = HIP - 60, HEADY = HIP - 80;
   const UP = 34, FORE = 32;                       // upper arm / forearm length
 
-  /* One figure, laid out around its hip. dir flips it to face the other way;
-     every joint angle is written for the left figure and negated by --dir. */
-  const figure = (id, x, tone, dir) => {
+  /* One person, laid out around the hip. Every joint angle is written for the
+     left figure and mirrored by --dir, so both are built from one description.
+     Limbs are round-capped strokes — an ink one under a colour one — which
+     gives properly rounded arms without hand-authoring each shape. */
+  const person = (o) => {
+    const x = o.x, dir = o.dir, girl = o.girl;
+    const limb = (d, w, colour) =>
+      `<path class="ink"  d="${d}" stroke-width="${w+5}"/>
+       <path class="skin" d="${d}" stroke-width="${w}" style="stroke:${colour}"/>`;
+
     const arm = (cls, dx) => { const ax = x + dx; return `
       <g class="${cls}">
         <g class="up" style="transform-origin:${ax}px ${SH}px">
-          <path class="ink"  d="M${ax},${SH} L${ax},${SH+UP}" stroke-width="17"/>
-          <path class="tone" d="M${ax},${SH} L${ax},${SH+UP}" stroke-width="11"/>
+          ${limb(`M${ax},${SH} L${ax},${SH+UP}`, 11, o.skin)}
+          <path class="ink"    d="M${ax},${SH-1} L${ax},${SH+15}" stroke-width="21"/>
+          <path class="cloth"  d="M${ax},${SH-1} L${ax},${SH+15}" stroke-width="17" style="stroke:${o.cloth}"/>
           <g class="fore" style="transform-origin:${ax}px ${SH+UP}px">
-            <path class="ink"  d="M${ax},${SH+UP} L${ax},${SH+UP+FORE}" stroke-width="15"/>
-            <path class="tone" d="M${ax},${SH+UP} L${ax},${SH+UP+FORE}" stroke-width="9"/>
-            <circle class="hand" cx="${ax}" cy="${SH+UP+FORE}" r="6.5"/>
+            ${limb(`M${ax},${SH+UP} L${ax},${SH+UP+FORE}`, 9.5, o.skin)}
+            <circle class="ink-f" cx="${ax}" cy="${SH+UP+FORE+2}" r="7.5"/>
+            <circle class="skin-f" cx="${ax}" cy="${SH+UP+FORE+2}" r="5.8" style="fill:${o.skin}"/>
           </g>
         </g>
       </g>`; };
-    const leg = (k, dx) => `
-      <path class="ink"  d="M${x},${HIP} L${x+dx*dir},${HIP+38} L${x+dx*dir*0.7},${GROUND}" stroke-width="19"/>
-      <path class="tone" d="M${x},${HIP} L${x+dx*dir},${HIP+38} L${x+dx*dir*0.7},${GROUND}" stroke-width="13"/>`;
+
+    // legs start below the skirt for her, at the hip for him
+    const legTop = girl ? HIP + 20 : HIP + 2;
+    const leg = (s) => { const lx = x + s*11; return `
+      ${limb(`M${lx},${legTop} L${lx+s*1},${legTop+34} L${lx},${GROUND-8}`, girl ? 11 : 14, girl ? o.skin : o.trouser)}
+      <path class="ink-f" d="M${lx-9},${GROUND-9} h17 a5,5 0 0 1 5,5 v3 a4,4 0 0 1-4,4 h-19 a4,4 0 0 1-4,-4 v-3 a5,5 0 0 1 5,-5 z"/>
+      <path class="shoe"  d="M${lx-7},${GROUND-8} h14 a4,4 0 0 1 4,4 v2 a3,3 0 0 1-3,3 h-16 a3,3 0 0 1-3,-3 v-2 a4,4 0 0 1 4,-4 z"/>`; };
+
+    const top = girl
+      ? `M${x-17},${SH-2} Q${x},${SH-9} ${x+17},${SH-2} L${x+14},${HIP-24} L${x+27},${HIP+22} Q${x},${HIP+30} ${x-27},${HIP+22} L${x-14},${HIP-24} Z`
+      : `M${x-18},${SH-2} Q${x},${SH-9} ${x+18},${SH-2} L${x+16},${HIP-18} Q${x},${HIP-13} ${x-16},${HIP-18} Z`;
+    const shorts = girl ? "" : `
+      <path class="ink-f" d="M${x-17},${HIP-20} L${x+17},${HIP-20} L${x+15},${HIP+6} L${x-15},${HIP+6} Z"/>
+      <path class="cloth-f" d="M${x-15},${HIP-19} L${x+15},${HIP-19} L${x+13},${HIP+5} L${x-13},${HIP+5} Z" style="fill:${o.trouser}"/>`;
+
+    const hairBack = girl
+      ? `<path class="ink-f"  d="M${x-21},${HEADY-3} Q${x-28},${HEADY+28} ${x-21},${HEADY+54} L${x+21},${HEADY+54} Q${x+28},${HEADY+28} ${x+21},${HEADY-3} Z"/>
+         <path class="hair-f" d="M${x-19},${HEADY-3} Q${x-26},${HEADY+28} ${x-19},${HEADY+52} L${x+19},${HEADY+52} Q${x+26},${HEADY+28} ${x+19},${HEADY-3} Z" style="fill:${o.hair}"/>`
+      : "";
+    const hairFront = girl
+      ? `<path class="ink-f"  d="M${x-19},${HEADY-2} Q${x-18},${HEADY-24} ${x},${HEADY-23} Q${x+18},${HEADY-24} ${x+19},${HEADY-2} Q${x+8},${HEADY-13} ${x-4},${HEADY-8} Q${x-13},${HEADY-5} ${x-19},${HEADY-2} Z"/>
+         <path class="hair-f" d="M${x-18},${HEADY-3} Q${x-17},${HEADY-23} ${x},${HEADY-22} Q${x+17},${HEADY-23} ${x+18},${HEADY-3} Q${x+8},${HEADY-13} ${x-4},${HEADY-8} Q${x-13},${HEADY-6} ${x-18},${HEADY-3} Z" style="fill:${o.hair}"/>`
+      : `<path class="ink-f"  d="M${x-18},${HEADY-4} Q${x-17},${HEADY-25} ${x},${HEADY-24} Q${x+17},${HEADY-25} ${x+18},${HEADY-4} Q${x+10},${HEADY-14} ${x-2},${HEADY-11} Q${x-11},${HEADY-9} ${x-18},${HEADY-4} Z"/>
+         <path class="hair-f" d="M${x-17},${HEADY-5} Q${x-16},${HEADY-24} ${x},${HEADY-23} Q${x+16},${HEADY-24} ${x+17},${HEADY-5} Q${x+10},${HEADY-14} ${x-2},${HEADY-11} Q${x-11},${HEADY-9} ${x-17},${HEADY-5} Z" style="fill:${o.hair}"/>`;
+
+    const eye = (s) => `
+      <g class="eyes-open">
+        <ellipse class="ink-f" cx="${x+s*7}" cy="${HEADY+2}" rx="2.4" ry="3.1"/>
+      </g>
+      <g class="eyes-shut">
+        <path class="ink" d="M${x+s*7-4},${HEADY+3} q4,-4.5 8,0" stroke-width="2.1" fill="none"/>
+      </g>`;
 
     return {
-      far: `<g class="fig arm-far ${id}" style="--dir:${dir};--tone:${tone}">${arm("armFar", -13*dir)}</g>`,
-      body: `<g class="fig body ${id}" style="--dir:${dir};--tone:${tone}">
-        <g class="legs">${leg("back",-8)}${leg("front",9)}</g>
+      back: `<g class="fig ${o.id}" style="--dir:${dir}">
+        <g class="head" style="transform-origin:${x}px ${SH}px">${hairBack}</g></g>`,
+      farArm: `<g class="fig arm-far ${o.id}" style="--dir:${dir}">${arm("armFar", -13*dir)}</g>`,
+      body: `<g class="fig body ${o.id}" style="--dir:${dir}">
+        <g class="legs">${leg(-1)}${leg(1)}</g>
         <g class="torso" style="transform-origin:${x}px ${HIP}px">
-          <path class="ink"  d="M${x},${HIP} L${x},${SH}" stroke-width="40"/>
-          <path class="tone" d="M${x},${HIP} L${x},${SH}" stroke-width="32"/>
+          ${shorts}
+          <path class="ink-f" d="${top}" stroke-width="5"/>
+          <path class="cloth-f" d="${top}" style="fill:${o.cloth}" transform="translate(0 0) scale(1)"/>
+          ${limb(`M${x},${NECK+6} L${x},${NECK-4}`, 12, o.skin)}
           <g class="head" style="transform-origin:${x}px ${SH}px">
-            <path class="ink"  d="M${x},${SH} L${x},${HEAD+14}" stroke-width="15"/>
-            <path class="tone" d="M${x},${SH} L${x},${HEAD+14}" stroke-width="9"/>
-            <circle class="ink-f"  cx="${x}" cy="${HEAD}" r="22"/>
-            <circle class="tone-f" cx="${x}" cy="${HEAD}" r="19"/>
+            <ellipse class="ink-f"  cx="${x}" cy="${HEADY}" rx="19.5" ry="21"/>
+            <ellipse class="skin-f" cx="${x}" cy="${HEADY}" rx="17" ry="18.6" style="fill:${o.skin}"/>
+            <circle class="blush" cx="${x-11}" cy="${HEADY+7}" r="4"/>
+            <circle class="blush" cx="${x+11}" cy="${HEADY+7}" r="4"/>
+            ${eye(-1)}${eye(1)}
+            <path class="ink" d="M${x-5},${HEADY+10} q5,5 10,0" stroke-width="2.2" fill="none"/>
+            ${hairFront}
           </g>
         </g>
       </g>`,
-      near: `<g class="fig arm-near ${id}" style="--dir:${dir};--tone:${tone}">${arm("armNear", 13*dir)}</g>`
+      nearArm: `<g class="fig arm-near ${o.id}" style="--dir:${dir}">${arm("armNear", 13*dir)}</g>`
     };
   };
 
-  const L = figure("figL", 120, "var(--rose)", 1);
-  const R = figure("figR", 300, "var(--marigold)", -1);
+  const L = person({ id:"figL", x:120, dir:1,  girl:true,
+                     skin:"#E8B48C", hair:"#3A2418", cloth:"var(--rose)",   trouser:"#3A4E7A" });
+  const R = person({ id:"figR", x:300, dir:-1, girl:false,
+                     skin:"#D79A6A", hair:"#241812", cloth:"var(--marigold)", trouser:"#3A4E7A" });
 
   wrap.innerHTML = `
-    <svg class="hugscene" viewBox="0 0 ${W} 300" role="img" aria-label="two people hugging">
+    <svg class="hugscene" viewBox="0 0 ${W} 300" role="img" aria-label="a girl and a boy hugging">
       <line class="ground" x1="34" y1="${GROUND}" x2="${W-34}" y2="${GROUND}"/>
-      ${L.far}${R.far}
+      ${L.farArm}${R.farArm}
+      ${L.back}${R.back}
       ${L.body}${R.body}
-      ${L.near}${R.near}
+      ${L.nearArm}${R.nearArm}
       <g class="hearts"></g>
     </svg>`;
+
   box.appendChild(wrap);
 
   const r = el("div","row"); r.style.justifyContent = "center";
