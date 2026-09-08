@@ -84,6 +84,45 @@ failure paths — runs for real in the suite.
 ## The arcade games
 
 
+### The five with moving parts
+
+Pong, breakout, whack-a-mole, pac-man and doodle jump. Arcade cabinets are
+built for one person, and this site is for two, which is the whole design
+problem — a ball simulated on both screens is two different balls inside a
+second. So there are two shapes here and no third.
+
+**One ball, two chairs** — pong, breakout, whack-a-mole. The tab holding the
+first seat (`ARC.drives()`, the same rule that counts a round of rock paper
+scissors) runs the physics and broadcasts where everything is at 20Hz; the
+other sends its controls up and dead-reckons between updates so the picture
+stays smooth. Nobody else guesses at anything.
+
+**One machine each, both lit** — pac-man and doodle jump. You play your own
+and watch the other's, the way the snakes work: each side simulates itself
+and publishes a compact frame ten times a second.
+
+`ARC` holds what they share: a canvas at twice the pixels, a frame loop that
+stops when you swap cabinets, held keys that ignore what you are typing into
+the chat and clear on a tab switch, pointer dragging, and a row of touch
+buttons for phones with no arrow keys.
+
+**Two things that bit, both worth keeping in mind.**
+
+Grid movement was written as "if you are within 0.06 of a cell centre, you may
+turn". That works at sixty frames a second and stops working the moment one
+frame runs long — the ghosts sailed straight past every junction and parked in
+the first wall they met. Everything in the maze now lives on a cell plus a
+fraction of the way to the next one, so a crossing cannot be missed however
+long the frame took. There is a test that blocks the main thread for 450ms and
+checks no ghost ends up inside a wall.
+
+The first maze was drawn by hand and had a **sealed pocket** in the middle of
+it. Both ghosts started inside, could never get out, and the seven pellets in
+there with them meant the maze could never be cleared either. The one in the
+file now is five corridors across and five down, so every open cell is on one
+of them and it is connected by construction — and there is a test that floods
+it from the player's start and fails if a single cell is unreachable.
+
 ### Rock paper scissors, actually in secret
 
 "Both pick in secret" has to mean it, and the first version did not. It wrote
@@ -111,7 +150,7 @@ compare `myRound` against `rps.round`. And a reload loses the local throw but
 not the flag, so a side that is locked with nothing to publish gets its pick
 handed back rather than stranding the round: nothing was revealed, so nothing
 is lost.
-Twelve games, all shared — every move lands on both boards.
+Seventeen games, all shared — every move lands on both boards.
 
 **Chess** is the real thing: legal move generation, castling (including through
 check), en passant, promotion with a picker, check, checkmate, stalemate and the
