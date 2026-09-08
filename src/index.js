@@ -4,6 +4,15 @@
 
 const CAP_DEFAULT = 400;
 
+/* Shared images live outside the broadcast blob, chunked so no single stored
+   value is large. Chunks are well under the smallest per-value limit of either
+   storage backend, so this holds regardless of which one the class uses. */
+const IMG_CHUNK   = 64 * 1024;
+const IMG_MAX     = 3 * 1024 * 1024;
+const IMG_KEEP    = 60;                 // most recent images kept per room
+const IMG_BUDGET  = 24 * 1024 * 1024;   // ...and no more than this in total
+const IMG_TYPES   = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+
 export class DayRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -25,7 +34,95 @@ export class DayRoom {
     return this.ctx.storage.put("kv", this.kv);
   }
 
+  /* ------------------------------ images ------------------------------ */
+
+  async putImage(bytes, type) {
+    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
+    const total = Math.ceil(bytes.byteLength / IMG_CHUNK);
+
+    for (let i = 0; i < total; i++) {
+      const slice = bytes.slice(i * IMG_CHUNK, (i + 1) * IMG_CHUNK);
+      await this.ctx.storage.put(`imgc:${id}:${i}`, slice);
+    }
+    await this.ctx.storage.put(`imgm:${id}`, { type, size: bytes.byteLength, chunks: total });
+
+    const index = (await this.ctx.storage.get("img.index")) || [];
+    index.push({ id, size: bytes.byteLength });
+    await this.trim(index);
+    return id;
+  }
+
+  /* Oldest-out, on both a count and a byte budget. */
+  async trim(index) {
+    let bytes = index.reduce((n, x) => n + x.size, 0);
+    while (index.length > IMG_KEEP || (bytes > IMG_BUDGET && index.length > 1)) {
+      const gone = index.shift();
+      bytes -= gone.size;
+      await this.dropImage(gone.id);
+    }
+    await this.ctx.storage.put("img.index", index);
+  }
+
+  async dropImage(id) {
+    const meta = await this.ctx.storage.get(`imgm:${id}`);
+    const keys = [`imgm:${id}`];
+    for (let i = 0; i < (meta ? meta.chunks : 0); i++) keys.push(`imgc:${id}:${i}`);
+    await this.ctx.storage.delete(keys);
+  }
+
+  async getImage(id) {
+    if (!/^[0-9a-f]{1,32}$/.test(id || "")) return new Response("bad id", { status: 400 });
+    const meta = await this.ctx.storage.get(`imgm:${id}`);
+    if (!meta) return new Response("not found", { status: 404 });
+
+    const parts = [];
+    for (let i = 0; i < meta.chunks; i++) {
+      const c = await this.ctx.storage.get(`imgc:${id}:${i}`);
+      if (!c) return new Response("incomplete", { status: 404 });
+      parts.push(new Uint8Array(c));
+    }
+    const out = new Uint8Array(meta.size);
+    let at = 0;
+    for (const p of parts) { out.set(p, at); at += p.byteLength; }
+
+    return new Response(out, {
+      headers: {
+        "Content-Type": meta.type,
+        "Content-Length": String(meta.size),
+        // Bodies are addressed by a random id and never rewritten.
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
+
+  async wipeImages() {
+    const index = (await this.ctx.storage.get("img.index")) || [];
+    for (const x of index) await this.dropImage(x.id);
+    await this.ctx.storage.delete("img.index");
+  }
+
+  /* ------------------------------ routing ----------------------------- */
+
   async fetch(request) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/img") return this.getImage(url.searchParams.get("id"));
+
+    if (url.pathname === "/upload") {
+      const type = (request.headers.get("Content-Type") || "").split(";")[0].trim();
+      if (!IMG_TYPES.includes(type)) {
+        return Response.json({ error: "unsupported type" }, { status: 415 });
+      }
+      const bytes = await request.arrayBuffer();
+      if (!bytes.byteLength) return Response.json({ error: "empty" }, { status: 400 });
+      if (bytes.byteLength > IMG_MAX) {
+        return Response.json({ error: "too large" }, { status: 413 });
+      }
+      const id = await this.putImage(bytes, type);
+      return Response.json({ id });
+    }
+
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -101,6 +198,8 @@ export class DayRoom {
           if (!prefix || key === prefix || key.startsWith(prefix)) delete kv[key];
         }
         await this.save();
+        // Clearing everything, or the chat specifically, takes its images too.
+        if (!prefix || prefix === "chat." || prefix === "chat.msgs") await this.wipeImages();
         this.broadcast({ t: "wipe", k: prefix, by: att.id });
         break;
       }
@@ -128,6 +227,10 @@ export class DayRoom {
   }
 }
 
+const roomName = (url) =>
+  (url.searchParams.get("r") || "same-sun")
+    .toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40) || "same-sun";
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -136,10 +239,13 @@ export default {
       if (request.headers.get("Upgrade") !== "websocket") {
         return new Response("expected websocket", { status: 426 });
       }
-      const room = (url.searchParams.get("r") || "same-sun")
-        .toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40) || "same-sun";
-      const id = env.ROOM.idFromName(room);
-      return env.ROOM.get(id).fetch(request);
+      return env.ROOM.get(env.ROOM.idFromName(roomName(url))).fetch(request);
+    }
+
+    if (url.pathname === "/upload" || url.pathname === "/img") {
+      const want = url.pathname === "/upload" ? "POST" : "GET";
+      if (request.method !== want) return new Response("method not allowed", { status: 405 });
+      return env.ROOM.get(env.ROOM.idFromName(roomName(url))).fetch(request);
     }
 
     return env.ASSETS.fetch(request);
