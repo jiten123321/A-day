@@ -245,10 +245,27 @@ Three things are worth knowing before you use it:
 - **A phone cannot share.** `getDisplayMedia` does not exist on iOS Safari or
   Android Chrome. Watching what the other one shares works fine on a phone.
 
-There is no TURN server, so the two browsers have to reach each other over
-STUN. That covers most home connections and fails on some mobile networks;
-when it does, the panel says the connection would not hold rather than sitting
-on a spinner.
+Two things had to be right before a real connection would ever complete, and
+neither showed up on a loopback:
+
+- **The offer goes out before any of its candidates.** Candidates start
+  arriving during `setLocalDescription`, which is before the offer itself is
+  signalled, so the first ones were reaching the far side ahead of the
+  connection they belonged to. They are held behind the description now.
+- **A viewer that is still connecting asks once, not every few seconds.** The
+  repaint was re-sending `want`, and every one of them tore down a negotiation
+  that was halfway through and started it again — so on any connection slower
+  than a loopback it never finished, and the far side sat on "connecting"
+  forever. The viewer now asks once per share and again only if the connection
+  actually died; the sharer ignores a request from a peer it is already
+  negotiating with.
+
+There is no TURN server, so the two browsers still have to reach each other
+over STUN. That covers most home connections and fails on some mobile ones.
+The panel says which it is: waiting for an answer, connecting, connecting for
+suspiciously long, or failed — and if no reflexive candidate was ever gathered
+it says that instead, because that means STUN itself could not be reached
+rather than the two ends failing to meet.
 
 ## Rooms
 
