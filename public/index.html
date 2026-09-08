@@ -198,8 +198,8 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 }
 .note{font-size:.86rem;color:var(--muted);margin-top:18px}
 
-/* chai */
-.chai{display:flex;flex-direction:column;align-items:center;gap:8px}
+/* coffee */
+.coffee{display:flex;flex-direction:column;align-items:center;gap:8px}
 .cup{position:relative;width:190px;height:210px}
 .steam{position:absolute;top:-6px;left:0;width:100%;height:70px;opacity:0;transition:opacity .8s}
 .steam.on{opacity:.7}
@@ -1022,13 +1022,13 @@ const CFG = {
     "Here's what I noticed today. You laugh a half second before the funny part, every time. You went quiet at the wish jar. You cheated at the memory game and I let you.",
     "The distance is the only thing I'd change about my life, and I'd change it tomorrow if it were mine to change. It isn't yet. So I do this instead. I build a day and hand it to you through a screen and hope it lands like a real one.",
     "You don't have to do anything with this. Just know that on an ordinary Sunday, someone spent eight hours making sure you weren't bored.",
-    "Same time next week. Bring your chai.",
+    "Same time next week. Bring your coffee.",
     "— Jitendra"
   ]
 };
 
 const PLAN = [
-  {t:"10:00", title:"Chai to start",       line:"Two cups, one call. Clink through the camera.", k:"chai"},
+  {t:"10:00", title:"Coffee to start",     line:"Two cups, one call. Clink through the camera.", k:"coffee"},
   {t:"10:30", title:"Question roulette",   line:"Spin it, answer it. Two skips all day.", k:"wheel"},
   {t:"11:00", title:"The arcade games",    line:"Twelve games. Chess, ludo, snake, connect four.", k:"arcade"},
   {t:"12:00", title:"Same order",          line:"Four picks each, blind. Then count the overlap.", k:"menu"},
@@ -1596,19 +1596,19 @@ const canAct  = () => alone() || seated();
 const nameOf  = s => { const seat = seatOf(s); return seat ? seat.name : (s === "her" ? CFG.her : CFG.you); };
 const ensure    = (k, make) => { let v = SYNC.get(k, null); if(v === null){ v = make(); SYNC.set(k, v); } return v; };
 
-/* --- 10:00 chai --- */
-ACTS.chai = b => {
+/* --- 10:00 coffee --- */
+ACTS.coffee = b => {
   lede(b, "Hold to pour. Same cup, so hold together and it fills twice as fast.");
   const box = el("div","card");
-  const c = el("div","chai");
+  const c = el("div","coffee");
   c.innerHTML = `
   <div class="cup">
     <svg class="steam" viewBox="0 0 120 70"><path d="M40 62 C30 46 50 40 40 24 C34 14 44 8 44 2"/><path d="M60 64 C50 48 70 42 60 26 C54 16 64 10 64 4"/><path d="M80 62 C70 46 90 40 80 24 C74 14 84 8 84 2"/></svg>
     <svg viewBox="0 0 190 210" width="190" height="210">
       <defs><clipPath id="cupclip"><path d="M34 66 L156 66 L142 186 Q140 198 128 198 L62 198 Q50 198 48 186 Z"/></clipPath></defs>
       <path d="M156 92 Q182 92 182 116 Q182 142 152 142" fill="none" stroke="#243350" stroke-width="5" opacity=".8"/>
-      <rect id="tea" x="30" y="198" width="130" height="0" fill="#C9762F" clip-path="url(#cupclip)"/>
-      <ellipse id="teatop" cx="95" cy="200" rx="61" ry="7" fill="#E0954B" opacity="0"/>
+      <rect id="brew" x="30" y="198" width="130" height="0" fill="#5A3620" clip-path="url(#cupclip)"/>
+      <ellipse id="brewtop" cx="95" cy="200" rx="61" ry="7" fill="#B98A5E" opacity="0"/>
       <path d="M34 66 L156 66 L142 186 Q140 198 128 198 L62 198 Q50 198 48 186 Z" fill="none" stroke="#243350" stroke-width="5"/>
       <ellipse cx="95" cy="66" rx="61" ry="10" fill="none" stroke="#243350" stroke-width="5"/>
       <rect x="46" y="200" width="98" height="7" rx="3.5" fill="#243350" opacity=".6"/>
@@ -1636,41 +1636,41 @@ ACTS.chai = b => {
     "What did you dream about last night?",
     "What's on your table right now, exactly?"];
 
-  const tea = box.querySelector("#tea"), top = box.querySelector("#teatop");
+  const brew = box.querySelector("#brew"), crema = box.querySelector("#brewtop");
   const bar = box.querySelector(".fill-bar"), steam = box.querySelector(".steam");
 
   const render = () => {
-    const v = SYNC.get("chai.v", 0);
+    const v = SYNC.get("coffee.v", 0);
     const h = v*1.30;
-    tea.setAttribute("height", h); tea.setAttribute("y", 198 - h);
-    top.setAttribute("cy", 198 - h); top.setAttribute("opacity", v > 3 ? .9 : 0);
+    brew.setAttribute("height", h); brew.setAttribute("y", 198 - h);
+    crema.setAttribute("cy", 198 - h); crema.setAttribute("opacity", v > 3 ? .9 : 0);
     bar.style.width = v + "%";
     const full = v >= 100;
     steam.classList.toggle("on", full);
-    btn.textContent = full ? "Cheers 🍵" : "Hold to pour";
+    btn.textContent = full ? "Cheers ☕" : "Hold to pour";
     btn.classList.toggle("ghost", full);
     talkbox.hidden = !full;
-    if(full) line.textContent = SYNC.get("chai.talk", TALK[0]);
+    if(full) line.textContent = SYNC.get("coffee.talk", TALK[0]);
   };
 
   let timer = null;
   const start = e => {
     e.preventDefault();
-    if(SYNC.get("chai.v",0) >= 100) return;
+    if(SYNC.get("coffee.v",0) >= 100) return;
     clearInterval(timer);
     timer = setInterval(() => {
-      const v = Math.min(100, SYNC.get("chai.v", 0) + 5);
-      SYNC.set("chai.v", v);
-      if(v >= 100){ clearInterval(timer); ensure("chai.talk", () => shuffle(TALK)[0]); }
+      const v = Math.min(100, SYNC.get("coffee.v", 0) + 5);
+      SYNC.set("coffee.v", v);
+      if(v >= 100){ clearInterval(timer); ensure("coffee.talk", () => shuffle(TALK)[0]); }
     }, 100);
     stageTimers.push(timer);
   };
   const stop = () => clearInterval(timer);
   ["mousedown","touchstart"].forEach(ev => btn.addEventListener(ev, start, {passive:false}));
   ["mouseup","mouseleave","touchend","touchcancel"].forEach(ev => btn.addEventListener(ev, stop));
-  nb.addEventListener("click", () => SYNC.set("chai.talk", shuffle(TALK)[0]));
+  nb.addEventListener("click", () => SYNC.set("coffee.talk", shuffle(TALK)[0]));
 
-  bind("chai.v", render); bind("chai.talk", render);
+  bind("coffee.v", render); bind("coffee.talk", render);
   render();
 };
 
