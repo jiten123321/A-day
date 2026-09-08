@@ -322,6 +322,50 @@ neither showed up on a loopback:
   actually died; the sharer ignores a request from a peer it is already
   negotiating with.
 
+### When the picture stutters
+
+Four separate things read as "laggy", and they have four different answers.
+The room asks the connection which one it is and says so under the screen,
+rather than leaving you to guess. It only speaks up when something is
+actually wrong.
+
+What the sender does about it up front:
+
+- **`contentHint = "motion"`** on the captured track. The default for a
+  captured screen is *detail* — sharp text, frames dropped to pay for it.
+  Right for a spreadsheet, wrong for a film, where it reads as constant
+  stutter at the far end. This is the single biggest one.
+- **`degradationPreference = "maintain-framerate"`** on the sender. When the
+  link tightens, lose resolution rather than frames: a softer picture that
+  moves beats a sharp one that jerks.
+- **Capture capped at 1080p30.** Uncapped, a 1440p or 4K monitor is captured
+  at full size and the encoder spends its whole budget on pixels that will
+  never reach the other end's window.
+- **`maxBitrate` of 3 Mbps**, which is more generous than the default cap for
+  screen capture and about right for a film on a home connection.
+- **The confetti pauses.** `GLITTER` repaints up to 120 bits across the whole
+  window every frame, out of the same budget as decoding someone's screen.
+  While anything is playing it stops, on both sides. It pauses rather than
+  stops, so a browser set to reduced motion — which never started it — does
+  not gain it here.
+
+What it reads back, every four seconds:
+
+- the selected candidate pair, for whether this is going **through the relay**
+  and whether that relay is **over TCP**, which stutters however fast the line
+  is — WebRTC only falls back to TCP when nothing else gets through;
+- `qualityLimitationDurations` on the sending side, for **cpu** (share one tab,
+  not the whole screen) against **bandwidth** (the upload can't carry it);
+- `framesPerSecond` on the receiving side.
+
+**One sample proves nothing.** Chrome reports `qualityLimitationReason:
+"bandwidth"` for the first few seconds of *every* connection while it works
+out how fast the line is — at a perfectly good frame rate. The first version
+of this said the upload was failing on a loopback connection running at 31fps.
+It now measures how much of the last stretch was *actually* spent held back
+(a delta of `qualityLimitationDurations` over the interval, past 60%), and
+wants two consecutive slow reads before it blames the frame rate.
+
 ### When they still can't reach each other
 
 STUN only tells each side what its own public address is. Plenty of networks —
