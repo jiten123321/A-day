@@ -146,13 +146,18 @@ as machinery, so the whole thing is two drawings and a handful of transforms:
 
 - **They start apart**, side by side, arms at their sides and eyes open — a
   photo of the two of them standing together.
-- **They close the gap.** Each figure translates in; she ends up in front of
-  his chest with her head under his chin, not beside him.
+- **They end up nested, not adjacent.** She translates further than he does and
+  finishes inside his silhouette, her head under his chin. Two figures each
+  keeping their own column is a side hug however far their heads lean, so
+  closing a gap between them is not enough — one of them has to end up in
+  front of the other.
+- **The picture pushes in** on the moment they take hold: the pair scales up
+  9%, and 11% at the squeeze.
 - **The arms cross fade.** Arms-down seams fade out, the wrapped pair fades in:
-  her forearm and clasped hands come up between them, his sleeve comes round
-  her waist and is drawn over both of them, so it reads as an arm going round
-  rather than an arm lying on top.
-- **Their heads tip toward each other** — he by 14°, she by 16° — and her head
+  her clasped hands come up between them under her chin, his sleeve comes round
+  her waist drawn over both of them, and both his hands reappear past her far
+  side — which is what says his arms are round her rather than beside her.
+- **Their heads tip toward each other** — he by 19°, she by 18° — and her head
   is drawn a little smaller than his.
 - Then a squeeze, hearts up the empty side of the frame, a hold, and they let
   go in reverse order.
