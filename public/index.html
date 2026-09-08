@@ -81,16 +81,11 @@ button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
   max-width:38ch;margin:22px 0 0;color:var(--muted);font-size:1.02rem;
 }
 
-.arc-wrap{position:relative;margin-top:auto;padding-top:30px}
-.arc{width:100%;height:130px;display:block;overflow:visible}
-.arc-path{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:3 6}
-.peg{cursor:pointer}
-.peg circle{fill:#0C1533;stroke:rgba(244,237,224,.45);stroke-width:1.2;transition:fill .2s,stroke .2s,r .2s}
-.peg text{fill:var(--muted);font-family:var(--sans);font-size:11px;text-anchor:middle}
-.peg:hover circle,.peg:focus circle{fill:var(--marigold);stroke:var(--marigold);r:7}
-.peg:hover text,.peg:focus text{fill:var(--paper)}
-.sun{filter:drop-shadow(0 0 22px rgba(244,169,60,.75))}
-.now-label{fill:var(--mango);font-size:11px;text-anchor:middle;font-family:var(--sans)}
+/* slow glitter, drifting down behind everything */
+/* canvas is a replaced element: inset alone leaves it at its intrinsic
+   300x150, so the size has to be stated */
+.glitter{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block}
+.sky,.day,.footer{position:relative;z-index:1}
 
 /* ---------- day list ---------- */
 .day{padding:clamp(48px,8vw,96px) clamp(20px,6vw,64px) 20px;max-width:1080px;margin:0 auto}
@@ -614,6 +609,8 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
   <span id="peerList"></span>
 </div>
 
+<canvas class="glitter" id="glitter" aria-hidden="true"></canvas>
+
 <div class="cursors" id="cursors" aria-hidden="true"></div>
 
 <header class="sky">
@@ -634,9 +631,6 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
     <p class="hero-sub" id="heroSub">Same sun, two windows. Nothing here works alone.</p>
   </div>
 
-  <div class="arc-wrap">
-    <svg class="arc" id="arc" viewBox="0 0 1000 130" preserveAspectRatio="none" aria-hidden="true"></svg>
-  </div>
 </header>
 
 <main class="day">
@@ -1187,68 +1181,103 @@ function sharedClock(node, key, endText, onEnd){
   return paint;
 }
 
-/* ---- sun arc ---- */
-function buildArc(){
-  const svg = $("#arc");
-  const NS = "http://www.w3.org/2000/svg";
-  const path = document.createElementNS(NS,"path");
-  const d = "M 30 118 Q 500 -34 970 118";
-  path.setAttribute("d", d); path.setAttribute("class","arc-path");
-  svg.appendChild(path);
 
-  const measure = document.createElementNS(NS,"path");
-  measure.setAttribute("d", d);
-  measure.setAttribute("fill","none"); measure.setAttribute("stroke","none");
-  svg.appendChild(measure);
-  const L = measure.getTotalLength ? measure.getTotalLength() : 1000;
-  const at = f => { try { return measure.getPointAtLength(L*f); } catch(e){ return {x:30+940*f, y:118}; } };
+/* ---- slow glitter rain ----
+   One canvas rather than a few hundred DOM nodes, so it costs almost nothing.
+   It idles when the tab is hidden and holds still for reduced-motion. */
+const GLITTER = {
+  cv:null, ctx:null, bits:[], w:0, h:0, dpr:1, raf:0, last:0,
+  TINTS: ["244,169,60", "255,215,154", "226,112,126", "244,237,224", "63,163,150"],
 
-  PLAN.forEach((h,i) => {
-    const f = i/(PLAN.length-1);
-    const p = at(f);
-    const g = document.createElementNS(NS,"g");
-    g.setAttribute("class","peg"); g.setAttribute("tabindex","0");
-    g.setAttribute("role","button");
-    g.setAttribute("aria-label", h.t + " " + h.title);
-    const sharp = h.t.endsWith(":00");
-    const c = document.createElementNS(NS,"circle");
-    c.setAttribute("cx",p.x); c.setAttribute("cy",p.y); c.setAttribute("r", sharp ? "5" : "3");
-    g.appendChild(c);
-    const go = () => open(i);
-    g.addEventListener("click", go);
-    g.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); go(); } });
-    svg.appendChild(g);
-  });
+  size(){
+    const cv = GLITTER.cv;
+    GLITTER.dpr = Math.min(2, window.devicePixelRatio || 1);
+    GLITTER.w = cv.clientWidth; GLITTER.h = cv.clientHeight;
+    cv.width  = Math.round(GLITTER.w * GLITTER.dpr);
+    cv.height = Math.round(GLITTER.h * GLITTER.dpr);
+    GLITTER.ctx.setTransform(GLITTER.dpr, 0, 0, GLITTER.dpr, 0, 0);
+  },
 
-  const now = new Date();
-  const mins = now.getHours()*60 + now.getMinutes();
-  let f = (mins - 600) / 480;
-  const before = f < 0, after = f > 1;
-  f = Math.min(1, Math.max(0, f));
-  const p = at(f);
-  const sun = document.createElementNS(NS,"circle");
-  sun.setAttribute("class","sun");
-  sun.setAttribute("cx", at(0).x); sun.setAttribute("cy", at(0).y);
-  sun.setAttribute("r","11"); sun.setAttribute("fill","#F4A93C");
-  svg.appendChild(sun);
-  const lab = document.createElementNS(NS,"text");
-  lab.setAttribute("class","now-label");
-  lab.setAttribute("x", p.x); lab.setAttribute("y", p.y + 26);
-  lab.textContent = before ? "not yet" : after ? "day's done" : "now";
-  lab.style.opacity = 0; lab.style.transition = "opacity 1s 1.6s";
-  svg.appendChild(lab);
+  seed(){
+    // density scales with area, capped so a big monitor stays calm
+    const n = Math.min(120, Math.round(GLITTER.w * GLITTER.h / 16000));
+    GLITTER.bits = Array.from({length:n}, () => GLITTER.make(true));
+  },
 
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if(reduce){ sun.setAttribute("cx",p.x); sun.setAttribute("cy",p.y); lab.style.opacity = 1; return; }
-  const t0 = performance.now(), dur = 1700;
-  (function step(t){
-    const k = Math.min(1,(t-t0)/dur);
-    const e = 1 - Math.pow(1-k, 3);
-    const q = at(f*e);
-    sun.setAttribute("cx",q.x); sun.setAttribute("cy",q.y);
-    if(k < 1) requestAnimationFrame(step); else lab.style.opacity = 1;
-  })(performance.now());
-}
+  make(anywhere){
+    return {
+      x: Math.random() * GLITTER.w,
+      y: anywhere ? Math.random() * GLITTER.h : -12,
+      r: 0.5 + Math.random() * 1.7,
+      vy: 5 + Math.random() * 16,          // px per second — deliberately slow
+      drift: (Math.random() - .5) * 7,
+      sway: Math.random() * Math.PI * 2,
+      swaySpeed: 0.25 + Math.random() * 0.5,
+      twinkle: Math.random() * Math.PI * 2,
+      twinkleSpeed: 0.6 + Math.random() * 1.4,
+      tint: GLITTER.TINTS[Math.floor(Math.random() * GLITTER.TINTS.length)],
+      base: 0.16 + Math.random() * 0.4
+    };
+  },
+
+  paint(dt){
+    const c = GLITTER.ctx;
+    c.clearRect(0, 0, GLITTER.w, GLITTER.h);
+    for(const b of GLITTER.bits){
+      if(dt){
+        b.y += b.vy * dt;
+        b.sway += b.swaySpeed * dt;
+        b.x += (b.drift + Math.sin(b.sway) * 5) * dt;
+        b.twinkle += b.twinkleSpeed * dt;
+        if(b.y - b.r > GLITTER.h) Object.assign(b, GLITTER.make(false));
+        if(b.x < -20) b.x = GLITTER.w + 20;
+        if(b.x > GLITTER.w + 20) b.x = -20;
+      }
+      const a = b.base * (0.45 + 0.55 * (0.5 + 0.5 * Math.sin(b.twinkle)));
+      c.beginPath();
+      c.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      c.fillStyle = "rgba(" + b.tint + "," + a.toFixed(3) + ")";
+      c.fill();
+      if(b.r > 1.5){                       // the bigger flecks catch the light
+        c.strokeStyle = "rgba(" + b.tint + "," + (a * 0.5).toFixed(3) + ")";
+        c.lineWidth = 0.7;
+        c.beginPath();
+        c.moveTo(b.x - b.r * 2.6, b.y); c.lineTo(b.x + b.r * 2.6, b.y);
+        c.moveTo(b.x, b.y - b.r * 2.6); c.lineTo(b.x, b.y + b.r * 2.6);
+        c.stroke();
+      }
+    }
+  },
+
+  frame(now){
+    const dt = Math.min(0.05, (now - GLITTER.last) / 1000 || 0);
+    GLITTER.last = now;
+    GLITTER.paint(dt);
+    GLITTER.raf = requestAnimationFrame(GLITTER.frame);
+  },
+
+  stop(){ if(GLITTER.raf){ cancelAnimationFrame(GLITTER.raf); GLITTER.raf = 0; } },
+  start(){ if(!GLITTER.raf){ GLITTER.last = performance.now(); GLITTER.raf = requestAnimationFrame(GLITTER.frame); } },
+
+  init(){
+    GLITTER.cv = $("#glitter");
+    if(!GLITTER.cv || !GLITTER.cv.getContext) return;
+    GLITTER.ctx = GLITTER.cv.getContext("2d");
+    GLITTER.size(); GLITTER.seed(); GLITTER.paint(0);
+
+    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    GLITTER.start();
+
+    let to = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(to);
+      to = setTimeout(() => { GLITTER.size(); GLITTER.seed(); GLITTER.paint(0); }, 180);
+    });
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? GLITTER.stop() : GLITTER.start();
+    });
+  }
+};
 
 /* ---- hour list ---- */
 function buildHours(){
@@ -3369,8 +3398,8 @@ const PICS = {
 })();
 
 /* ---- go ---- */
-buildArc();
 buildHours();
+GLITTER.init();
 nameGate();
 CUR.start();
 setInterval(() => SYNC.send({t:"ping"}), 25000);
