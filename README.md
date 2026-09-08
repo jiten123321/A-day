@@ -23,6 +23,27 @@ Two kinds of message cross the wire:
 | `set` / `push` / `wipe` | picks, scores, boards, lists, chat | yes |
 | `ev` | cursor positions, click ripples, live pen strokes, typing | no |
 
+## Chat
+
+The chat is one thread across both devices. It also takes pictures and GIFs:
+the picture button, a paste into the message box, or a drop anywhere on the
+chat panel. Add text before sending and it rides along as a caption. Tap a
+picture to open it full size.
+
+Anything that is not a GIF is resized to fit 1280px and re-encoded as WebP
+before it leaves the browser, which is the difference between a 6MB phone photo
+and something that arrives instantly. GIFs are sent untouched, because
+re-encoding one costs the animation. The wire limit is 3MB after that step.
+
+Images are stored in the room's Durable Object in 64KB chunks, so no single
+stored value is large. Each room keeps its 60 most recent images and at most
+24MB; older ones fall off. Clearing the thread deletes its pictures too.
+
+A short chime plays when a message arrives from the other person — never for
+your own. **Sound on / Sound off** in the chat toolbar toggles it, and the
+choice is remembered per browser. Browsers only allow audio after a click or
+keypress, so the first gesture on the page arms it.
+
 ## Rooms
 
 Everyone on the same URL is in the same room. The default room is `same-sun`;

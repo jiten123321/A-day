@@ -478,6 +478,36 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 .turnbar.mine{color:var(--teal)}
 .hour.live{border-left:2px solid var(--marigold);padding-left:14px}
 .typing{color:var(--mango);font-size:.72rem;padding:0 18px 8px;min-height:1em}
+
+/* ===== chat: shared pictures and GIFs ===== */
+.bubble img.shot{
+  display:block;max-width:100%;height:auto;border-radius:10px;margin:2px 0 4px;
+  background:rgba(244,237,224,.06);cursor:zoom-in
+}
+.bubble .cap{display:block;margin-top:2px}
+.bubble .sending{opacity:.55}
+.bubble .failed{color:var(--rose);font-size:.78rem}
+.pick{
+  flex:none;width:38px;height:38px;border-radius:999px;border:1px solid var(--line);
+  background:none;color:var(--muted);display:grid;place-items:center
+}
+.pick:hover{color:var(--paper);border-color:rgba(244,237,224,.4)}
+.chatbox.drop{outline:2px dashed var(--marigold);outline-offset:-6px}
+.droplay{
+  position:absolute;inset:0;z-index:5;display:none;place-items:center;
+  background:rgba(16,26,60,.86);color:var(--mango);font-size:.9rem;letter-spacing:.04em;
+  border-radius:inherit;pointer-events:none
+}
+.chatbox.drop .droplay{display:grid}
+.chat-tools button.off{opacity:.5}
+
+.lightbox{
+  position:fixed;inset:0;z-index:300;display:none;place-items:center;
+  background:rgba(9,15,38,.94);padding:24px;cursor:zoom-out
+}
+.lightbox.on{display:grid}
+.lightbox img{max-width:100%;max-height:100%;border-radius:12px;display:block}
+.lightbox .close{position:absolute;top:18px;right:18px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -549,16 +579,27 @@ input[type=text]::placeholder{color:rgba(244,237,224,.35)}
 
   <div class="typing" id="typing"></div>
   <div class="chat-foot">
-    <input type="text" id="chatInput" placeholder="Say it here">
+    <button class="pick" id="chatPick" aria-label="Send a picture or GIF" title="Picture or GIF">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.7" cy="9.6" r="1.7"/><path d="M3.5 17.2 8.6 12.4 13 16.2 16.4 13.2 20.5 16.8"/></svg>
+    </button>
+    <input type="file" id="chatFile" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+    <input type="text" id="chatInput" placeholder="Say it here, or drop a picture">
     <button class="send" id="chatSend" aria-label="Send">→</button>
   </div>
   <div class="chat-tools">
+    <button id="chatSound">Sound on</button>
     <button id="chatCopy">Copy the thread</button>
     <button id="chatClear">Clear</button>
   </div>
+  <div class="droplay">Drop it to send</div>
 </section>
 
-<div class="stage" id="stage" role="dialog" aria-modal="true" aria-labelledby="stageTitle">
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button class="close" aria-label="Close">✕</button>
+  <img alt="">
+</div>
+
+<div class="stage" id="stage" role="dialog aria-modal="true" aria-labelledby="stageTitle">
   <div class="stage-inner" id="stageInner">
     <div class="stage-head">
       <div>
@@ -2325,28 +2366,147 @@ function onKnown(){
   renderPresence();
 }
 
+/* ---- a short chime for messages that arrive from the other side ---- */
+const CHIME = {
+  ctx:null, on:true,
+
+  init(){
+    try { CHIME.on = localStorage.getItem("sameSunSound") !== "off"; } catch(_){}
+    // Browsers only allow audio after a gesture, so build the context on the
+    // first one and keep it warm.
+    const wake = () => {
+      if(!CHIME.ctx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(AC) CHIME.ctx = new AC();
+      }
+      if(CHIME.ctx && CHIME.ctx.state === "suspended") CHIME.ctx.resume();
+    };
+    ["pointerdown","keydown"].forEach(e => window.addEventListener(e, wake, {passive:true}));
+  },
+
+  play(){
+    if(!CHIME.on || !CHIME.ctx || CHIME.ctx.state !== "running") return;
+    const c = CHIME.ctx, t0 = c.currentTime;
+    // Two soft notes, a rising fifth. Short enough to never be annoying.
+    [[784, 0], [1175, 0.09]].forEach(([hz, at]) => {
+      const osc = c.createOscillator(), gain = c.createGain();
+      osc.type = "sine";
+      osc.frequency.value = hz;
+      gain.gain.setValueAtTime(0.0001, t0 + at);
+      gain.gain.exponentialRampToValueAtTime(0.13, t0 + at + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + at + 0.26);
+      osc.connect(gain).connect(c.destination);
+      osc.start(t0 + at);
+      osc.stop(t0 + at + 0.3);
+    });
+  }
+};
+
+/* ---- pictures and GIFs ---- */
+const PICS = {
+  MAX_SEND: 3 * 1024 * 1024,
+  OK: ["image/png","image/jpeg","image/gif","image/webp"],
+
+  url(id){ return "/img?r=" + encodeURIComponent(ROOM) + "&id=" + encodeURIComponent(id); },
+
+  /* GIFs go up untouched — re-encoding one costs the animation. Everything
+     else is scaled down and recompressed, which is the difference between a
+     4 MB phone photo and something that arrives instantly. */
+  MAX_EDGE: 1280,
+
+  async prepare(file){
+    if(file.type === "image/gif") return { blob:file, type:file.type };
+    const bmp = await createImageBitmap(file).catch(() => null);
+    if(!bmp) return { blob:file, type:file.type };
+
+    const max = PICS.MAX_EDGE;
+    // Resize when it is heavy *or* simply too big on screen — a flat graphic
+    // can be 5000px wide and still compress to a few KB.
+    if(Math.max(bmp.width, bmp.height) <= max && file.size < 180 * 1024){
+      bmp.close && bmp.close();
+      return { blob:file, type:file.type };
+    }
+
+    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    bmp.close && bmp.close();
+
+    const blob = await new Promise(res => cv.toBlob(res, "image/webp", 0.82));
+    if(!blob || blob.size >= file.size) return { blob:file, type:file.type };
+    return { blob, type:"image/webp" };
+  },
+
+  async send(file){
+    if(PICS.OK.indexOf(file.type) === -1) return { error:"That file type isn't supported." };
+    const { blob, type } = await PICS.prepare(file);
+    if(blob.size > PICS.MAX_SEND){
+      return { error:"That one is " + Math.round(blob.size/1048576) + "MB — the limit is 3MB." };
+    }
+    const r = await fetch("/upload?r=" + encodeURIComponent(ROOM), {
+      method:"POST", headers:{ "Content-Type":type }, body:blob
+    });
+    if(!r.ok){
+      const j = await r.json().catch(() => ({}));
+      return { error: j.error ? "Upload failed: " + j.error : "Upload failed." };
+    }
+    const { id } = await r.json();
+    return { id };
+  }
+};
+
 /* ---- chat: one thread, both devices ---- */
 (function chat(){
   const box = $("#chatbox"), launch = $("#chatLaunch"), list = $("#msgs");
   const inp = $("#chatInput"), send = $("#chatSend"), badge = $("#chatCount");
   const empty = $("#chatEmpty"), typing = $("#typing");
-  let seen = 0, unseen = 0;
+  const pick = $("#chatPick"), file = $("#chatFile"), soundBtn = $("#chatSound");
+  const lb = $("#lightbox"), lbImg = lb.querySelector("img");
+  let seen = 0, unseen = 0, known = null, pending = [];
 
   const stamp = at => new Date(at).toLocaleTimeString(undefined,{hour:"2-digit", minute:"2-digit"});
+
+  const bubble = (m, mine) => {
+    const b = el("div","bubble " + (mine ? "mine" : "theirs"));
+    if(m.img){
+      const img = el("img");
+      img.className = "shot";
+      img.loading = "lazy";
+      img.alt = m.v || "shared picture";
+      if(m.w && m.h){ img.width = m.w; img.height = m.h; }
+      img.src = PICS.url(m.img);
+      img.addEventListener("click", () => {
+        lbImg.src = img.src; lb.classList.add("on"); lb.setAttribute("aria-hidden","false");
+      });
+      b.appendChild(img);
+    }
+    if(m.v) b.appendChild(el("span","cap", esc(m.v)));
+    b.appendChild(el("span","meta", esc(m.who) + " · " + stamp(m.at)));
+    return b;
+  };
 
   const render = () => {
     const msgs = SYNC.get("chat.msgs", []);
     list.innerHTML = "";
-    if(!msgs.length){ list.appendChild(empty); }
-    else msgs.forEach(m => {
-      const mine = m.s === mySide();
-      const b = el("div","bubble " + (mine ? "mine" : "theirs"), esc(m.v));
-      b.appendChild(el("span","meta", esc(m.who) + " · " + stamp(m.at)));
+    if(!msgs.length && !pending.length){ list.appendChild(empty); }
+    msgs.forEach(m => list.appendChild(bubble(m, m.s === mySide())));
+    pending.forEach(p => {
+      const b = el("div","bubble mine sending");
+      b.appendChild(el("span", null, p.failed ? "" : "sending " + p.name + "…"));
+      if(p.failed) b.appendChild(el("span","failed", esc(p.failed)));
       list.appendChild(b);
     });
     list.scrollTop = list.scrollHeight;
 
-    if(box.classList.contains("on")){ seen = msgs.length; unseen = 0; }
+    // Chime for anything that arrived from the other side. `known === null`
+    // is the first paint after connecting, which is history, not news.
+    const last = msgs[msgs.length - 1];
+    if(known !== null && msgs.length > known && last && last.s !== mySide()) CHIME.play();
+    known = msgs.length;
+
+    if(box.classList.contains("on")){ seen = msgs.length; unseen = 0; badge.classList.remove("on"); }
     else {
       unseen = Math.max(0, msgs.length - seen);
       badge.textContent = unseen;
@@ -2354,16 +2514,93 @@ function onKnown(){
     }
   };
 
-  function push(){
+  const post = (extra) => SYNC.push("chat.msgs", Object.assign({
+    who: ME.name || "me", s: mySide(), at: Date.now()
+  }, extra), 400);
+
+  function pushText(){
     const v = inp.value.trim();
     if(!v) return;
-    SYNC.push("chat.msgs", { id: SYNC.id, who: ME.name || "me", s: mySide(), v: v.slice(0,500), at: Date.now() }, 400);
+    post({ v: v.slice(0,500) });
     inp.value = "";
     SYNC.ev("typing", false);
   }
-  send.addEventListener("click", push);
-  inp.addEventListener("keydown", e => { if(e.key === "Enter") push(); });
+  send.addEventListener("click", pushText);
+  inp.addEventListener("keydown", e => { if(e.key === "Enter") pushText(); });
 
+  /* --- sending pictures --- */
+  async function sendFiles(files){
+    const caption = inp.value.trim();
+    inp.value = "";
+    let usedCaption = false;
+
+    for(const f of Array.from(files).slice(0, 6)){
+      const slot = { name: f.name.slice(0,28), failed:"" };
+      pending.push(slot); render();
+
+      let dims = null;
+      try {
+        const bmp = await createImageBitmap(f);
+        dims = { w: bmp.width, h: bmp.height };
+        bmp.close && bmp.close();
+      } catch(_){}
+
+      const res = await PICS.send(f);
+      pending.splice(pending.indexOf(slot), 1);
+
+      if(res.error){
+        slot.failed = res.error;
+        pending.push(slot); render();
+        setTimeout(() => { pending.splice(pending.indexOf(slot), 1); render(); }, 5000);
+        continue;
+      }
+      post(Object.assign({ img: res.id, v: usedCaption ? "" : caption }, dims || {}));
+      usedCaption = true;
+      render();
+    }
+  }
+
+  pick.addEventListener("click", () => file.click());
+  file.addEventListener("change", () => { if(file.files.length) sendFiles(file.files); file.value = ""; });
+
+  inp.addEventListener("paste", e => {
+    const items = Array.from((e.clipboardData || {}).items || []);
+    const imgs = items.filter(i => i.kind === "file" && PICS.OK.indexOf(i.type) !== -1)
+                      .map(i => i.getAsFile()).filter(Boolean);
+    if(imgs.length){ e.preventDefault(); sendFiles(imgs); }
+  });
+
+  let dragDepth = 0;
+  const hasFiles = e => Array.from(e.dataTransfer && e.dataTransfer.types || []).indexOf("Files") !== -1;
+  box.addEventListener("dragenter", e => { if(!hasFiles(e)) return; e.preventDefault(); if(++dragDepth) box.classList.add("drop"); });
+  box.addEventListener("dragover", e => { if(hasFiles(e)) e.preventDefault(); });
+  box.addEventListener("dragleave", () => { if(--dragDepth <= 0){ dragDepth = 0; box.classList.remove("drop"); } });
+  box.addEventListener("drop", e => {
+    if(!hasFiles(e)) return;
+    e.preventDefault(); dragDepth = 0; box.classList.remove("drop");
+    if(e.dataTransfer.files.length) sendFiles(e.dataTransfer.files);
+  });
+
+  /* --- lightbox --- */
+  const closeLb = () => { lb.classList.remove("on"); lb.setAttribute("aria-hidden","true"); lbImg.src = ""; };
+  lb.addEventListener("click", closeLb);
+  document.addEventListener("keydown", e => {
+    if(e.key === "Escape" && lb.classList.contains("on")){ e.stopImmediatePropagation(); closeLb(); }
+  }, true);
+
+  /* --- sound toggle --- */
+  const paintSound = () => {
+    soundBtn.textContent = CHIME.on ? "Sound on" : "Sound off";
+    soundBtn.classList.toggle("off", !CHIME.on);
+  };
+  soundBtn.addEventListener("click", () => {
+    CHIME.on = !CHIME.on;
+    try { localStorage.setItem("sameSunSound", CHIME.on ? "on" : "off"); } catch(_){}
+    paintSound();
+    if(CHIME.on) CHIME.play();
+  });
+
+  /* --- typing indicator --- */
   let typeTo = null, typingOn = false;
   inp.addEventListener("input", () => {
     if(!typingOn){ typingOn = true; SYNC.ev("typing", true); }
@@ -2396,22 +2633,26 @@ function onKnown(){
   launch.addEventListener("click", openChat);
   $("#chatClose").addEventListener("click", closeChat);
   document.addEventListener("keydown", e => {
-    if(e.key === "Escape" && box.classList.contains("on")){ e.stopPropagation(); closeChat(); }
+    if(e.key === "Escape" && box.classList.contains("on") && !lb.classList.contains("on")){
+      e.stopPropagation(); closeChat();
+    }
   }, true);
 
   $("#chatCopy").addEventListener("click", e => {
     const msgs = SYNC.get("chat.msgs", []);
     if(!msgs.length) return;
-    const txt = msgs.map(m => m.who + " (" + stamp(m.at) + "): " + m.v).join("\n");
+    const txt = msgs.map(m => m.who + " (" + stamp(m.at) + "): " + (m.img ? "[picture] " : "") + (m.v || "")).join("\n");
     if(navigator.clipboard) navigator.clipboard.writeText(txt);
     e.target.textContent = "Copied";
     setTimeout(() => e.target.textContent = "Copy the thread", 1600);
   });
   $("#chatClear").addEventListener("click", () => {
-    if(!confirm("Clear the thread for both of you?")) return;
-    SYNC.set("chat.msgs", []);
+    if(!confirm("Clear the thread and its pictures for both of you?")) return;
+    SYNC.wipe("chat.msgs");
   });
 
+  CHIME.init();
+  paintSound();
   SYNC.on("chat.msgs", render);
   render();
 })();
