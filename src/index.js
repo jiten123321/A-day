@@ -283,11 +283,16 @@ export default {
        for in another tab. The key is free and read-only; it stays on the
        Worker because a key in a page is a key anybody can spend.
 
-       Two things narrow the results to something that will actually play:
-       the Music category, and embeddable-only — an unembeddable video looks
-       fine in a list and then refuses to load in the deck. If the Music
-       category comes back empty the search runs again without it, because a
-       lot of music is filed under nothing in particular. */
+       Embeddable-only always: an unembeddable video looks fine in a list
+       and then refuses to load in the deck.
+
+       The Music category is asked for by the caller, because the two places
+       that search from here want different things. The record shop wants
+       music and nothing else; the watch party wants whatever is on YouTube,
+       and filtering it to Music would hide the film it went looking for.
+       Where Music is asked for and comes back empty the search runs again
+       without it, since a lot of music is filed under nothing in
+       particular. */
     if (url.pathname === "/youtube") {
       const out = body => new Response(JSON.stringify(body), {
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -296,6 +301,7 @@ export default {
       if (!q) return out({ ok: true, tracks: [] });
       const key = env.YOUTUBE_API_KEY;
       if (!key) return out({ ok: false, why: "unset" });
+      const onlyMusic = (url.searchParams.get("kind") || "music") !== "any";
       const ask = async (music) => {
         const bits = [
           "part=snippet", "type=video", "maxResults=8", "videoEmbeddable=true",
@@ -306,10 +312,10 @@ export default {
         return { ok: r.ok, status: r.status, text: await r.text() };
       };
       try {
-        let r = await ask(true);
+        let r = await ask(onlyMusic);
         if (!r.ok) return out({ ok: false, why: r.status === 403 ? "keys" : "search", detail: r.text.slice(0, 200) });
         let tracks = tidyTube(JSON.parse(r.text));
-        if (!tracks.length) {
+        if (!tracks.length && onlyMusic) {
           r = await ask(false);
           if (r.ok) tracks = tidyTube(JSON.parse(r.text));
         }

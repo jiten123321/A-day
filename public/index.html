@@ -1664,7 +1664,8 @@ const MARKS = [
   /* the record shop */
   [/^search\b/i,                               "find"],
   [/^take it off$/i,                           "eject"],
-  [/^put it on$/i,                             "play"],
+  [/^pause it/i,                               "pause"],
+  [/^both press play$/i,                       "play"],
 
   /* whatever is left, by what it does */
   [/^copy/i,                                   "copy"],
@@ -3244,6 +3245,79 @@ const TUNE = {
 };
 
 /* =======================================================================
+   ONE SEARCH, TWO PLACES. The 17:00 hour looks for a song; the watch party
+   looks for whatever is on YouTube. Everything about the two is the same —
+   the box takes words or a link, a link skips the search, a link from
+   somewhere else is refused rather than searched for — so all of it lives
+   here and the difference is one word on the way out.
+   ======================================================================= */
+const SEEK = {
+  async ask(term, kind){
+    try {
+      return await (await fetch("/youtube?q=" + encodeURIComponent(term)
+        + (kind ? "&kind=" + kind : ""), { cache:"no-store" })).json();
+    } catch(_){ return { ok:false, why:"net" }; }
+  },
+
+  trouble(j){
+    const why = (j && j.why) || "net";
+    return why === "unset"
+      ? "Searching needs a free Google API key on the Worker — <b>YOUTUBE_API_KEY</b>, "
+        + "the README has the steps. A pasted YouTube link works without it."
+      : why === "keys"
+        ? "Google turned that key down. Check <b>YOUTUBE_API_KEY</b> on the Worker, "
+          + "and that the YouTube Data API is switched on for it."
+        : why === "net"
+          ? "Couldn't reach the search."
+          : "YouTube wouldn't answer that search"
+            + (j && j.detail ? ": " + esc(String(j.detail).slice(0,120)) : ".");
+  },
+
+  draw(list, tracks, take){
+    list.innerHTML = "";
+    tracks.forEach(trk => {
+      const hit = el("button","spot-hit");
+      if(trk.art){ const im = el("img"); im.src = trk.art; im.alt = ""; im.loading = "lazy"; hit.appendChild(im); }
+      const words = el("span","spot-words");
+      words.appendChild(el("b", null, esc(trk.name)));
+      words.appendChild(el("i", null, esc(trk.who)));
+      hit.appendChild(words);
+      hit.addEventListener("click", () => take(trk));
+      list.appendChild(hit);
+    });
+  },
+
+  /* box, its button, somewhere to talk back, somewhere to put the answers,
+     and what to do with whatever gets picked. */
+  wire(o){
+    const done = (id, name) => {
+      o.box.value = ""; o.list.innerHTML = ""; o.say("");
+      o.pick(id, name || "");
+    };
+    const run = async () => {
+      const term = o.box.value.trim();
+      if(!term) return;
+      const straight = TUNE.id(term);
+      if(straight){ done(straight, ""); return; }
+      o.list.innerHTML = "";
+      /* a link this does not know is not a search term: looking for a URL
+         finds nothing and makes the search look like the broken part */
+      if(/^https?:\/\//i.test(term)){ o.say("That doesn't look like a YouTube link."); return; }
+
+      o.say("looking…");
+      const j = await SEEK.ask(term, o.kind);
+      if(!j || j.ok !== true){ o.say(SEEK.trouble(j)); return; }
+      if(!j.tracks || !j.tracks.length){ o.say("Nothing came back for that."); return; }
+      o.say("");
+      SEEK.draw(o.list, j.tracks, trk => done(trk.id, trk.name));
+    };
+    o.go.addEventListener("click", run);
+    o.box.addEventListener("keydown", e => { if(e.key === "Enter") run(); });
+    return run;
+  }
+};
+
+/* =======================================================================
    THE RADIO. A song outlives the hour it was put on in. The player is a
    thing the page owns, not a thing the 17:00 card owns, so wandering off
    to a game does not lift the needle — it keeps going until somebody
@@ -3413,50 +3487,9 @@ ACTS.song = b => {
 
   const putOn = (id, name) => {
     if(!id) return;
-    find.value = ""; hits.innerHTML = ""; say("");
     deck.put(id, name);
   };
-
-  const search = async () => {
-    const term = find.value.trim();
-    if(!term) return;
-    const straight = TUNE.id(term);
-    if(straight){ putOn(straight, ""); return; }
-    hits.innerHTML = "";
-    if(/^https?:\/\//i.test(term)){ say("That doesn't look like a YouTube link."); return; }
-
-    say("looking…");
-    let j;
-    try { j = await (await fetch("/youtube?q=" + encodeURIComponent(term), { cache:"no-store" })).json(); }
-    catch(_){ j = { ok:false, why:"net" }; }
-
-    if(!j || j.ok !== true){
-      const why = (j && j.why) || "net";
-      say(why === "unset"
-        ? "Searching needs a free Google API key on the Worker — <b>YOUTUBE_API_KEY</b>, the README has the steps. A pasted YouTube link works without it."
-        : why === "keys"
-          ? "Google turned that key down. Check <b>YOUTUBE_API_KEY</b> on the Worker, and that the YouTube Data API is switched on for it."
-          : why === "net"
-            ? "Couldn't reach the search."
-            : "YouTube wouldn't answer that search"
-              + (j.detail ? ": " + esc(String(j.detail).slice(0,120)) : "."));
-      return;
-    }
-    if(!j.tracks || !j.tracks.length){ say("Nothing came back for that."); return; }
-    say("");
-    j.tracks.forEach(trk => {
-      const hit = el("button","spot-hit");
-      if(trk.art){ const im = el("img"); im.src = trk.art; im.alt = ""; im.loading = "lazy"; hit.appendChild(im); }
-      const words = el("span","spot-words");
-      words.appendChild(el("b", null, esc(trk.name)));
-      words.appendChild(el("i", null, esc(trk.who)));
-      hit.appendChild(words);
-      hit.addEventListener("click", () => putOn(trk.id, trk.name || ""));
-      hits.appendChild(hit);
-    });
-  };
-  go.addEventListener("click", search);
-  find.addEventListener("keydown", e => { if(e.key === "Enter") search(); });
+  SEEK.wire({ box:find, go, say, list:hits, kind:"music", pick:putOn });
 
   /* No play and pause of our own: the player's own transport is the sync
      control, so there is never a second set of buttons to keep in
@@ -5848,8 +5881,9 @@ ACTS.watch = b => {
   paintMax();
 
   const src = el("div","srcbar");
-  const ytIn = el("input"); ytIn.type = "text"; ytIn.placeholder = "paste a YouTube link";
-  const ytGo = el("button","btn","Put it on");
+  const ytIn = el("input"); ytIn.type = "text";
+  ytIn.placeholder = "search YouTube, or paste a link";
+  const ytGo = el("button","btn","Search");
   const shareGo   = el("button","btn ghost","Share my screen");
   const shareStop = el("button","btn ghost","Stop sharing");
   const sound     = el("button","btn ghost","Sound on");
@@ -5857,7 +5891,9 @@ ACTS.watch = b => {
   const look      = el("button","btn ghost","Smoother picture");
   [ytIn, ytGo, shareGo, shareStop, sound, look, clearAll].forEach(x => src.appendChild(x));
   s4.appendChild(src);
-  note(s4, "A YouTube link plays on both sides at once — whoever presses play, pauses or scrubs moves it for both of you. Screen share carries anything else that isn't copy protected: pick <b>a tab</b> in Chrome or Edge, which is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle whichever way you try it — their copy protection blanks the frames before the browser sees them, so for those, open it on both sides and press play on three.");
+  const ytHits = el("div","spot-hits");
+  s4.appendChild(ytHits);
+  note(s4, "Search it or paste a link, and it plays on both sides at once — whoever presses play, pauses or scrubs moves it for both of you. Screen share carries anything else that isn't copy protected: pick <b>a tab</b> in Chrome or Edge, which is the only way the sound comes with it. Netflix, Prime and Disney+ arrive as a black rectangle whichever way you try it — their copy protection blanks the frames before the browser sees them, so for those, open it on both sides and press play on three.");
   const rules = el("ul","rules");
   CFG.watchRules.forEach(x => rules.appendChild(el("li", null, x)));
   s4.appendChild(rules);
@@ -5899,13 +5935,13 @@ ACTS.watch = b => {
     () => say("YouTube wouldn't load here — the screen share still works."));
   const syncYt = () => deck.sync();
 
-  ytGo.addEventListener("click", () => {
-    const id = TUNE.id(ytIn.value);
-    if(!id){ say("That doesn't look like a YouTube link."); return; }
-    ytIn.value = "";
-    stopShare();
-    deck.put(id);
-    msg = "";
+  /* The same search as the record shop, asking for anything rather than
+     only music: narrowing a film search to the Music category would hide
+     the film it went looking for. */
+  SEEK.wire({
+    box: ytIn, go: ytGo, list: ytHits, kind: "any",
+    say: t => { msg = t; paintShare(); },
+    pick: (id, name) => { stopShare(); deck.put(id, name); msg = ""; paintShare(); }
   });
   clearAll.addEventListener("click", () => {
     stopShare();

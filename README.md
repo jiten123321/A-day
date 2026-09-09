@@ -383,7 +383,7 @@ became "undefined". It is called `escKey`.
 
 ### YouTube, in step
 
-Paste a link and it goes up on both screens. Whoever presses play, pauses or
+Search it or paste a link and it goes up on both screens. Whoever presses play, pauses or
 scrubs moves it for both of you, because nobody sends "play" — the room stores
 where the film was (`yt.at`) and when that was true by the shared clock
 (`yt.since`), and each side works out for itself where it should be now. A tab
@@ -395,6 +395,14 @@ jump.
 The player is YouTube's own iframe with its own controls, and its state changes
 are what write to the room — so scrubbing the YouTube bar is the sync control,
 rather than a separate set of buttons that has to be kept in agreement with it.
+
+**The same search as the record shop, asking for a different thing.** `SEEK`
+holds all of it once — a box that takes words or a link, a link skipping the
+search, a link from somewhere else refused by name rather than searched for —
+and the two callers differ by a single word. The record shop asks
+`kind=music`; the room asks `kind=any`, because narrowing a film search to the
+Music category would hide the film it went looking for. Everything else,
+including embeddable-only, is the same on both.
 
 A caveat on this one: youtube.com is not reachable from the sandbox this was
 built in, so the sync logic is tested against a stand-in player and the real
@@ -684,12 +692,19 @@ key is missing rather than failing quietly. With one, it searches.
 Free, and the daily allowance is 10,000 units. A search costs 100, so that is
 100 searches a day — for two people, an allowance you will not notice.
 
-The results are narrowed twice before they reach the page: to the **Music**
-category, and to **embeddable** videos only. The second matters more than it
-sounds — an unembeddable video looks perfectly normal in a list and then
-refuses to load in the player. If the Music category comes back with nothing
-the search runs again without it, because a great deal of music is filed under
-nothing in particular.
+The results are narrowed before they reach the page. **Embeddable videos only,
+always** — that matters more than it sounds, because an unembeddable video
+looks perfectly normal in a list and then refuses to load in the player.
+
+The **Music** category is asked for by the caller, since the two places that
+search want different things: `kind=music` from the record shop, `kind=any`
+from the watch party, which is looking for a film and would rather not have it
+filed away. Where Music is asked for and comes back with nothing, the search
+runs again without it, because a great deal of music is filed under nothing in
+particular.
+
+The same key serves both, so turning search on turns it on in both places at
+once.
 
 To check the key landed, open `https://<your-worker>/youtube?q=test`.
 `{"ok":false,"why":"unset"}` means the Worker cannot see it — the secret is
