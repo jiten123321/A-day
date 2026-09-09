@@ -454,6 +454,44 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .moles .hole.hers{background:rgba(228,179,60,.4)}
 .moles .hole.yours{background:rgba(126,208,195,.45)}
 
+.bi{
+  display:inline-block;width:15px;height:15px;flex:0 0 auto;
+  margin-right:7px;vertical-align:-2px;opacity:.9
+}
+.bi svg{width:100%;height:100%;display:block}
+.btn .bi{margin-right:8px}
+.chat-tools button .bi, .cbtns button .bi{width:13px;height:13px;margin-right:5px}
+.open .bi{width:14px;height:14px}
+
+/* the record shop */
+.spot{margin:16px 0 6px}
+.spot-find{display:flex;gap:8px;align-items:center}
+.spot-find input{flex:1;min-width:0;margin:0}
+.spot-note{
+  font-size:.85rem;color:var(--muted);line-height:1.55;margin-top:10px;
+  padding:9px 12px;border-radius:11px 9px 12px 8px;
+  background:rgba(36,51,80,.05);border:1px solid var(--line)
+}
+.spot-note[hidden]{display:none}
+.spot-note b{color:var(--mango);font-weight:400}
+.spot-hits{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.spot-hit{
+  display:flex;align-items:center;gap:11px;text-align:left;width:100%;
+  padding:7px 10px;border-radius:12px 10px 13px 9px;
+  border:1px solid var(--line);background:rgba(36,51,80,.04);
+  transition:background .14s,border-color .14s
+}
+.spot-hit:hover{background:var(--marigold);border-color:var(--marigold);color:#12203F}
+.spot-hit img{width:38px;height:38px;border-radius:7px;object-fit:cover;flex:0 0 auto}
+.spot-words{display:grid;min-width:0}
+.spot-words b{font-weight:600;font-size:.94rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spot-words i{font-style:normal;font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spot-hit:hover .spot-words i{color:#3A4A6B}
+.spot-now{margin-top:14px}
+.spot-now[hidden]{display:none}
+.spot-now iframe{border-radius:12px;display:block;width:100%}
+.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
 .dare-btn{background:var(--rose);color:#2A0B12}
 
 
@@ -1334,7 +1372,7 @@ const PLAN = [
   {t:"14:00", title:"Watch party",         line:"Shortlist it, let the page pick, share your screen.", k:"watch"},
   {t:"16:00", title:"How well do you know me", line:"Eight about me. Under five and you explain yourself.", k:"quiz"},
   {t:"16:30", title:"Truth or dare, long distance", line:"Every dare is doable from your room. No backing out.", k:"dare"},
-  {t:"17:00", title:"One song each",       line:"One each. Full song, no talking, no skipping.", k:"song"},
+  {t:"17:00", title:"One song each",       line:"Search it, put it on, both sides at once. No talking.", k:"song"},
   {t:"17:30", title:"The wish jar",        line:"The week the distance ends. Nothing realistic.", k:"jar"},
   {t:"18:00", title:"Sunset, and a letter", line:"Brightness down. Just read it.", k:"letter"}
 ];
@@ -1458,6 +1496,127 @@ const SYNC = {
   fire(k){ const s = SYNC.subs.get(k); if(s) s.forEach(fn => fn(SYNC.get(k))); },
   fireAll(){ SYNC.subs.forEach((set, k) => set.forEach(fn => fn(SYNC.get(k)))); }
 };
+
+/* =======================================================================
+   A MARK ON EVERY BUTTON. The page builds its buttons in forty different
+   places and rewrites their labels as it goes — "Start" becomes "Restart",
+   "Sound on" becomes "Sound off" — so hand-placing an icon at each call
+   site would lose it the first time the text changed. The icon is chosen
+   from the words on the button instead, and put back whenever the label is
+   rewritten.
+   ======================================================================= */
+const GLYPH = {
+  play:  '<path d="M8 5.5 19 12 8 18.5z"/>',
+  redo:  '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.5 3.5v4.2h-4.2"/>',
+  next:  '<path d="M5 12h12.5"/><path d="M12.5 6.5 18 12l-5.5 5.5"/>',
+  plus:  '<path d="M12 5.2v13.6M5.2 12h13.6"/>',
+  bin:   '<path d="M4.2 7h15.6"/><path d="M9.2 7V4.7h5.6V7"/><path d="M6.6 7l.9 12.3h9l.9-12.3"/>',
+  copy:  '<rect x="9" y="9" width="10.5" height="10.5" rx="2.4"/><path d="M15 5.4H6.4a2 2 0 0 0-2 2V16"/>',
+  save:  '<path d="M12 3.8v10.4"/><path d="M8 10.4 12 14.4l4-4"/><path d="M4.8 19.2h14.4"/>',
+  screen:'<rect x="3" y="5" width="18" height="12" rx="2.6"/><path d="M9 20h6"/>',
+  noscr: '<rect x="3" y="5" width="18" height="12" rx="2.6"/><path d="M4.5 19.5 19.5 4.5"/>',
+  sound: '<path d="M4.8 9.4h3.4L12.6 6v12L8.2 14.6H4.8z"/><path d="M16 9.6a3.8 3.8 0 0 1 0 4.8"/>',
+  cam:   '<rect x="2.6" y="6.4" width="11.6" height="11.2" rx="2.8"/><path d="m14.2 12 6-3.4v6.8z"/>',
+  mic:   '<rect x="9.3" y="3.4" width="5.4" height="9.8" rx="2.7"/><path d="M6.2 11.6a5.8 5.8 0 0 0 11.6 0"/><path d="M12 17.4V20"/>',
+  phone: '<path d="M6.2 3.6h3l1.5 3.6-1.9 1.4a12 12 0 0 0 5.6 5.6l1.4-1.9 3.6 1.5v3a1.7 1.7 0 0 1-1.9 1.7A15.5 15.5 0 0 1 4.5 5.5 1.7 1.7 0 0 1 6.2 3.6z"/>',
+  hang:  '<path d="M3.4 13.4a12 12 0 0 1 17.2 0l-2.5 2.5-2.8-1.6v-2a10 10 0 0 0-6.6 0v2l-2.8 1.6z"/>',
+  heart: '<path d="M12 19.6S5.2 15.2 5.2 10.6A3.8 3.8 0 0 1 12 8.3a3.8 3.8 0 0 1 6.8 2.3c0 4.6-6.8 9-6.8 9z"/>',
+  talk:  '<path d="M20 11.4a7.3 7.3 0 0 1-7.9 7.3 7.9 7.9 0 0 1-3.4-.8L4.2 19.4l1.3-3.8A7.3 7.3 0 0 1 4 11.4a7.3 7.3 0 0 1 8-7.3 7.3 7.3 0 0 1 8 7.3z"/>',
+  flame: '<path d="M12 3.6s4.9 4.2 4.9 8.4a4.9 4.9 0 0 1-9.8 0c0-1.7 1-3.1 2-4.1 0 1.6 1 2.3 1.7 2.3 1.7 0 0-3.2 1.2-6.6z"/>',
+  eye:   '<path d="M2.6 12S6.1 6.6 12 6.6 21.4 12 21.4 12 17.9 17.4 12 17.4 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.5"/>',
+  lock:  '<rect x="5" y="10.4" width="14" height="9.2" rx="2.4"/><path d="M8.6 10.4V8a3.4 3.4 0 0 1 6.8 0v2.4"/>',
+  flip:  '<path d="M4 8.6h13l-3.2-3.2"/><path d="M20 15.4H7l3.2 3.2"/>',
+  tick:  '<path d="M5 12.4 9.8 17.4 19 6.6"/>',
+  book:  '<path d="M4 5.4h5.4A2.6 2.6 0 0 1 12 8v11a2 2 0 0 0-2-2H4z"/><path d="M20 5.4h-5.4A2.6 2.6 0 0 0 12 8v11a2 2 0 0 1 2-2h6z"/>',
+  door:  '<path d="M4.6 4.4v15.2"/><path d="M9 12h9.4"/><path d="M15 8.4 18.8 12 15 15.6"/>',
+  clock: '<circle cx="12" cy="13.2" r="7.4"/><path d="M12 9.4v3.8l2.6 1.6"/><path d="M9.4 3.4h5.2"/>',
+  cup:   '<path d="M4.8 7h11.4v5.8a5.7 5.7 0 0 1-11.4 0z"/><path d="M16.2 8.6h1.6a2.2 2.2 0 0 1 0 4.4h-1.6"/><path d="M3.6 19.6h13.8"/>',
+  dial:  '<path d="M4 8.4h9M17 8.4h3M4 15.6h4M12 15.6h8"/><circle cx="15" cy="8.4" r="2"/><circle cx="10" cy="15.6" r="2"/>',
+  hand:  '<path d="M9 11.4V5.6a1.7 1.7 0 0 1 3.4 0v5.4"/><path d="M12.4 11V6.8a1.7 1.7 0 0 1 3.4 0V13"/><path d="M15.8 13v-.4a1.7 1.7 0 0 1 3.4 0v2.6a5.4 5.4 0 0 1-5.4 5.4h-1.9a5.2 5.2 0 0 1-4.5-2.6L5.7 13.4a1.7 1.7 0 0 1 2.8-1.9l.5.8"/>',
+  sun:   '<circle cx="12" cy="12" r="3.9"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.7 5.7l1.6 1.6M16.7 16.7l1.6 1.6M18.3 5.7l-1.6 1.6M7.3 16.7l-1.6 1.6"/>',
+  spark: '<path d="M12 4.2 13.7 9.7 19.2 11.4 13.7 13.1 12 18.6 10.3 13.1 4.8 11.4 10.3 9.7z"/>',
+  send:  '<path d="M20.4 3.6 3.6 10.2l6.6 2.6 2.6 6.6z"/><path d="M20.4 3.6 10.2 12.8"/>',
+  pen:   '<path d="M4.4 19.6 4.4 15.6 15.8 4.2a2 2 0 0 1 2.8 0l1 1a2 2 0 0 1 0 2.8L8.4 19.6z"/>',
+  star:  '<path d="M12 4.4 14.3 9.6 20 10.2 15.8 14 17 19.6 12 16.7 7 19.6 8.2 14 4 10.2 9.7 9.6z"/>'
+};
+
+/* First match wins, so the specific ones come before the general. */
+const MARKS = [
+  [/^open this hour$/i,                        "door"],
+  [/^start the day$/i,                         "sun"],
+  [/hold to pour/i,                            "cup"],
+  [/^hug$/i,                                   "heart"],
+  [/^truth$/i,                                 "talk"],
+  [/^dare$/i,                                  "flame"],
+  [/forfeit|^skip$/i,                          "next"],
+  [/reveal/i,                                  "eye"],
+  [/read it again/i,                           "book"],
+  [/lock in/i,                                 "lock"],
+  [/flip/i,                                    "flip"],
+  [/^set it$/i,                                "tick"],
+  [/^answer$/i,                                "phone"],
+  [/hang up|^decline$/i,                       "hang"],
+  [/mute/i,                                    "mic"],
+  [/^camera/i,                                 "cam"],
+  [/sound/i,                                   "sound"],
+  [/sharper picture|smoother picture/i,        "dial"],
+  [/stop sharing/i,                            "noscr"],
+  [/share my screen|^sharing/i,                "screen"],
+  [/tap to start/i,                            "hand"],
+  [/seconds|reset the clock|count us down|minute break/i, "clock"],
+  [/^copy/i,                                   "copy"],
+  [/^save/i,                                   "save"],
+  [/^clear|start over|start the list over/i,   "bin"],
+  [/^add|^\+$/i,                               "plus"],
+  [/^new /i,                                   "spark"],
+  [/^next|another one|^spin$/i,                "next"],
+  [/again|^restart$/i,                         "redo"],
+  [/^send$/i,                                  "send"],
+  [/^put it on$|^both press play$|^serve$|^push off$|^start$|^go$|^in play$/i, "play"],
+  [/veto/i,                                    "star"],
+  [/^pick|^roll/i,                             "spark"],
+  [/write|^say/i,                              "pen"]
+];
+
+const markFor = txt => {
+  for(const [re, name] of MARKS) if(re.test(txt)) return GLYPH[name];
+  return null;
+};
+
+/* Only the buttons that carry words. The tiles, the pad keys, the mole holes
+   and the little round ones already say what they are. */
+const DRESSED = ".btn, .open, .chat-tools button, .cbtns button, #gateGo";
+
+function dressButtons(root){
+  (root || document).querySelectorAll(DRESSED).forEach(b => {
+    const label = (b.textContent || "").trim();
+    if(label.length < 3) return;                     // +, −, →, ✕ and the arrows
+    const had = b.querySelector(":scope > .bi");
+    const want = markFor(label);
+    if(!want){ if(had) had.remove(); return; }
+    if(had && had.dataset.g === want) return;        // already right
+    if(had) had.remove();
+    const span = el("span","bi",
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+      'stroke-linecap="round" stroke-linejoin="round">' + want + '</svg>');
+    span.dataset.g = want;
+    span.setAttribute("aria-hidden","true");
+    b.insertBefore(span, b.firstChild);
+  });
+}
+
+/* Labels are rewritten constantly — and a textContent assignment takes the
+   icon with it — so watch rather than dress once. Coalesced, because the
+   arcade repaints a score every frame. */
+function watchButtons(){
+  dressButtons(document);
+  let due = 0;
+  const obs = new MutationObserver(() => {
+    if(due) return;
+    due = setTimeout(() => { due = 0; dressButtons(document); }, 200);
+  });
+  obs.observe(document.body, { childList:true, subtree:true, characterData:true });
+}
 
 /* =======================================================================
    CARRYING PICTURES AND VOICES. The watch party and the chat both need the
@@ -2852,9 +3011,53 @@ ACTS.jar = b => {
   render();
 };
 
+/* =======================================================================
+   THE RECORD SHOP. Searching Spotify needs the app's secret, so that part
+   goes through the Worker. Playing does not go through us at all — the page
+   embeds Spotify's own player, which means a pasted track link works with
+   no keys set up anywhere, and Spotify counts the play as Spotify's.
+
+   What each of you hears depends on your own Spotify: signed in with
+   Premium, the whole song; otherwise the thirty seconds the embed gives
+   anyone. There is no way around that from a web page and nothing here
+   pretends otherwise.
+   ======================================================================= */
+const SPOT = {
+  api:null, waiting:[],
+
+  load(){
+    if(SPOT.api || document.getElementById("spotapi")) return;
+    const s = document.createElement("script");
+    s.id = "spotapi";
+    s.src = "https://open.spotify.com/embed/iframe-api/v1";
+    s.async = true;
+    document.head.appendChild(s);
+  },
+  ready(fn){
+    SPOT.load();
+    if(SPOT.api) fn(SPOT.api); else SPOT.waiting.push(fn);
+  },
+
+  /* A track out of whatever was pasted: a link, a uri, or the bare id. */
+  id(v){
+    const t = String(v || "").trim();
+    let m = t.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?track\/([A-Za-z0-9]{22})/);
+    if(m) return m[1];
+    m = t.match(/^spotify:track:([A-Za-z0-9]{22})$/);
+    if(m) return m[1];
+    m = t.match(/^[A-Za-z0-9]{22}$/);
+    return m ? t : "";
+  }
+};
+window.onSpotifyIframeApiReady = api => {
+  SPOT.api = api;
+  SPOT.waiting.splice(0).forEach(fn => { try { fn(api); } catch(_){} });
+};
+
 /* --- 17:00 one song each --- */
 ACTS.song = b => {
-  lede(b, "Type your song, she sees it appear. Press play together, then don't talk.");
+  ACTS.song._n = (ACTS.song._n || 0);
+  lede(b, "Search it, put it on, and it plays on both sides at once. Then don't talk.");
   const box = el("div","card");
   box.innerHTML = `<svg class="record" viewBox="0 0 200 200">
     <circle cx="100" cy="100" r="96" fill="#243350" stroke="#FAF4E4" stroke-width="1.5" opacity=".9"/>
@@ -2866,8 +3069,33 @@ ACTS.song = b => {
     <path id="labelpath" d="M100 100 m -26 0 a 26 26 0 1 1 52 0 a 26 26 0 1 1 -52 0" fill="none"/>
     <text font-size="9" fill="#12203F" font-family="Optima,Candara,sans-serif"><textPath id="lab" href="#labelpath" startOffset="4%">side a — side b</textPath></text>
   </svg>`;
+
+  /* ---- the shop ---- */
+  const shop = el("div","spot");
+  const find = el("div","spot-find");
+  const q = el("input"); q.type = "text";
+  q.placeholder = "her song, or paste a Spotify link";
+  const go = el("button","btn","Search");
+  find.appendChild(q); find.appendChild(go);
+  shop.appendChild(find);
+  const said = el("div","spot-note"); said.hidden = true;
+  shop.appendChild(said);
+  const hits = el("div","spot-hits");
+  shop.appendChild(hits);
+
+  const now = el("div","spot-now"); now.hidden = true;
+  const host = el("div"); host.id = "spotHost" + (++ACTS.song._n);
+  now.appendChild(host);
+  const bar = el("div","spot-bar");
+  const bPlay = el("button","btn","Both press play");
+  const bOff  = el("button","btn ghost","Take it off");
+  bar.appendChild(bPlay); bar.appendChild(bOff);
+  now.appendChild(bar);
+  shop.appendChild(now);
+  box.appendChild(shop);
+
   const d = el("div","dedications");
-  const mk = (side) => {
+  const mk = side => {
     const g = el("div","ded");
     g.appendChild(el("label", null, nameOf(side) + " is playing"));
     const i2 = el("input"); i2.type = "text"; i2.placeholder = "song and artist";
@@ -2877,21 +3105,124 @@ ACTS.song = b => {
   const inHer = mk("her"), inYou = mk("you");
   box.appendChild(d);
   const r = el("div","row");
-  const play = el("button","btn","Both press play");
+  const play = el("button","btn","Start the three minutes");
   const t = el("div","timer","3:00");
   r.appendChild(play); r.appendChild(t); box.appendChild(r);
   b.appendChild(box);
-  note(box, "Whoever talks first over the other's song loses and has to explain why they picked it.");
+  note(box, "Whoever talks first over the other's song loses and has to explain why they picked it. What you each hear depends on your own Spotify: signed in with Premium, the whole song — otherwise the thirty seconds the embed gives anyone.");
 
+  /* ---- the player, and keeping it in step ---- */
+  let ctrl = null, on = "", pos = 0, paused = true;
+
+  const build = id => {
+    if(ctrl || !id) return;
+    SPOT.ready(api => {
+      if(ctrl || !document.body.contains(host)) return;
+      try {
+        api.createController(host, { uri: "spotify:track:" + id, width:"100%", height:"152" }, c => {
+          ctrl = c; on = id;
+          c.addListener("playback_update", e => {
+            const dd = (e && e.data) || {};
+            pos = (dd.position || 0) / 1000;
+            paused = dd.isPaused !== false;
+          });
+        });
+      } catch(_){ tell("Spotify's player wouldn't load. A blocker or a strict network will do that."); }
+    });
+  };
+
+  const syncSp = () => {
+    const id = SYNC.get("sp.id", "");
+    if(!id) return;
+    if(!ctrl){ build(id); return; }
+    if(on !== id){ on = id; try { ctrl.loadUri("spotify:track:" + id); } catch(_){} return; }
+    const going = SYNC.get("sp.playing", false);
+    const at = SYNC.get("sp.at", 0), since = SYNC.get("sp.since", 0);
+    const want = going && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
+    try {
+      if(Math.abs(pos - want) > 2.5) ctrl.seek(want);
+      if(going && paused) ctrl.play();
+      if(!going && !paused) ctrl.pause();
+    } catch(_){}
+  };
+
+  const putOn = trk => {
+    SYNC.set("sp.id", trk.id);
+    SYNC.set("sp.name", trk.name || ""); SYNC.set("sp.who", trk.who || "");
+    SYNC.set("sp.by", ME.name || nameOf(mySide()));
+    SYNC.set("sp.at", 0); SYNC.set("sp.since", SYNC.now()); SYNC.set("sp.playing", true);
+    hits.innerHTML = ""; tell("");
+  };
+
+  const tell = txt => { said.innerHTML = txt; said.hidden = !txt; };
+
+  const search = async () => {
+    const term = q.value.trim();
+    if(!term) return;
+    const straight = SPOT.id(term);
+    if(straight){ q.value = ""; putOn({ id: straight }); return; }
+    hits.innerHTML = "";
+    tell("looking…");
+    let j;
+    try { j = await (await fetch("/spotify?q=" + encodeURIComponent(term), { cache:"no-store" })).json(); }
+    catch(_){ j = { ok:false, why:"net" }; }
+
+    if(!j || j.ok !== true){
+      const why = (j && j.why) || "net";
+      tell(why === "unset"
+        ? "Searching needs a Spotify app key on the Worker — <b>SPOTIFY_CLIENT_ID</b> and <b>SPOTIFY_CLIENT_SECRET</b>, the README has the steps. Until then, paste a Spotify track link in here and it plays."
+        : why === "keys"
+          ? "Spotify turned the app key down. Check SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET on the Worker."
+          : why === "net"
+            ? "Couldn't reach the search."
+            : "Spotify wouldn't answer that search" + (j.detail ? ": " + esc(String(j.detail).slice(0,120)) : "."));
+      return;
+    }
+    if(!j.tracks || !j.tracks.length){ tell("Nothing came back for that."); return; }
+    tell("");
+    j.tracks.forEach(trk => {
+      const row = el("button","spot-hit");
+      if(trk.art){ const im = el("img"); im.src = trk.art; im.alt = ""; im.loading = "lazy"; row.appendChild(im); }
+      const words = el("span","spot-words");
+      words.appendChild(el("b", null, esc(trk.name)));
+      words.appendChild(el("i", null, esc(trk.who)));
+      row.appendChild(words);
+      row.addEventListener("click", () => putOn(trk));
+      hits.appendChild(row);
+    });
+  };
+
+  go.addEventListener("click", search);
+  q.addEventListener("keydown", e => { if(e.key === "Enter") search(); });
+
+  bPlay.addEventListener("click", () => {
+    const going = SYNC.get("sp.playing", false);
+    if(going){ SYNC.set("sp.at", pos); SYNC.set("sp.playing", false); }
+    else { SYNC.set("sp.at", pos); SYNC.set("sp.since", SYNC.now()); SYNC.set("sp.playing", true); }
+    if(ctrl){ try { going ? ctrl.pause() : ctrl.play(); } catch(_){} }   // this side's gesture
+  });
+  bOff.addEventListener("click", () => {
+    SYNC.set("sp.id", ""); SYNC.set("sp.playing", false); SYNC.set("sp.at", 0);
+  });
+
+  /* ---- what it all looks like ---- */
   const rec = box.querySelector(".record"), lab = box.querySelector("#lab");
   const render = () => {
     const a = SYNC.get("song.her", ""), c = SYNC.get("song.you", "");
     if(document.activeElement !== inHer) inHer.value = a;
     if(document.activeElement !== inYou) inYou.value = c;
-    lab.textContent = (a || "side a") + " — " + (c || "side b");
+
+    const id = SYNC.get("sp.id", ""), nm = SYNC.get("sp.name", "");
+    const going = SYNC.get("sp.playing", false);
+    now.hidden = !id;
+    bPlay.textContent = going ? "Pause it for both" : "Both press play";
+    if(id) build(id);
+
+    lab.textContent = nm ? nm.slice(0, 40)
+      : ((a || "side a") + " — " + (c || "side b"));
     const endsAt = SYNC.get("song.endsAt", 0);
     const running = endsAt && SYNC.now() < endsAt;
-    rec.classList.toggle("spin", !!running);
+    rec.classList.toggle("spin", !!(running || going));
     play.disabled = !!running;
   };
 
@@ -2906,7 +3237,10 @@ ACTS.song = b => {
   wire(inHer, "song.her"); wire(inYou, "song.you");
   play.addEventListener("click", () => SYNC.set("song.endsAt", SYNC.now() + 180000));
 
-  bind("song.her", render); bind("song.you", render); bind("song.endsAt", render);
+  ["song.her","song.you","song.endsAt","sp.id","sp.name","sp.who","sp.playing","sp.by"]
+    .forEach(k => bind(k, render));
+  every(1000, syncSp);
+  onClose(() => { ctrl = null; });
   sharedClock(t, "song.endsAt", { idle:"3:00", done:"now you can talk" }, render);
   render();
 };
@@ -3877,9 +4211,6 @@ function rpsGame(host, gbind, gevery, gclean){
      own and watch the other's, the way the snakes work.
    ======================================================================= */
 const ARC = {
-  /* Someone has to own the physics. The first seat drives; on your own, you. */
-  drives(){ const s = seats(); return !s.her || s.her.id === SYNC.id; },
-
   screen(host, w, h, cls){
     const cv = el("canvas", "arcscreen" + (cls ? " " + cls : ""));
     cv.width = w * 2; cv.height = h * 2;          // crisp where the screen is
@@ -3951,18 +4282,80 @@ const ARC = {
     });
   },
 
-  /* Buttons for the phones, which have no arrow keys. */
+  /* Buttons for the phones, which have no arrow keys. A tap is about thirty
+     milliseconds long, which moved a bat by nothing at all and made three of
+     these unplayable by finger — so a short press is held for a beat. */
   pad(host, list, press){
     const row = el("div","arcpad");
     list.forEach(([label, k]) => {
       const b = el("button","padkey", label);
-      b.addEventListener("pointerdown", e => { e.preventDefault(); press(k, true); });
-      ["pointerup","pointerleave","pointercancel"].forEach(ev =>
-        b.addEventListener(ev, () => press(k, false)));
+      let since = 0, later = null;
+      const down = e => { e.preventDefault(); clearTimeout(later); since = Date.now(); press(k, true); };
+      const up = () => {
+        const held = Date.now() - since;
+        clearTimeout(later);
+        if(held >= 190) press(k, false);
+        else later = setTimeout(() => press(k, false), 190 - held);
+      };
+      b.addEventListener("pointerdown", down);
+      ["pointerup","pointerleave","pointercancel"].forEach(ev => b.addEventListener(ev, up));
       row.appendChild(b);
     });
     host.appendChild(row);
     return row;
+  },
+
+  /* A flick across the glass, as a direction. For the maze, where holding a
+     button is the wrong shape and a swipe is the obvious one. */
+  swipe(cv, fn, gclean){
+    let from = null, sent = false;
+    const d = e => { from = [e.clientX, e.clientY]; sent = false; };
+    const m = e => {
+      if(!from || sent) return;
+      const dx = e.clientX - from[0], dy = e.clientY - from[1];
+      if(Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+      sent = true;
+      fn(Math.abs(dx) > Math.abs(dy) ? [dx > 0 ? 1 : -1, 0] : [0, dy > 0 ? 1 : -1]);
+    };
+    const u = () => { from = null; };
+    cv.addEventListener("pointerdown", d);
+    window.addEventListener("pointermove", m);
+    window.addEventListener("pointerup", u);
+    gclean(() => {
+      cv.removeEventListener("pointerdown", d);
+      window.removeEventListener("pointermove", m);
+      window.removeEventListener("pointerup", u);
+    });
+  },
+
+  /* Who runs the physics. This used to be the first seat outright, which
+     assumed that tab was awake and had the cabinet open — a phone that locks
+     its screen stops painting frames, and the other side's ball simply
+     stopped.
+
+     Each side now says only that it is here, in a key of its own, and both
+     sides read both keys and apply the same rule. One shared key was the
+     obvious way to write this and it does not work: the room broadcasts a
+     set to everyone EXCEPT whoever sent it, so two tabs claiming at the same
+     moment each keep their own answer and never find out they disagree. */
+  own(key, gevery, gclean){
+    const K = side => "arc.at." + key + "." + side;
+    const beat = () => SYNC.set(K(mySide()), { id: SYNC.id, at: SYNC.now() });
+    const here = side => {
+      const o = SYNC.get(K(side), null);
+      if(!o || !o.id) return null;
+      if(!SYNC.peers.some(p => p.id === o.id)) return null;      // that tab has gone
+      if(SYNC.now() - (o.at || 0) > 5000) return null;           // that tab went quiet
+      return o;
+    };
+    gevery(2000, beat);
+    gclean(() => SYNC.set(K(mySide()), null));
+    return () => {
+      const a = here("her"), b = here("you");
+      if(!a && !b) return true;                                  // on your own, you
+      const pick = (a && b) ? (a.id < b.id ? a : b) : (a || b);   // same answer both sides
+      return pick.id === SYNC.id;
+    };
   },
 
   round(ctx, x, y, w, h, r){
@@ -3981,7 +4374,7 @@ const ARC = {
 function pongGame(host, gbind, gevery, gclean){
   const W = 420, H = 250, PW = 9, PH = 54, TO = 7;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","W and S, the arrows, or drag on the screen — first to seven"));
+  box.appendChild(el("div","qnum","W and S, the arrows, the buttons, or drag up and down the glass — first to seven"));
   const line = el("div","arc-score","");
   box.appendChild(line);
   const sc = ARC.screen(box, W, H, "pong");
@@ -3997,6 +4390,7 @@ function pongGame(host, gbind, gevery, gclean){
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
   const held = {};
   const keys = ARC.keys(gclean);
+  const drives = ARC.own("pong", gevery, gclean);
   const pads = { her: H/2, you: H/2 };
   let ball = { x: W/2, y: H/2, vx: 0, vy: 0 };
   let live = false, beat = 0, last = "";
@@ -4013,16 +4407,16 @@ function pongGame(host, gbind, gevery, gclean){
 
   gev("pong.pad", (m, by) => { if(m && m.s && m.s !== mySide()) pads[m.s] = m.y; });
   gev("pong.ball", m => {
-    if(ARC.drives() || !m) return;                 // the driver never takes dictation
+    if(drives() || !m) return;                 // the driver never takes dictation
     ball = { x:m.x, y:m.y, vx:m.vx, vy:m.vy };
     live = !!m.live;
     if(m.pads) Object.keys(m.pads).forEach(k => { if(k !== mySide()) pads[k] = m.pads[k]; });
   });
-  gev("pong.serve", () => { if(ARC.drives() && !live && !won(score())) serve(Math.random() < .5); });
+  gev("pong.serve", () => { if(drives() && !live && !won(score())) serve(Math.random() < .5); });
 
   go.addEventListener("click", () => {
     if(won(score())) return;
-    if(ARC.drives()){ if(!live) serve(Math.random() < .5); }
+    if(drives()){ if(!live) serve(Math.random() < .5); }
     else SYNC.ev("pong.serve", {});
   });
   zero.addEventListener("click", () => { SYNC.set("pong.score", {her:0, you:0}); live = false; });
@@ -4033,7 +4427,7 @@ function pongGame(host, gbind, gevery, gclean){
     if(up)   setMe(mePad() - 260 * dt);
     if(down) setMe(mePad() + 260 * dt);
 
-    if(ARC.drives()){
+    if(drives()){
       if(live){
         ball.x += ball.vx * dt; ball.y += ball.vy * dt;
         if(ball.y < 6){ ball.y = 6; ball.vy = Math.abs(ball.vy); }
@@ -4088,10 +4482,11 @@ function pongGame(host, gbind, gevery, gclean){
     line.textContent = CFG.her + " " + s.her + "  —  " + s.you + " " + CFG.you;
     go.disabled = won(s) || live;
     go.textContent = live ? "In play" : "Serve";
-    const tag = ARC.drives() ? "you" : nameOf("her");
+    const tag = drives() ? "you" : nameOf("her");
     if(tag !== last){ last = tag; who.textContent = "You are " + (mySide() === "her" ? "the gold bat on the left" : "the green bat on the right") + "."; }
   };
 
+  ARC.drag(sc.cv, (fx, fy) => setMe(fy * H), gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gbind("pong.score", paint);
   gevery(400, paint);
@@ -4100,9 +4495,9 @@ function pongGame(host, gbind, gevery, gclean){
 
 /* --- arcade: breakout, with a bat each --- */
 function brickGame(host, gbind, gevery, gclean){
-  const W = 420, H = 300, COLS = 9, ROWS = 5, BW = 42, BH = 14, TOP = 34, PW = 62, PH = 10;
+  const W = 420, H = 300, COLS = 9, ROWS = 5, BW = 42, BH = 14, TOP = 34, PW = 78, PH = 10, BALLS = 5;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","a bat each on the same floor — clear the wall between you"));
+  box.appendChild(el("div","qnum","arrows, the buttons, or drag along the glass — a bat each on the same floor, clear the wall between you"));
   const line = el("div","arc-score","");
   box.appendChild(line);
   const sc = ARC.screen(box, W, H, "brick");
@@ -4118,7 +4513,8 @@ function brickGame(host, gbind, gevery, gclean){
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
   const held = {};
   const keys = ARC.keys(gclean);
-  const pads = { her: W * 0.33, you: W * 0.66 };
+  const drives = ARC.own("brick", gevery, gclean);
+  const pads = { her: W * 0.36, you: W * 0.64 };
   let wall = [], ball = { x: W/2, y: H - 40, vx: 0, vy: 0 }, live = false;
   let lives = 3, hits = 0, beat = 0, done = "";
 
@@ -4126,20 +4522,28 @@ function brickGame(host, gbind, gevery, gclean){
     wall = [];
     for(let y = 0; y < ROWS; y++)
       for(let x = 0; x < COLS; x++) wall.push(1);
-    lives = 3; hits = 0; live = false; done = "";
+    lives = BALLS; hits = 0; live = false; done = "";
     ball = { x: W/2, y: H - 40, vx: 0, vy: 0 };
   };
   const brickAt = i => ({ x: 12 + (i % COLS) * (BW + 1), y: TOP + Math.floor(i / COLS) * (BH + 4) });
   const left = () => wall.reduce((a,b) => a + b, 0);
 
-  const push = () => { if(live || done) return; live = true;
-    ball = { x: W/2, y: H - 40, vx: (Math.random() < .5 ? -1 : 1) * 150, vy: -215 }; };
+  /* It used to launch from the middle of the board, which is exactly the gap
+     between the two bats — so it came straight back down through it and three
+     balls were gone in five seconds. It leaves from the bat of whoever pushed
+     off, the way the machine does it. */
+  const push = from => {
+    if(live || done) return;
+    const at = pads[from] !== undefined ? pads[from] : W/2;
+    live = true;
+    ball = { x: at, y: H - 30, vx: (Math.random() < .5 ? -1 : 1) * (70 + Math.random() * 60), vy: -205 };
+  };
 
   gev("brick.pad", m => { if(m && m.s && m.s !== mySide()) pads[m.s] = m.x; });
-  gev("brick.go", () => { if(ARC.drives()) push(); });
-  gev("brick.new", () => { if(ARC.drives()){ build(); blast(); } });
+  gev("brick.go", (m, by) => { if(drives()) push((m && m.s) || theirSide()); });
+  gev("brick.new", () => { if(drives()){ build(); blast(); } });
   gev("brick.state", m => {
-    if(ARC.drives() || !m) return;
+    if(drives() || !m) return;
     ball = { x:m.x, y:m.y, vx:m.vx, vy:m.vy };
     live = !!m.live; lives = m.l; hits = m.h; done = m.done || "";
     if(m.w) wall = m.w.split("").map(Number);
@@ -4148,9 +4552,9 @@ function brickGame(host, gbind, gevery, gclean){
   const blast = () => SYNC.ev("brick.state", { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy,
     live, l:lives, h:hits, done, w:wall.join(""), pads });
 
-  go.addEventListener("click", () => ARC.drives() ? push() : SYNC.ev("brick.go", {}));
+  go.addEventListener("click", () => drives() ? push(mySide()) : SYNC.ev("brick.go", { s: mySide() }));
   again.addEventListener("click", () => {
-    if(ARC.drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
+    if(drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
   });
 
   const step = dt => {
@@ -4159,7 +4563,7 @@ function brickGame(host, gbind, gevery, gclean){
     if(l)  pads[mySide()] = Math.max(PW/2, pads[mySide()] - 300 * dt);
     if(rr) pads[mySide()] = Math.min(W - PW/2, pads[mySide()] + 300 * dt);
 
-    if(!ARC.drives()){
+    if(!drives()){
       if(live){ ball.x += ball.vx * dt; ball.y += ball.vy * dt; }
       if((beat += dt) > 0.05){ beat = 0; SYNC.ev("brick.pad", { s: mySide(), x: pads[mySide()] }); }
       return;
@@ -4181,12 +4585,15 @@ function brickGame(host, gbind, gevery, gclean){
         }
       }
       const floor = H - 18;
-      if(ball.vy > 0 && ball.y > floor - 6 && ball.y < floor + 10){
+      if(ball.vy > 0 && ball.y > floor - 8 && ball.y < floor + 12){
         [["her", pads.her], ["you", pads.you]].forEach(([s, px]) => {
           if(ball.x > px - PW/2 - 4 && ball.x < px + PW/2 + 4){
-            ball.y = floor - 6; ball.vy = -Math.abs(ball.vy) * 1.02;
-            ball.vx += (ball.x - px) * 3.6;
+            ball.y = floor - 8; ball.vy = -Math.abs(ball.vy) * 1.02;
+            ball.vx += (ball.x - px) * 3.2;
             ball.vx = Math.max(-320, Math.min(320, ball.vx));
+            /* Off the very end of a bat the ball can end up travelling almost
+               sideways and never come back down. Keep some climb in it. */
+            if(Math.abs(ball.vy) < 150) ball.vy = -150;
           }
         });
       }
@@ -4224,14 +4631,16 @@ function brickGame(host, gbind, gevery, gclean){
 
   const paint = () => {
     line.textContent = hits + " down, " + left() + " to go  ·  " + lives + " ball" + (lives === 1 ? "" : "s") + " left";
+    go.title = "The ball leaves your own bat";
     go.disabled = live || !!done;
     go.textContent = live ? "In play" : "Push off";
     const b = SYNC.get("brick.best", 0);
     best.textContent = b ? "Best wall between you: " + b + " bricks." : "";
-    if(done && ARC.drives() && hits > b) SYNC.set("brick.best", hits);
+    if(done && drives() && hits > b) SYNC.set("brick.best", hits);
   };
 
   build();
+  ARC.drag(sc.cv, fx => { pads[mySide()] = Math.max(PW/2, Math.min(W - PW/2, fx * W)); }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gbind("brick.best", paint);
   gevery(300, paint);
@@ -4262,6 +4671,7 @@ function moleGame(host, gbind, gevery, gclean){
   host.appendChild(box);
 
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+  const drives = ARC.own("mole", gevery, gclean);
   let up = {}, hitBy = {}, endsAt = 0, spawnAt = 0;
   const tally = () => Object.assign({her:0, you:0}, SYNC.get("mole.score", {}));
 
@@ -4274,10 +4684,10 @@ function moleGame(host, gbind, gevery, gclean){
   };
   const blast = () => SYNC.ev("mole.up", { up, hit: hitBy });
 
-  gev("mole.up", m => { if(!ARC.drives() && m){ up = m.up || {}; hitBy = m.hit || {}; } });
-  gev("mole.go", () => { if(ARC.drives()) start(); });
+  gev("mole.up", m => { if(!drives() && m){ up = m.up || {}; hitBy = m.hit || {}; } });
+  gev("mole.go", () => { if(drives()) start(); });
   gev("mole.hit", (m, by) => {
-    if(!ARC.drives() || !m) return;
+    if(!drives() || !m) return;
     land(m.i, m.s);
   });
 
@@ -4292,15 +4702,15 @@ function moleGame(host, gbind, gevery, gclean){
   function whack(i){
     if(SYNC.now() > (SYNC.get("mole.ends", 0) || 0)) return;
     if(!up[i] || hitBy[i]) return;
-    if(ARC.drives()) land(i, mySide());
+    if(drives()) land(i, mySide());
     else { hitBy[i] = mySide(); paint(); SYNC.ev("mole.hit", { i, s: mySide() }); }
   }
 
-  go.addEventListener("click", () => ARC.drives() ? start() : SYNC.ev("mole.go", {}));
+  go.addEventListener("click", () => drives() ? start() : SYNC.ev("mole.go", {}));
 
   const tick = () => {
     const ends = SYNC.get("mole.ends", 0);
-    if(ARC.drives() && SYNC.now() < ends){
+    if(drives() && SYNC.now() < ends){
       const now = SYNC.now();
       if(now > spawnAt){
         spawnAt = now + 380 + Math.random() * 420;
@@ -4335,7 +4745,7 @@ function moleGame(host, gbind, gevery, gclean){
     });
     if(!on && ends){
       const b = SYNC.get("mole.best", 0), top = Math.max(t.her, t.you);
-      if(ARC.drives() && top > b) SYNC.set("mole.best", top);
+      if(drives() && top > b) SYNC.set("mole.best", top);
       best.textContent = (t.her === t.you ? "Dead level at " + t.her + "."
         : (t.her > t.you ? CFG.her : CFG.you) + " won it, " + Math.max(t.her,t.you) + " to " + Math.min(t.her,t.you) + ".")
         + (b ? "  Best round so far: " + Math.max(b, top) + "." : "");
@@ -4373,7 +4783,7 @@ const PACMAZE = [
 function pacGame(host, gbind, gevery, gclean){
   const N = 15, CELL = 15, W = N * CELL, SPD = 5.2, GSPD = 3.9;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","arrows, WASD or the buttons — a maze each, both live"));
+  box.appendChild(el("div","qnum","arrows, the buttons, or swipe your maze — one each, both live"));
   const pair = el("div","arcpair");
   const mk = side => {
     const w = el("div","arcwrap");
@@ -4569,6 +4979,7 @@ function pacGame(host, gbind, gevery, gclean){
   };
 
   go.addEventListener("click", start);
+  ARC.swipe(mineUI.s.cv, d => { if(me) me.p.want = d; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
   const paintBest = () => {
@@ -4583,7 +4994,7 @@ function pacGame(host, gbind, gevery, gclean){
 function jumpGame(host, gbind, gevery, gclean){
   const W = 180, H = 300, PW = 20, PH = 18, PLAT = 46, HOP = 430, G = 900;
   const box = el("div","card");
-  box.appendChild(el("div","qnum","left and right, or the buttons — a tower each, highest wins"));
+  box.appendChild(el("div","qnum","arrows, the buttons, or drag your tower — one each, highest wins"));
   const pair = el("div","arcpair");
   const mk = side => {
     const w = el("div","arcwrap");
@@ -4607,13 +5018,13 @@ function jumpGame(host, gbind, gevery, gclean){
   const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
   const held = {};
   const keys = ARC.keys(gclean);
-  let me = null, them = null, alive = false;
+  let me = null, them = null, alive = false, aim = null;
 
   const rowY = i => -i * 62;
   const fresh = () => {
     const plats = [];
     for(let i = 0; i < 40; i++)
-      plats.push({ x: i === 0 ? W/2 - PLAT/2 : 8 + Math.random() * (W - PLAT - 16), y: rowY(i) + H - 30 });
+      plats.push({ x: i === 0 ? W/2 - PLAT/2 : Math.random() * (W - PLAT), y: rowY(i) + H - 30 });
     return { x: W/2, y: H - 60, vy: 0, top: 0, plats, high: 0, dead: false, n: 0 };
   };
 
@@ -4634,6 +5045,10 @@ function jumpGame(host, gbind, gevery, gclean){
     const rr = keys.has("ArrowRight") || keys.has("d") || held.right;
     if(l)  me.x -= 210 * dt;
     if(rr) me.x += 210 * dt;
+    if(aim !== null && !l && !rr){                    // a finger on the tower
+      const gap = aim - me.x, reach = 260 * dt;
+      me.x += Math.abs(gap) < reach ? gap : Math.sign(gap) * reach;
+    }
     if(me.x < -PW/2) me.x = W + PW/2;                 // out one side, in the other
     if(me.x > W + PW/2) me.x = -PW/2;
 
@@ -4656,7 +5071,7 @@ function jumpGame(host, gbind, gevery, gclean){
     let highest = Math.min.apply(null, me.plats.map(p => p.y));
     while(highest > me.top - 80){
       highest -= 62;
-      me.plats.push({ x: 8 + Math.random() * (W - PLAT - 16), y: highest });
+      me.plats.push({ x: Math.random() * (W - PLAT), y: highest });
     }
     me.plats = me.plats.filter(p => p.y - me.top < H + 120);
 
@@ -4697,6 +5112,7 @@ function jumpGame(host, gbind, gevery, gclean){
   };
 
   go.addEventListener("click", start);
+  ARC.drag(mineUI.s.cv, fx => { aim = fx * W; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
   const paintBest = () => {
@@ -6366,6 +6782,7 @@ const PICS = {
 
 /* ---- go ---- */
 buildHours();
+watchButtons();
 $("#hugLaunch").addEventListener("click", () => {
   if(SYNC.get("stage.open", null) !== "hug") SYNC.set("stage.open", "hug"); else showStage("hug");
 });

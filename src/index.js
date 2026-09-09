@@ -279,6 +279,39 @@ export default {
       }
     }
 
+    /* Searching Spotify needs a token, and a token needs the app's secret —
+       which must never reach a browser. The Worker holds it, asks for a
+       client-credentials token (good for search, no user attached), and
+       hands back only the handful of fields the page draws.
+
+       Playing does not come through here at all: the page embeds Spotify's
+       own player, so a paste of a track link works with no keys set up. */
+    if (url.pathname === "/spotify") {
+      const out = body => new Response(JSON.stringify(body), {
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+      const q = (url.searchParams.get("q") || "").trim().slice(0, 120);
+      if (!q) return out({ ok: true, tracks: [] });
+      const id = env.SPOTIFY_CLIENT_ID, secret = env.SPOTIFY_CLIENT_SECRET;
+      if (!id || !secret) return out({ ok: false, why: "unset" });
+      try {
+        const token = await spotifyToken(id, secret);
+        if (!token) return out({ ok: false, why: "keys" });
+        const r = await fetch(
+          "https://api.spotify.com/v1/search?type=track&limit=8&q=" + encodeURIComponent(q),
+          { headers: { Authorization: "Bearer " + token } },
+        );
+        const text = await r.text();
+        if (!r.ok) {
+          if (r.status === 401) spotifyToken.cache = null;   // stale; earn a new one
+          return out({ ok: false, why: "search", detail: text.slice(0, 200) });
+        }
+        return out({ ok: true, tracks: tidyTracks(JSON.parse(text)) });
+      } catch (e) {
+        return out({ ok: false, why: "search", detail: String(e).slice(0, 200) });
+      }
+    }
+
     if (url.pathname === "/upload" || url.pathname === "/img") {
       const want = url.pathname === "/upload" ? "POST" : "GET";
       if (request.method !== want) return new Response("method not allowed", { status: 405 });
@@ -288,3 +321,39 @@ export default {
     return env.ASSETS.fetch(request);
   },
 };
+
+/* One token per isolate, reused until a minute before it lapses. */
+async function spotifyToken(id, secret) {
+  const held = spotifyToken.cache;
+  if (held && held.token && Date.now() < held.until) return held.token;
+  const r = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: "Basic " + btoa(id + ":" + secret),
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!r.ok) return "";
+  const j = await r.json();
+  if (!j.access_token) return "";
+  spotifyToken.cache = {
+    token: j.access_token,
+    until: Date.now() + Math.max(30, (j.expires_in || 3600) - 60) * 1000,
+  };
+  return j.access_token;
+}
+
+/* Only what the page draws: everything else is somebody's data for no reason. */
+export function tidyTracks(body) {
+  const items = (body && body.tracks && body.tracks.items) || [];
+  return items
+    .filter((t) => t && t.id)
+    .map((t) => ({
+      id: t.id,
+      name: String(t.name || "").slice(0, 120),
+      who: (t.artists || []).map((a) => a.name).filter(Boolean).join(", ").slice(0, 120),
+      art: ((t.album && t.album.images) || []).slice(-1).map((i) => i.url)[0] || "",
+      ms: t.duration_ms || 0,
+    }));
+}
