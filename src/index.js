@@ -312,6 +312,81 @@ export default {
       }
     }
 
+    /* YouTube's own search, so a song can be found by name instead of hunted
+       for in another tab. The key is free and read-only; it stays on the
+       Worker because a key in a page is a key anybody can spend.
+
+       Two things narrow the results to something that will actually play:
+       the Music category, and embeddable-only — an unembeddable video looks
+       fine in a list and then refuses to load in the deck. If the Music
+       category comes back empty the search runs again without it, because a
+       lot of music is filed under nothing in particular. */
+    if (url.pathname === "/youtube") {
+      const out = body => new Response(JSON.stringify(body), {
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+      const q = (url.searchParams.get("q") || "").trim().slice(0, 120);
+      if (!q) return out({ ok: true, tracks: [] });
+      const key = env.YOUTUBE_API_KEY;
+      if (!key) return out({ ok: false, why: "unset" });
+      const ask = async (music) => {
+        const bits = [
+          "part=snippet", "type=video", "maxResults=8", "videoEmbeddable=true",
+          music ? "videoCategoryId=10" : "",
+          "q=" + encodeURIComponent(q), "key=" + encodeURIComponent(key),
+        ].filter(Boolean).join("&");
+        const r = await fetch("https://www.googleapis.com/youtube/v3/search?" + bits);
+        return { ok: r.ok, status: r.status, text: await r.text() };
+      };
+      try {
+        let r = await ask(true);
+        if (!r.ok) return out({ ok: false, why: r.status === 403 ? "keys" : "search", detail: r.text.slice(0, 200) });
+        let tracks = tidyTube(JSON.parse(r.text));
+        if (!tracks.length) {
+          r = await ask(false);
+          if (r.ok) tracks = tidyTube(JSON.parse(r.text));
+        }
+        return out({ ok: true, tracks });
+      } catch (e) {
+        return out({ ok: false, why: "search", detail: String(e).slice(0, 200) });
+      }
+    }
+
+    /* SoundCloud's search, same shape. Their tokens are client-credentials
+       too, so the secret stays here and the page only ever sees titles.
+
+       Unlike the other two this hands back a link rather than an id: the
+       widget wants the track's own page, not a number. */
+    if (url.pathname === "/soundcloud") {
+      const out = body => new Response(JSON.stringify(body), {
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+      const q = (url.searchParams.get("q") || "").trim().slice(0, 120);
+      if (!q) return out({ ok: true, tracks: [] });
+      const id = env.SOUNDCLOUD_CLIENT_ID, secret = env.SOUNDCLOUD_CLIENT_SECRET;
+      if (!id || !secret) return out({ ok: false, why: "unset" });
+      try {
+        const token = await cloudToken(id, secret);
+        if (!token) return out({ ok: false, why: "keys" });
+        const where = "https://api.soundcloud.com/tracks?limit=8&access=playable,preview&q="
+          + encodeURIComponent(q);
+        /* Their docs have said both over the years and live servers differ,
+           so ask the polite way and take the hint if it is refused. */
+        let r = await fetch(where, { headers: { Authorization: "OAuth " + token } });
+        if (r.status === 401) {
+          r = await fetch(where, { headers: { Authorization: "Bearer " + token } });
+        }
+        const text = await r.text();
+        if (!r.ok) {
+          if (r.status === 401) cloudToken.cache = null;   // stale; earn a new one
+          return out({ ok: false, why: r.status === 401 ? "keys" : "search", detail: text.slice(0, 200) });
+        }
+        return out({ ok: true, tracks: tidyCloud(JSON.parse(text)) });
+      } catch (e) {
+        return out({ ok: false, why: "search", detail: String(e).slice(0, 200) });
+      }
+    }
+
     if (url.pathname === "/upload" || url.pathname === "/img") {
       const want = url.pathname === "/upload" ? "POST" : "GET";
       if (request.method !== want) return new Response("method not allowed", { status: 405 });
@@ -355,5 +430,69 @@ export function tidyTracks(body) {
       who: (t.artists || []).map((a) => a.name).filter(Boolean).join(", ").slice(0, 120),
       art: ((t.album && t.album.images) || []).slice(-1).map((i) => i.url)[0] || "",
       ms: t.duration_ms || 0,
+    }));
+}
+
+/* One token per isolate, same bargain as Spotify's. */
+async function cloudToken(id, secret) {
+  const held = cloudToken.cache;
+  if (held && held.token && Date.now() < held.until) return held.token;
+  const r = await fetch("https://secure.soundcloud.com/oauth/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: "Basic " + btoa(id + ":" + secret),
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!r.ok) return "";
+  const j = await r.json();
+  if (!j.access_token) return "";
+  cloudToken.cache = {
+    token: j.access_token,
+    until: Date.now() + Math.max(30, (j.expires_in || 3600) - 60) * 1000,
+  };
+  return j.access_token;
+}
+
+/* YouTube hands titles back HTML-escaped, and the page escapes again on the
+   way to the screen, so an apostrophe would arrive as &#39; and stay that
+   way. Undo theirs here. `&amp;` goes last or it undoes the rest twice. */
+function unescapeEntities(v) {
+  return String(v || "")
+    .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+
+export function tidyTube(body) {
+  const items = (body && body.items) || [];
+  return items
+    .filter((i) => i && i.id && i.id.videoId && i.snippet)
+    .map((i) => {
+      const th = i.snippet.thumbnails || {};
+      const pic = th.medium || th.default || th.high || {};
+      return {
+        id: i.id.videoId,
+        name: unescapeEntities(i.snippet.title).slice(0, 120),
+        who: unescapeEntities(i.snippet.channelTitle).slice(0, 120),
+        art: pic.url || "",
+      };
+    });
+}
+
+/* A blocked track lists like any other and then plays for nobody, so it is
+   dropped here rather than disappointing somebody who picked it. */
+export function tidyCloud(body) {
+  const items = Array.isArray(body) ? body : (body && body.collection) || [];
+  return items
+    .filter((t) => t && t.id && t.permalink_url && t.access !== "blocked")
+    .map((t) => ({
+      id: String(t.id),
+      url: String(t.permalink_url).slice(0, 300),
+      name: String(t.title || "").slice(0, 120),
+      who: String((t.user && t.user.username) || "").slice(0, 120),
+      art: String(t.artwork_url || (t.user && t.user.avatar_url) || ""),
+      ms: t.duration || 0,
+      part: t.access === "preview",
     }));
 }
