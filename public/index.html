@@ -499,17 +499,62 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .spot-words b{font-weight:600;font-size:.94rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spot-words i{font-style:normal;font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spot-hit:hover .spot-words i{color:#3A4A6B}
-.spot-tube{
-  position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#12203F;
-  max-height:min(330px,44vh);margin:0 auto      /* a song does not need the whole card */
-}
-.spot-tube[hidden]{display:none}
-.spot-tube iframe{width:100%;height:100%;border:0;display:block}
 .spot-now > div[hidden]{display:none}
 .spot-now{margin-top:14px}
 .spot-now[hidden]{display:none}
-.spot-now iframe{border-radius:12px;display:block;width:100%}
 .spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.spot-live{
+  display:flex;align-items:center;gap:12px;min-width:0;
+  padding:11px 14px;border-radius:12px 10px 13px 9px;
+  border:1px solid var(--line);background:rgba(36,51,80,.05)
+}
+.spot-title{font-family:var(--serif);font-size:1.15rem;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spot-title.asking{font-family:var(--sans);font-size:.85rem;color:var(--mango);white-space:normal}
+
+/* The player is here for its sound alone. A display:none iframe is a
+   paused iframe in some browsers, so it is not hidden — it is rendered,
+   one pixel across, and out of everybody's way. */
+.radio-cage{
+  position:fixed;left:0;bottom:0;width:1px;height:1px;
+  overflow:hidden;opacity:.01;pointer-events:none;border:0
+}
+.radio-cage iframe{width:1px;height:1px;border:0;display:block}
+
+/* what is on, once the hour it was put on in has been closed */
+.nowbar{
+  /* above the cinema, deliberately: a song you cannot reach to stop is
+     worse than a small bar in the corner of a film */
+  position:fixed;left:20px;bottom:20px;z-index:210;
+  display:flex;align-items:center;gap:10px;
+  max-width:min(340px,calc(100vw - 40px));
+  padding:9px 12px 9px 15px;border-radius:999px;
+  background:var(--ink);color:#FAF4E4;
+  box-shadow:0 8px 22px rgba(36,51,80,.25)
+}
+.nowbar .who{
+  font-family:var(--serif);font-size:1.05rem;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.nowbar button{
+  background:none;border:0;color:inherit;padding:5px;margin:0;cursor:pointer;
+  display:flex;align-items:center;border-radius:50%;flex:0 0 auto;opacity:.85
+}
+.nowbar button:hover{opacity:1;background:rgba(250,244,228,.14)}
+.nowbar.asleep{background:rgba(36,51,80,.82)}
+
+/* the bars, in the corner and in the card */
+.eq{display:flex;align-items:flex-end;gap:2.5px;height:17px;flex:0 0 auto}
+.eq i{
+  width:3px;height:100%;background:currentColor;border-radius:2px;
+  transform-origin:bottom;animation:eqbar .9s ease-in-out infinite
+}
+.eq i:nth-child(2){animation-duration:1.3s;animation-delay:-.35s}
+.eq i:nth-child(3){animation-duration:.72s;animation-delay:-.6s}
+.eq i:nth-child(4){animation-duration:1.06s;animation-delay:-.15s}
+.eq.rest i{animation:none;transform:scaleY(.22)}
+@keyframes eqbar{0%,100%{transform:scaleY(.22)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){ .eq i{animation:none;transform:scaleY(.6)} }
 
 .dare-btn{background:var(--rose);color:#2A0B12}
 
@@ -3184,9 +3229,109 @@ const TUNE = {
         if(!playing && st === 1){ hold(); player.pauseVideo(); }
       },
 
+      /* Our own buttons drive the player directly: the click is the gesture
+         a browser wants before it will let any sound out, and the state
+         change it causes writes the room keys the way any other press does. */
+      kick(){ try { player && player.playVideo(); } catch(_){} },
+      halt(){ try { player && player.pauseVideo(); } catch(_){} },
+      state(){ try { return (player && player.getPlayerState) ? player.getPlayerState() : -1; }
+               catch(_){ return -1; } },
+
       keys(){ return ["v","at","since","playing","by","name"].map(key); }
     };
     return deck;
+  }
+};
+
+/* =======================================================================
+   THE RADIO. A song outlives the hour it was put on in. The player is a
+   thing the page owns, not a thing the 17:00 card owns, so wandering off
+   to a game does not lift the needle — it keeps going until somebody
+   takes it off.
+
+   No picture, only sound. That is not a matter of hiding the player: a
+   `display:none` iframe is a paused iframe in some browsers. So it is
+   rendered, one pixel across, out of the way, and quietly playing.
+
+   With no picture there are no controls either, so this puts its own
+   back: a bar in the corner with the bars moving, the name of what is
+   on, a play and a stop. That bar is also where a browser refusing to
+   make noise gets to say so, since nothing else would.
+   ======================================================================= */
+const RADIO = {
+  deck:null, bar:null, eq:null, who:null, halt:null, dumb:false, here:false,
+
+  boot(){
+    if(RADIO.deck) return RADIO.deck;
+
+    const cage = el("div","radio-cage");
+    const host = el("div"); host.id = "radioHost";
+    cage.appendChild(host);
+    document.body.appendChild(cage);
+    RADIO.deck = TUNE.deck(host, "sy", () => {});
+
+    const bar = el("div","nowbar"); bar.hidden = true;
+    RADIO.eq = el("span","eq","<i></i><i></i><i></i><i></i>");
+    RADIO.who = el("span","who","");
+    RADIO.halt = el("button", null, ""); RADIO.halt.type = "button";
+    const off = el("button", null,
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" '
+      + 'stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>');
+    off.type = "button"; off.title = "Take it off"; off.setAttribute("aria-label","Take it off");
+    bar.appendChild(RADIO.eq); bar.appendChild(RADIO.who);
+    bar.appendChild(RADIO.halt); bar.appendChild(off);
+    document.body.appendChild(bar);
+    RADIO.bar = bar;
+
+    RADIO.halt.addEventListener("click", () => RADIO.toggle());
+    off.addEventListener("click", () => RADIO.deck.clear());
+
+    RADIO.deck.keys().forEach(k => SYNC.on(k, RADIO.paint));
+    setInterval(RADIO.beat, 1000);
+    RADIO.beat();
+    return RADIO.deck;
+  },
+
+  on(){ return RADIO.deck ? RADIO.deck.on() : ""; },
+  going(){ return !!(RADIO.on() && SYNC.get("sy.playing", false)); },
+  title(){ return RADIO.deck ? RADIO.deck.title() : ""; },
+
+  /* One press of ours moves both sides: the player's own state change
+     writes where it is and that it is running, as it always has. */
+  toggle(){
+    const d = RADIO.deck;
+    if(!d || !d.on()) return;
+    if(SYNC.get("sy.playing", false)) d.halt(); else d.kick();
+    RADIO.dumb = false;                     // a press earns the benefit of the doubt
+    setTimeout(RADIO.paint, 60);
+  },
+
+  /* A browser will not make a sound it was not asked for. If the room says
+     the song is running and this side's player is not, that is what has
+     happened, and it wants one press — nothing else can fix it. */
+  beat(){
+    const d = RADIO.deck;
+    if(!d) return;
+    d.paint(); d.sync();
+    const st = d.state();
+    RADIO.dumb = !!(RADIO.going() && st !== 1 && st !== 3);
+    RADIO.paint();
+  },
+
+  paint(){
+    if(!RADIO.bar) return;
+    const on = RADIO.on(), going = RADIO.going();
+    RADIO.bar.hidden = !on || RADIO.here;   // the card shows its own state
+    if(!on) return;
+    RADIO.who.textContent = RADIO.dumb ? "tap to hear it"
+                                       : (RADIO.title() || "from YouTube");
+    RADIO.eq.classList.toggle("rest", !going || RADIO.dumb);
+    RADIO.halt.innerHTML = going && !RADIO.dumb
+      ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M7 4.5v15l13-7.5z"/></svg>';
+    RADIO.halt.title = going && !RADIO.dumb ? "Pause it for both" : "Play it for both";
+    RADIO.halt.setAttribute("aria-label", RADIO.halt.title);
+    RADIO.bar.classList.toggle("asleep", !going || RADIO.dumb);
   }
 };
 
@@ -3237,14 +3382,18 @@ ACTS.song = b => {
   shop.appendChild(row); shop.appendChild(said); shop.appendChild(hits);
   note(shop, "Whatever goes on plays in full, in step, for both of you — no account, no signing in, no thirty-second sample.");
 
+  /* No picture: the record turns and the bars move, and that is the whole
+     of it. Nobody watches a song. */
   const now = el("div","spot-now"); now.hidden = true;
-  const tuneWrap = el("div","spot-tube");
-  const tuneHost = el("div"); tuneHost.id = "tuneHost" + n;
-  tuneWrap.appendChild(tuneHost);
-  now.appendChild(tuneWrap);
+  const stage = el("div","spot-live");
+  const eq = el("span","eq","<i></i><i></i><i></i><i></i>");
+  const title = el("span","spot-title","");
+  stage.appendChild(eq); stage.appendChild(title);
+  now.appendChild(stage);
   const bar = el("div","spot-bar");
+  const bGo  = el("button","btn","Both press play");
   const bOff = el("button","btn ghost","Take it off");
-  bar.appendChild(bOff);
+  bar.appendChild(bGo); bar.appendChild(bOff);
   now.appendChild(bar);
   shop.appendChild(now);
   box.appendChild(shop);
@@ -3257,7 +3406,10 @@ ACTS.song = b => {
   note(box, "Whoever talks first over the other's song loses and has to explain why they picked it.");
 
   const say = txt => { said.innerHTML = txt; said.hidden = !txt; };
-  const deck = TUNE.deck(tuneHost, "sy", () => say("YouTube wouldn't load here."));
+  /* The player belongs to the page, not to this card, which is the whole
+     reason a song survives the hour closing. */
+  const deck = RADIO.boot();
+  RADIO.here = true; RADIO.paint();
 
   const putOn = (id, name) => {
     if(!id) return;
@@ -3309,6 +3461,7 @@ ACTS.song = b => {
   /* No play and pause of our own: the player's own transport is the sync
      control, so there is never a second set of buttons to keep in
      agreement with the first. */
+  bGo.addEventListener("click", () => RADIO.toggle());
   bOff.addEventListener("click", () => { deck.clear(); say(""); });
 
   /* ---- what it all looks like ---- */
@@ -3316,9 +3469,14 @@ ACTS.song = b => {
   const render = () => {
     const on = deck.on();
     now.hidden = !on;
-    const going = on && SYNC.get("sy.playing", false);
-    deck.paint();
-    lab.textContent = (on ? (deck.title() || "from YouTube") : "put a song on").slice(0, 40);
+    const going = RADIO.going() && !RADIO.dumb;
+    const name = deck.title() || "from YouTube";
+    eq.classList.toggle("rest", !going);
+    title.textContent = RADIO.dumb ? "Nothing is coming out on this side yet — one press starts it."
+                                   : name;
+    title.classList.toggle("asking", RADIO.dumb);
+    bGo.textContent = going ? "Pause it for both" : "Both press play";
+    lab.textContent = (on ? name : "put a song on").slice(0, 40);
     const endsAt = SYNC.get("song.endsAt", 0);
     const running = endsAt && SYNC.now() < endsAt;
     rec.classList.toggle("spin", !!(running || going));
@@ -3328,9 +3486,8 @@ ACTS.song = b => {
   play.addEventListener("click", () => SYNC.set("song.endsAt", SYNC.now() + 180000));
 
   ["song.endsAt","sy.v","sy.name","sy.playing","sy.by"].forEach(k => bind(k, render));
-  every(1000, () => deck.sync());
-  every(2000, render);                            // the YouTube title arrives late
-  onClose(() => deck.drop());
+  every(1000, render);                            // the title and the state both arrive late
+  onClose(() => { RADIO.here = false; RADIO.paint(); });
   sharedClock(t, "song.endsAt", { idle:"3:00", done:"now you can talk" }, render);
   render();
 };
@@ -6806,6 +6963,7 @@ const PICS = {
 /* ---- go ---- */
 buildHours();
 watchButtons();
+RADIO.boot();          // so a song already on is picked up by a tab arriving late
 $("#hugLaunch").addEventListener("click", () => {
   if(SYNC.get("stage.open", null) !== "hug") SYNC.set("stage.open", "hug"); else showStage("hug");
 });
