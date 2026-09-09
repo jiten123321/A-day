@@ -505,6 +505,8 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
   max-height:min(330px,44vh);margin:0 auto      /* a song does not need the whole card */
 }
 .spot-tube[hidden]{display:none}
+.spot-cloud[hidden]{display:none}
+.spot-cloud iframe{width:100%;height:166px;border:0;display:block;border-radius:12px}
 .spot-tube iframe{width:100%;height:100%;border:0;display:block}
 .spot-now > div[hidden]{display:none}
 .spot-now{margin-top:14px}
@@ -3188,6 +3190,125 @@ const TUNE = {
 };
 
 /* =======================================================================
+   SOUNDCLOUD, ON THE SAME CLOCK. The third way to put a song on, and the
+   other one that hands a whole track to a browser nobody has signed in.
+   Its widget has a real API — play, pause and seekTo — which is the only
+   reason it can join the other two here; an embed you cannot drive is two
+   people pressing play and hoping.
+   ======================================================================= */
+const CLOUD = {
+  ready:false, waiting:[],
+
+  /* Their links come in several shapes and the widget wants the whole URL,
+     not an id, so this cleans rather than extracts. */
+  url(v){
+    const t = String(v || "").trim();
+    if(!/^https?:\/\//i.test(t)) return "";
+    let u;
+    try { u = new URL(t); } catch(_){ return ""; }
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    const mine = ["soundcloud.com", "m.soundcloud.com", "on.soundcloud.com", "snd.sc"];
+    if(mine.indexOf(host) === -1) return "";
+    if(u.pathname.length < 2) return "";
+    return "https://" + host + u.pathname;      // the tracking tail is nobody's business
+  },
+
+  load(onFail){
+    if(window.SC && window.SC.Widget){ CLOUD.ready = true; CLOUD.flush(); return; }
+    if(!document.getElementById("scapi")){
+      const t = el("script"); t.id = "scapi"; t.src = "https://w.soundcloud.com/player/api.js";
+      t.onload = () => { CLOUD.ready = true; CLOUD.flush(); };
+      t.onerror = () => { if(onFail) onFail(); };
+      document.head.appendChild(t);
+    }
+  },
+  flush(){ CLOUD.waiting.splice(0).forEach(f => { try { f(); } catch(_){} }); },
+  when(fn){ CLOUD.ready ? fn() : CLOUD.waiting.push(fn); },
+
+  /* Keys under `k`: k.u, k.at, k.since, k.playing, k.by. */
+  deck(host, k, onFail){
+    let w = null, loaded = "", applying = false, pos = 0, paused = true;
+    const key = x => k + "." + x;
+    const hold = () => { applying = true; setTimeout(() => { applying = false; }, 700); };
+
+    const push = playing => {
+      if(!w || applying) return;
+      SYNC.set(key("at"), pos);
+      SYNC.set(key("since"), SYNC.now());
+      SYNC.set(key("playing"), !!playing);
+    };
+
+    const build = u => {
+      const SC = window.SC;
+      if(!SC || !SC.Widget || !document.body.contains(host)) return;
+      if(w && loaded !== u){
+        loaded = u; pos = 0;
+        try { w.load(u, { auto_play:true, show_comments:false }); } catch(_){}
+        return;
+      }
+      if(w) return;
+      loaded = u;
+      const frame = el("iframe");
+      frame.width = "100%"; frame.height = "166";
+      frame.setAttribute("frameborder", "no");
+      frame.setAttribute("scrolling", "no");
+      frame.allow = "autoplay";
+      frame.title = "SoundCloud";
+      frame.src = "https://w.soundcloud.com/player/?url=" + encodeURIComponent(u)
+                + "&auto_play=false&hide_related=true&show_comments=false&show_teaser=false";
+      host.innerHTML = "";
+      host.appendChild(frame);
+      w = SC.Widget(frame);
+      const E = SC.Widget.Events;
+      w.bind(E.READY, () => {
+        deck.sync();
+        try { w.getCurrentSound(snd => {
+          if(snd && snd.title) SYNC.set(key("name"), String(snd.title).slice(0, 80));
+        }); } catch(_){}
+      });
+      /* Its own transport is the sync control, the way the other two work. */
+      w.bind(E.PLAY_PROGRESS, e => { pos = ((e && e.currentPosition) || 0) / 1000; });
+      w.bind(E.PLAY,  () => { paused = false; push(true); });
+      w.bind(E.PAUSE, () => { paused = true;  push(false); });
+    };
+
+    const deck = {
+      on(){ return SYNC.get(key("u"), ""); },
+      put(u){
+        SYNC.set(key("u"), u);
+        SYNC.set(key("at"), 0); SYNC.set(key("since"), SYNC.now());
+        SYNC.set(key("playing"), true);
+        SYNC.set(key("by"), ME.name || nameOf(mySide()));
+      },
+      clear(){ SYNC.set(key("u"), ""); SYNC.set(key("playing"), false); },
+      drop(){ w = null; loaded = ""; pos = 0; paused = true; host.innerHTML = ""; },
+
+      paint(){
+        const u = deck.on();
+        if(!u){ if(loaded) deck.drop(); return false; }
+        CLOUD.load(onFail);
+        CLOUD.when(() => build(u));
+        return true;
+      },
+
+      sync(){
+        const u = deck.on();
+        if(!u || !w) return;
+        const playing = SYNC.get(key("playing"), false);
+        const at = SYNC.get(key("at"), 0), since = SYNC.get(key("since"), 0);
+        const target = playing && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
+        try {
+          if(Math.abs(pos - target) > 2){ hold(); w.seekTo(Math.max(0, target) * 1000); }
+          if(playing && paused){ hold(); w.play(); }
+          if(!playing && !paused){ hold(); w.pause(); }
+        } catch(_){}
+      }
+    };
+    return deck;
+  }
+};
+
+/* =======================================================================
    THE RECORD SHOP. Searching Spotify needs the app's secret, so that part
    goes through the Worker. Playing does not go through us at all — the page
    embeds Spotify's own player, which means a pasted track link works with
@@ -3268,14 +3389,25 @@ ACTS.song = b => {
   const ygo = el("button","btn","Put it on");
   yfind.appendChild(yq); yfind.appendChild(ygo);
   shop.appendChild(yfind);
-  note(shop, "Spotify only hands a browser the whole song when <b>Premium</b> is signed in on that side — everyone else gets thirty seconds of it. YouTube has no such catch: paste a link and it plays in full, in step, for both of you.");
+
+  /* ---- SoundCloud: the other one that plays in full for anyone ---- */
+  const cfind = el("div","spot-find sc");
+  const cq = el("input"); cq.type = "text";
+  cq.placeholder = "or paste a SoundCloud link";
+  const cgo = el("button","btn","Put it on");
+  cfind.appendChild(cq); cfind.appendChild(cgo);
+  shop.appendChild(cfind);
+  note(shop, "Spotify only hands a browser the whole song when <b>Premium</b> is signed in on that side — everyone else gets thirty seconds of it. YouTube and SoundCloud have no such catch: paste a link and it plays in full, in step, for both of you.");
 
   const now = el("div","spot-now"); now.hidden = true;
   const spotHost = el("div","spot-embed"); spotHost.id = "spotHost" + n;
   const tuneWrap = el("div","spot-tube");
   const tuneHost = el("div"); tuneHost.id = "tuneHost" + n;
   tuneWrap.appendChild(tuneHost);
-  now.appendChild(spotHost); now.appendChild(tuneWrap);
+  const cloudWrap = el("div","spot-cloud");
+  const cloudHost = el("div"); cloudHost.id = "cloudHost" + n;
+  cloudWrap.appendChild(cloudHost);
+  now.appendChild(spotHost); now.appendChild(tuneWrap); now.appendChild(cloudWrap);
   const slip = el("div","spot-note spot-slip"); slip.hidden = true;
   now.appendChild(slip);
   const bar = el("div","spot-bar");
@@ -3296,6 +3428,7 @@ ACTS.song = b => {
 
   /* ---- the two players ---- */
   const deck = TUNE.deck(tuneHost, "sy", () => tell("YouTube wouldn't load here."));
+  const cloud = CLOUD.deck(cloudHost, "sc", () => tell("SoundCloud wouldn't load here."));
   let ctrl = null, on = "", pos = 0, paused = true;
 
   const build = id => {
@@ -3319,8 +3452,19 @@ ACTS.song = b => {
   const warn = txt => { slip.innerHTML = txt; slip.hidden = !txt; };
 
   let settle = 0, still = 0, lastPos = -1;
+  /* One at a time: putting any of the three on takes the other two off. */
+  const only = keep => {
+    if(keep !== "sp"){
+      if(SYNC.get("sp.id", "")){ SYNC.set("sp.id", ""); SYNC.set("sp.playing", false); }
+      dropSpot();
+    }
+    if(keep !== "sy" && deck.on()) deck.clear();
+    if(keep !== "sc" && cloud.on()) cloud.clear();
+  };
+
   const syncSp = () => {
     if(deck.on()){ deck.sync(); return; }        // YouTube keeps its own step
+    if(cloud.on()){ cloud.sync(); return; }
     const id = SYNC.get("sp.id", "");
     if(!id) return;
     if(!ctrl){ build(id); return; }
@@ -3371,7 +3515,7 @@ ACTS.song = b => {
   };
 
   const putOn = trk => {
-    deck.clear();                                 // one at a time on the turntable
+    only("sp");
     SYNC.set("sp.id", trk.id);
     SYNC.set("sp.name", trk.name || ""); SYNC.set("sp.who", trk.who || "");
     SYNC.set("sp.by", ME.name || nameOf(mySide()));
@@ -3422,13 +3566,21 @@ ACTS.song = b => {
     const id = TUNE.id(yq.value);
     if(!id){ tell("That doesn't look like a YouTube link."); return; }
     yq.value = ""; tell(""); warn("");
-    SYNC.set("sp.id", "");                        // one at a time
-    SYNC.set("sp.playing", false);
-    dropSpot();
+    only("sy");
     deck.put(id);
   };
   ygo.addEventListener("click", putTube);
   yq.addEventListener("keydown", e => { if(e.key === "Enter") putTube(); });
+
+  const putCloud = () => {
+    const u = CLOUD.url(cq.value);
+    if(!u){ tell("That doesn't look like a SoundCloud link."); return; }
+    cq.value = ""; tell(""); warn("");
+    only("sc");
+    cloud.put(u);
+  };
+  cgo.addEventListener("click", putCloud);
+  cq.addEventListener("keydown", e => { if(e.key === "Enter") putCloud(); });
 
   bPlay.addEventListener("click", () => {
     const going = SYNC.get("sp.playing", false);
@@ -3437,8 +3589,8 @@ ACTS.song = b => {
     if(ctrl){ try { going ? ctrl.pause() : ctrl.play(); } catch(_){} }   // this side's gesture
   });
   bOff.addEventListener("click", () => {
-    SYNC.set("sp.id", ""); SYNC.set("sp.playing", false); SYNC.set("sp.at", 0);
-    deck.clear(); dropSpot();
+    SYNC.set("sp.at", 0);
+    only("");                                     // nothing kept: clear all three
   });
   bIn.addEventListener("click", () => {
     window.open("https://open.spotify.com/", "_blank", "noopener");
@@ -3447,20 +3599,26 @@ ACTS.song = b => {
   /* ---- what it all looks like ---- */
   const rec = box.querySelector(".record"), lab = box.querySelector("#lab");
   const render = () => {
-    const spId = SYNC.get("sp.id", ""), tube = deck.on();
+    const spId = SYNC.get("sp.id", ""), tube = deck.on(), sc = cloud.on();
     const nm = SYNC.get("sp.name", "");
-    const going = tube ? SYNC.get("sy.playing", false) : SYNC.get("sp.playing", false);
+    const going = tube ? SYNC.get("sy.playing", false)
+                : sc   ? SYNC.get("sc.playing", false)
+                       : SYNC.get("sp.playing", false);
 
-    now.hidden = !(spId || tube);
+    now.hidden = !(spId || tube || sc);
     spotHost.hidden = !spId;
     tuneWrap.hidden = !tube;
-    bPlay.hidden = !spId;                         // YouTube's own controls do this
+    cloudWrap.hidden = !sc;
+    bPlay.hidden = !spId;                         // the other two have their own
     bIn.hidden = !spId;
     if(spId) build(spId);
-    const onTube = deck.paint();
+    const onTube = deck.paint(), onCloud = cloud.paint();
 
     bPlay.textContent = SYNC.get("sp.playing", false) ? "Pause it for both" : "Both press play";
-    lab.textContent = (nm && spId ? nm : onTube ? (deck.title() || "from YouTube") : "put a song on").slice(0, 40);
+    lab.textContent = (spId ? (nm || "from Spotify")
+                    : onTube ? (deck.title() || "from YouTube")
+                    : onCloud ? (SYNC.get("sc.name", "") || "from SoundCloud")
+                    : "put a song on").slice(0, 40);
     const endsAt = SYNC.get("song.endsAt", 0);
     const running = endsAt && SYNC.now() < endsAt;
     rec.classList.toggle("spin", !!(running || going));
@@ -3469,11 +3627,12 @@ ACTS.song = b => {
 
   play.addEventListener("click", () => SYNC.set("song.endsAt", SYNC.now() + 180000));
 
-  ["song.endsAt","sp.id","sp.name","sp.who","sp.playing","sp.by","sy.v","sy.playing","sy.by"]
+  ["song.endsAt","sp.id","sp.name","sp.who","sp.playing","sp.by",
+   "sy.v","sy.playing","sy.by","sc.u","sc.name","sc.playing","sc.by"]
     .forEach(k => bind(k, render));
   every(1000, syncSp);
   every(2000, render);                            // the YouTube title arrives late
-  onClose(() => { ctrl = null; deck.drop(); });
+  onClose(() => { ctrl = null; deck.drop(); cloud.drop(); });
   sharedClock(t, "song.endsAt", { idle:"3:00", done:"now you can talk" }, render);
   render();
 };

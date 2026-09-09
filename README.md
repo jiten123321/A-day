@@ -580,10 +580,11 @@ Playing does not come through here at all. The page embeds Spotify's own
 player, so **a pasted track link works with no keys set up anywhere**, and
 Spotify counts the play as Spotify's.
 
-### Two sources, one turntable
+### Three sources, one turntable
 
-Spotify search and a YouTube link sit side by side, and only one plays at a
-time — putting either on takes the other off. The two dedication boxes that
+Spotify search, a YouTube link and a SoundCloud link sit one under the other,
+and only one plays at a time — putting any of them on takes the other two
+off. The two dedication boxes that
 used to say who was playing what are gone; the thing itself plays now, so
 naming it was doing no work.
 
@@ -594,10 +595,25 @@ of the clock trick rather than two that can drift apart. It takes a watch
 link, a share link, a shorts link, a **music.youtube.com** link, or the bare
 eleven characters.
 
+SoundCloud is the third, and the second one that hands a whole track to a
+browser nobody has signed in. Its widget has a real API — `play`, `pause`,
+`seekTo` and a progress event — which is the only reason it can join the
+others: an embed you cannot drive is two people pressing play and hoping.
+`CLOUD.url` cleans a pasted link down to the track and drops the tracking
+tail, and accepts the `m.`, `on.` and `snd.sc` shapes as well as the plain
+one. Its catalogue is strong on remixes, covers, live sets and anything
+independent, and thin on major-label pop, so it complements YouTube rather
+than replacing it.
+
 **Which matters more than it sounds.** Spotify's embed only gives a browser
-the whole song when Premium is signed in on that side. YouTube has no such
-catch, so for anyone without Premium the YouTube box is not the fallback —
-it is the way it works.
+the whole song when Premium is signed in on that side. YouTube and SoundCloud
+have no such catch, so for anyone without Premium those two boxes are not the
+fallback — they are the way it works.
+
+**The ones deliberately left out.** Apple Music and Deezer embed thirty-second
+previews without a paid account, which is the same wall in different paint.
+Bandcamp plays in full but its embed has no control API, so it could never be
+kept in step. Amazon Music has no embeddable player at all.
 
 ### The honest limit
 
