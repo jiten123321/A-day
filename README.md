@@ -591,13 +591,58 @@ is counted by YouTube.
 The deck itself is the one the watch party uses. `TUNE` holds it once and is
 pointed at whichever room keys the caller names — `yt.*` for the film, `sy.*`
 for the song — so two decks never see each other and there is one copy of the
-clock trick rather than two that can drift apart. The player's own transport
-is the sync control: there is no second set of buttons here to keep in
-agreement with the first.
+clock trick rather than two that can drift apart.
 
 A name picked out of a search is known before the player has loaded anything,
 so the sleeve on the record reads right immediately instead of catching up a
 second later. A pasted link has no such name and waits for the player to say.
+
+### Sound, not picture
+
+Nobody watches a song. The player is here for what comes out of it, so what
+you get in the card is the record turning and four bars moving, and no video
+at all.
+
+That is not a matter of hiding the player. A `display:none` iframe is a
+*paused* iframe in more than one browser, so it is not hidden: it is rendered,
+one pixel across, in the corner of the page, and quietly playing. `.radio-cage`
+is that pixel.
+
+With no picture there is no transport either, so the page puts its own back —
+**Both press play** / **Pause it for both**, and **Take it off**. A press
+writes where the song is and that it is running, exactly as pressing play
+inside the player used to, so one side pressing still moves the other.
+
+### It keeps playing when you walk away
+
+The player belongs to the page, not to the 17:00 card. Wandering off to a game
+or a film does not lift the needle: the song goes until somebody takes it off.
+
+`RADIO` owns it — one deck, one hidden host, one heartbeat a second that paints
+and syncs whatever the room says is on. The card borrows it and hands it back;
+closing the card drops nothing.
+
+Once the hour is closed a small bar appears in the corner with the bars moving,
+the name of what is on, a play and a stop. It sits *above* the cinema on
+purpose: a song you cannot reach to stop is worse than a small bar in the
+corner of a film. It hides again while the hour is open, because the card is
+already saying all of it.
+
+A tab that arrives late — a reload, the other phone picking up — finds the song
+already going and joins it, because `RADIO` boots with the page rather than
+with the hour.
+
+### When a browser will not make a sound
+
+No browser starts audio for someone who has not pressed anything, and there is
+no arguing with that. So if the room says the song is running and this side's
+player is not, after a second of disagreement the bar stops pretending: the
+bars go still and it reads **tap to hear it**. One press is all it wants, and
+the same press is the gesture the browser was holding out for.
+
+This is why the play button is worth having even though the two sides stay in
+step on their own. It is not a second opinion about when the song should run —
+it is the only way to answer a browser.
 
 ### It was three shops once
 
@@ -667,9 +712,11 @@ its unconfigured message against the running Worker; `tidyTube` against a copy
 of what YouTube really sends, including escaped titles, non-video results and
 a missing thumbnail; and the whole of the page — searching, drawing results,
 picking one, a pasted link skipping the search, a foreign link being refused,
-the clock, and a late arrival being seeked — from two browsers at once against
-a stand-in player. If the key is right and the answer still does not come, the
-box will say what Google said.
+the clock, a late arrival being seeked, the song surviving the hour closing,
+the corner bar's play and stop reaching the other side, a tab arriving late
+joining a song already on, and a browser refusing to make a sound being
+answered — from two browsers at once against a stand-in player. If the key is
+right and the answer still does not come, the box will say what Google said.
 
 ## Rooms
 
