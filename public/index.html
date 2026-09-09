@@ -463,6 +463,35 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .chat-tools button .bi, .cbtns button .bi{width:13px;height:13px;margin-right:5px}
 .open .bi{width:14px;height:14px}
 
+/* the record shop */
+.spot{margin:16px 0 6px}
+.spot-find{display:flex;gap:8px;align-items:center}
+.spot-find input{flex:1;min-width:0;margin:0}
+.spot-note{
+  font-size:.85rem;color:var(--muted);line-height:1.55;margin-top:10px;
+  padding:9px 12px;border-radius:11px 9px 12px 8px;
+  background:rgba(36,51,80,.05);border:1px solid var(--line)
+}
+.spot-note[hidden]{display:none}
+.spot-note b{color:var(--mango);font-weight:400}
+.spot-hits{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.spot-hit{
+  display:flex;align-items:center;gap:11px;text-align:left;width:100%;
+  padding:7px 10px;border-radius:12px 10px 13px 9px;
+  border:1px solid var(--line);background:rgba(36,51,80,.04);
+  transition:background .14s,border-color .14s
+}
+.spot-hit:hover{background:var(--marigold);border-color:var(--marigold);color:#12203F}
+.spot-hit img{width:38px;height:38px;border-radius:7px;object-fit:cover;flex:0 0 auto}
+.spot-words{display:grid;min-width:0}
+.spot-words b{font-weight:600;font-size:.94rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spot-words i{font-style:normal;font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spot-hit:hover .spot-words i{color:#3A4A6B}
+.spot-now{margin-top:14px}
+.spot-now[hidden]{display:none}
+.spot-now iframe{border-radius:12px;display:block;width:100%}
+.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
 .dare-btn{background:var(--rose);color:#2A0B12}
 
 
@@ -1343,7 +1372,7 @@ const PLAN = [
   {t:"14:00", title:"Watch party",         line:"Shortlist it, let the page pick, share your screen.", k:"watch"},
   {t:"16:00", title:"How well do you know me", line:"Eight about me. Under five and you explain yourself.", k:"quiz"},
   {t:"16:30", title:"Truth or dare, long distance", line:"Every dare is doable from your room. No backing out.", k:"dare"},
-  {t:"17:00", title:"One song each",       line:"One each. Full song, no talking, no skipping.", k:"song"},
+  {t:"17:00", title:"One song each",       line:"Search it, put it on, both sides at once. No talking.", k:"song"},
   {t:"17:30", title:"The wish jar",        line:"The week the distance ends. Nothing realistic.", k:"jar"},
   {t:"18:00", title:"Sunset, and a letter", line:"Brightness down. Just read it.", k:"letter"}
 ];
@@ -2982,9 +3011,53 @@ ACTS.jar = b => {
   render();
 };
 
+/* =======================================================================
+   THE RECORD SHOP. Searching Spotify needs the app's secret, so that part
+   goes through the Worker. Playing does not go through us at all — the page
+   embeds Spotify's own player, which means a pasted track link works with
+   no keys set up anywhere, and Spotify counts the play as Spotify's.
+
+   What each of you hears depends on your own Spotify: signed in with
+   Premium, the whole song; otherwise the thirty seconds the embed gives
+   anyone. There is no way around that from a web page and nothing here
+   pretends otherwise.
+   ======================================================================= */
+const SPOT = {
+  api:null, waiting:[],
+
+  load(){
+    if(SPOT.api || document.getElementById("spotapi")) return;
+    const s = document.createElement("script");
+    s.id = "spotapi";
+    s.src = "https://open.spotify.com/embed/iframe-api/v1";
+    s.async = true;
+    document.head.appendChild(s);
+  },
+  ready(fn){
+    SPOT.load();
+    if(SPOT.api) fn(SPOT.api); else SPOT.waiting.push(fn);
+  },
+
+  /* A track out of whatever was pasted: a link, a uri, or the bare id. */
+  id(v){
+    const t = String(v || "").trim();
+    let m = t.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?track\/([A-Za-z0-9]{22})/);
+    if(m) return m[1];
+    m = t.match(/^spotify:track:([A-Za-z0-9]{22})$/);
+    if(m) return m[1];
+    m = t.match(/^[A-Za-z0-9]{22}$/);
+    return m ? t : "";
+  }
+};
+window.onSpotifyIframeApiReady = api => {
+  SPOT.api = api;
+  SPOT.waiting.splice(0).forEach(fn => { try { fn(api); } catch(_){} });
+};
+
 /* --- 17:00 one song each --- */
 ACTS.song = b => {
-  lede(b, "Type your song, she sees it appear. Press play together, then don't talk.");
+  ACTS.song._n = (ACTS.song._n || 0);
+  lede(b, "Search it, put it on, and it plays on both sides at once. Then don't talk.");
   const box = el("div","card");
   box.innerHTML = `<svg class="record" viewBox="0 0 200 200">
     <circle cx="100" cy="100" r="96" fill="#243350" stroke="#FAF4E4" stroke-width="1.5" opacity=".9"/>
@@ -2996,8 +3069,33 @@ ACTS.song = b => {
     <path id="labelpath" d="M100 100 m -26 0 a 26 26 0 1 1 52 0 a 26 26 0 1 1 -52 0" fill="none"/>
     <text font-size="9" fill="#12203F" font-family="Optima,Candara,sans-serif"><textPath id="lab" href="#labelpath" startOffset="4%">side a — side b</textPath></text>
   </svg>`;
+
+  /* ---- the shop ---- */
+  const shop = el("div","spot");
+  const find = el("div","spot-find");
+  const q = el("input"); q.type = "text";
+  q.placeholder = "her song, or paste a Spotify link";
+  const go = el("button","btn","Search");
+  find.appendChild(q); find.appendChild(go);
+  shop.appendChild(find);
+  const said = el("div","spot-note"); said.hidden = true;
+  shop.appendChild(said);
+  const hits = el("div","spot-hits");
+  shop.appendChild(hits);
+
+  const now = el("div","spot-now"); now.hidden = true;
+  const host = el("div"); host.id = "spotHost" + (++ACTS.song._n);
+  now.appendChild(host);
+  const bar = el("div","spot-bar");
+  const bPlay = el("button","btn","Both press play");
+  const bOff  = el("button","btn ghost","Take it off");
+  bar.appendChild(bPlay); bar.appendChild(bOff);
+  now.appendChild(bar);
+  shop.appendChild(now);
+  box.appendChild(shop);
+
   const d = el("div","dedications");
-  const mk = (side) => {
+  const mk = side => {
     const g = el("div","ded");
     g.appendChild(el("label", null, nameOf(side) + " is playing"));
     const i2 = el("input"); i2.type = "text"; i2.placeholder = "song and artist";
@@ -3007,21 +3105,124 @@ ACTS.song = b => {
   const inHer = mk("her"), inYou = mk("you");
   box.appendChild(d);
   const r = el("div","row");
-  const play = el("button","btn","Both press play");
+  const play = el("button","btn","Start the three minutes");
   const t = el("div","timer","3:00");
   r.appendChild(play); r.appendChild(t); box.appendChild(r);
   b.appendChild(box);
-  note(box, "Whoever talks first over the other's song loses and has to explain why they picked it.");
+  note(box, "Whoever talks first over the other's song loses and has to explain why they picked it. What you each hear depends on your own Spotify: signed in with Premium, the whole song — otherwise the thirty seconds the embed gives anyone.");
 
+  /* ---- the player, and keeping it in step ---- */
+  let ctrl = null, on = "", pos = 0, paused = true;
+
+  const build = id => {
+    if(ctrl || !id) return;
+    SPOT.ready(api => {
+      if(ctrl || !document.body.contains(host)) return;
+      try {
+        api.createController(host, { uri: "spotify:track:" + id, width:"100%", height:"152" }, c => {
+          ctrl = c; on = id;
+          c.addListener("playback_update", e => {
+            const dd = (e && e.data) || {};
+            pos = (dd.position || 0) / 1000;
+            paused = dd.isPaused !== false;
+          });
+        });
+      } catch(_){ tell("Spotify's player wouldn't load. A blocker or a strict network will do that."); }
+    });
+  };
+
+  const syncSp = () => {
+    const id = SYNC.get("sp.id", "");
+    if(!id) return;
+    if(!ctrl){ build(id); return; }
+    if(on !== id){ on = id; try { ctrl.loadUri("spotify:track:" + id); } catch(_){} return; }
+    const going = SYNC.get("sp.playing", false);
+    const at = SYNC.get("sp.at", 0), since = SYNC.get("sp.since", 0);
+    const want = going && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
+    try {
+      if(Math.abs(pos - want) > 2.5) ctrl.seek(want);
+      if(going && paused) ctrl.play();
+      if(!going && !paused) ctrl.pause();
+    } catch(_){}
+  };
+
+  const putOn = trk => {
+    SYNC.set("sp.id", trk.id);
+    SYNC.set("sp.name", trk.name || ""); SYNC.set("sp.who", trk.who || "");
+    SYNC.set("sp.by", ME.name || nameOf(mySide()));
+    SYNC.set("sp.at", 0); SYNC.set("sp.since", SYNC.now()); SYNC.set("sp.playing", true);
+    hits.innerHTML = ""; tell("");
+  };
+
+  const tell = txt => { said.innerHTML = txt; said.hidden = !txt; };
+
+  const search = async () => {
+    const term = q.value.trim();
+    if(!term) return;
+    const straight = SPOT.id(term);
+    if(straight){ q.value = ""; putOn({ id: straight }); return; }
+    hits.innerHTML = "";
+    tell("looking…");
+    let j;
+    try { j = await (await fetch("/spotify?q=" + encodeURIComponent(term), { cache:"no-store" })).json(); }
+    catch(_){ j = { ok:false, why:"net" }; }
+
+    if(!j || j.ok !== true){
+      const why = (j && j.why) || "net";
+      tell(why === "unset"
+        ? "Searching needs a Spotify app key on the Worker — <b>SPOTIFY_CLIENT_ID</b> and <b>SPOTIFY_CLIENT_SECRET</b>, the README has the steps. Until then, paste a Spotify track link in here and it plays."
+        : why === "keys"
+          ? "Spotify turned the app key down. Check SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET on the Worker."
+          : why === "net"
+            ? "Couldn't reach the search."
+            : "Spotify wouldn't answer that search" + (j.detail ? ": " + esc(String(j.detail).slice(0,120)) : "."));
+      return;
+    }
+    if(!j.tracks || !j.tracks.length){ tell("Nothing came back for that."); return; }
+    tell("");
+    j.tracks.forEach(trk => {
+      const row = el("button","spot-hit");
+      if(trk.art){ const im = el("img"); im.src = trk.art; im.alt = ""; im.loading = "lazy"; row.appendChild(im); }
+      const words = el("span","spot-words");
+      words.appendChild(el("b", null, esc(trk.name)));
+      words.appendChild(el("i", null, esc(trk.who)));
+      row.appendChild(words);
+      row.addEventListener("click", () => putOn(trk));
+      hits.appendChild(row);
+    });
+  };
+
+  go.addEventListener("click", search);
+  q.addEventListener("keydown", e => { if(e.key === "Enter") search(); });
+
+  bPlay.addEventListener("click", () => {
+    const going = SYNC.get("sp.playing", false);
+    if(going){ SYNC.set("sp.at", pos); SYNC.set("sp.playing", false); }
+    else { SYNC.set("sp.at", pos); SYNC.set("sp.since", SYNC.now()); SYNC.set("sp.playing", true); }
+    if(ctrl){ try { going ? ctrl.pause() : ctrl.play(); } catch(_){} }   // this side's gesture
+  });
+  bOff.addEventListener("click", () => {
+    SYNC.set("sp.id", ""); SYNC.set("sp.playing", false); SYNC.set("sp.at", 0);
+  });
+
+  /* ---- what it all looks like ---- */
   const rec = box.querySelector(".record"), lab = box.querySelector("#lab");
   const render = () => {
     const a = SYNC.get("song.her", ""), c = SYNC.get("song.you", "");
     if(document.activeElement !== inHer) inHer.value = a;
     if(document.activeElement !== inYou) inYou.value = c;
-    lab.textContent = (a || "side a") + " — " + (c || "side b");
+
+    const id = SYNC.get("sp.id", ""), nm = SYNC.get("sp.name", "");
+    const going = SYNC.get("sp.playing", false);
+    now.hidden = !id;
+    bPlay.textContent = going ? "Pause it for both" : "Both press play";
+    if(id) build(id);
+
+    lab.textContent = nm ? nm.slice(0, 40)
+      : ((a || "side a") + " — " + (c || "side b"));
     const endsAt = SYNC.get("song.endsAt", 0);
     const running = endsAt && SYNC.now() < endsAt;
-    rec.classList.toggle("spin", !!running);
+    rec.classList.toggle("spin", !!(running || going));
     play.disabled = !!running;
   };
 
@@ -3036,7 +3237,10 @@ ACTS.song = b => {
   wire(inHer, "song.her"); wire(inYou, "song.you");
   play.addEventListener("click", () => SYNC.set("song.endsAt", SYNC.now() + 180000));
 
-  bind("song.her", render); bind("song.you", render); bind("song.endsAt", render);
+  ["song.her","song.you","song.endsAt","sp.id","sp.name","sp.who","sp.playing","sp.by"]
+    .forEach(k => bind(k, render));
+  every(1000, syncSp);
+  onClose(() => { ctrl = null; });
   sharedClock(t, "song.endsAt", { idle:"3:00", done:"now you can talk" }, render);
   render();
 };

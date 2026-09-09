@@ -534,6 +534,55 @@ is tested is the endpoint's shape, the unconfigured fallback, the normalising
 of Cloudflare's response into what `RTCPeerConnection` wants, and that
 whatever `/ice` returns reaches the connection with its credentials intact.
 
+## One song each
+
+The 17:00 hour is a record shop. Type a song, press one of the results, and it
+goes on for both of you at once — the same clock trick as the video, so
+whoever presses pause pauses it on both sides and a side that arrives late is
+dragged to where the song already is.
+
+**Searching and playing are two different things, and only one of them
+touches this Worker.**
+
+Searching needs the app's secret, which must never reach a browser. `GET
+/spotify?q=…` asks Spotify for a client-credentials token (good for search,
+no user attached), caches it per isolate until a minute before it lapses, and
+hands back only the five fields the page draws — `tidyTracks` throws away
+everything else, because the rest is somebody's data for no reason.
+
+Playing does not come through here at all. The page embeds Spotify's own
+player, so **a pasted track link works with no keys set up anywhere**, and
+Spotify counts the play as Spotify's.
+
+### The honest limit
+
+What each of you hears depends on your own Spotify. Signed in with Premium in
+that browser, the whole song. Otherwise, the thirty seconds the embed gives
+anyone. There is no way around that from a web page — full playback needs
+Spotify's own SDK and a Premium account per listener — and the note under the
+record says so rather than pretending.
+
+### Turning search on
+
+1. [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
+   → **Create app**. Any name; the redirect URI is not used by this and can be
+   anything valid.
+2. Open the app → **Settings** → copy the **Client ID**, then **View client
+   secret**.
+3. Add both as secrets on the Worker, exactly as with TURN: **Workers & Pages
+   → a-day → Settings → Variables and Secrets → Add**, type *Secret*, named
+   `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`. Deploy.
+
+Unset, the search box says which two secrets are missing and reminds you that
+pasting a link still works.
+
+**Not verified here.** `api.spotify.com`, `accounts.spotify.com` and
+`open.spotify.com` are all unreachable from the sandbox this was built in, so
+the token call, the search and the real embed have never run. What is tested
+is the endpoint's shape, the unconfigured message, the tidying of Spotify's
+response, a pasted link going on for both sides, and the whole sync — play,
+pause, and a late arrival being seeked — against a stand-in player.
+
 ## Rooms
 
 Everyone on the same URL is in the same room. The default room is `same-sun`;
