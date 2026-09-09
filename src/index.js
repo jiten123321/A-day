@@ -279,39 +279,6 @@ export default {
       }
     }
 
-    /* Searching Spotify needs a token, and a token needs the app's secret —
-       which must never reach a browser. The Worker holds it, asks for a
-       client-credentials token (good for search, no user attached), and
-       hands back only the handful of fields the page draws.
-
-       Playing does not come through here at all: the page embeds Spotify's
-       own player, so a paste of a track link works with no keys set up. */
-    if (url.pathname === "/spotify") {
-      const out = body => new Response(JSON.stringify(body), {
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-      });
-      const q = (url.searchParams.get("q") || "").trim().slice(0, 120);
-      if (!q) return out({ ok: true, tracks: [] });
-      const id = env.SPOTIFY_CLIENT_ID, secret = env.SPOTIFY_CLIENT_SECRET;
-      if (!id || !secret) return out({ ok: false, why: "unset" });
-      try {
-        const token = await spotifyToken(id, secret);
-        if (!token) return out({ ok: false, why: "keys" });
-        const r = await fetch(
-          "https://api.spotify.com/v1/search?type=track&limit=8&q=" + encodeURIComponent(q),
-          { headers: { Authorization: "Bearer " + token } },
-        );
-        const text = await r.text();
-        if (!r.ok) {
-          if (r.status === 401) spotifyToken.cache = null;   // stale; earn a new one
-          return out({ ok: false, why: "search", detail: text.slice(0, 200) });
-        }
-        return out({ ok: true, tracks: tidyTracks(JSON.parse(text)) });
-      } catch (e) {
-        return out({ ok: false, why: "search", detail: String(e).slice(0, 200) });
-      }
-    }
-
     /* YouTube's own search, so a song can be found by name instead of hunted
        for in another tab. The key is free and read-only; it stays on the
        Worker because a key in a page is a key anybody can spend.
@@ -352,41 +319,6 @@ export default {
       }
     }
 
-    /* SoundCloud's search, same shape. Their tokens are client-credentials
-       too, so the secret stays here and the page only ever sees titles.
-
-       Unlike the other two this hands back a link rather than an id: the
-       widget wants the track's own page, not a number. */
-    if (url.pathname === "/soundcloud") {
-      const out = body => new Response(JSON.stringify(body), {
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-      });
-      const q = (url.searchParams.get("q") || "").trim().slice(0, 120);
-      if (!q) return out({ ok: true, tracks: [] });
-      const id = env.SOUNDCLOUD_CLIENT_ID, secret = env.SOUNDCLOUD_CLIENT_SECRET;
-      if (!id || !secret) return out({ ok: false, why: "unset" });
-      try {
-        const token = await cloudToken(id, secret);
-        if (!token) return out({ ok: false, why: "keys" });
-        const where = "https://api.soundcloud.com/tracks?limit=8&access=playable,preview&q="
-          + encodeURIComponent(q);
-        /* Their docs have said both over the years and live servers differ,
-           so ask the polite way and take the hint if it is refused. */
-        let r = await fetch(where, { headers: { Authorization: "OAuth " + token } });
-        if (r.status === 401) {
-          r = await fetch(where, { headers: { Authorization: "Bearer " + token } });
-        }
-        const text = await r.text();
-        if (!r.ok) {
-          if (r.status === 401) cloudToken.cache = null;   // stale; earn a new one
-          return out({ ok: false, why: r.status === 401 ? "keys" : "search", detail: text.slice(0, 200) });
-        }
-        return out({ ok: true, tracks: tidyCloud(JSON.parse(text)) });
-      } catch (e) {
-        return out({ ok: false, why: "search", detail: String(e).slice(0, 200) });
-      }
-    }
-
     if (url.pathname === "/upload" || url.pathname === "/img") {
       const want = url.pathname === "/upload" ? "POST" : "GET";
       if (request.method !== want) return new Response("method not allowed", { status: 405 });
@@ -396,64 +328,6 @@ export default {
     return env.ASSETS.fetch(request);
   },
 };
-
-/* One token per isolate, reused until a minute before it lapses. */
-async function spotifyToken(id, secret) {
-  const held = spotifyToken.cache;
-  if (held && held.token && Date.now() < held.until) return held.token;
-  const r = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + btoa(id + ":" + secret),
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!r.ok) return "";
-  const j = await r.json();
-  if (!j.access_token) return "";
-  spotifyToken.cache = {
-    token: j.access_token,
-    until: Date.now() + Math.max(30, (j.expires_in || 3600) - 60) * 1000,
-  };
-  return j.access_token;
-}
-
-/* Only what the page draws: everything else is somebody's data for no reason. */
-export function tidyTracks(body) {
-  const items = (body && body.tracks && body.tracks.items) || [];
-  return items
-    .filter((t) => t && t.id)
-    .map((t) => ({
-      id: t.id,
-      name: String(t.name || "").slice(0, 120),
-      who: (t.artists || []).map((a) => a.name).filter(Boolean).join(", ").slice(0, 120),
-      art: ((t.album && t.album.images) || []).slice(-1).map((i) => i.url)[0] || "",
-      ms: t.duration_ms || 0,
-    }));
-}
-
-/* One token per isolate, same bargain as Spotify's. */
-async function cloudToken(id, secret) {
-  const held = cloudToken.cache;
-  if (held && held.token && Date.now() < held.until) return held.token;
-  const r = await fetch("https://secure.soundcloud.com/oauth/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + btoa(id + ":" + secret),
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!r.ok) return "";
-  const j = await r.json();
-  if (!j.access_token) return "";
-  cloudToken.cache = {
-    token: j.access_token,
-    until: Date.now() + Math.max(30, (j.expires_in || 3600) - 60) * 1000,
-  };
-  return j.access_token;
-}
 
 /* YouTube hands titles back HTML-escaped, and the page escapes again on the
    way to the screen, so an apostrophe would arrive as &#39; and stay that
@@ -478,21 +352,4 @@ export function tidyTube(body) {
         art: pic.url || "",
       };
     });
-}
-
-/* A blocked track lists like any other and then plays for nobody, so it is
-   dropped here rather than disappointing somebody who picked it. */
-export function tidyCloud(body) {
-  const items = Array.isArray(body) ? body : (body && body.collection) || [];
-  return items
-    .filter((t) => t && t.id && t.permalink_url && t.access !== "blocked")
-    .map((t) => ({
-      id: String(t.id),
-      url: String(t.permalink_url).slice(0, 300),
-      name: String(t.title || "").slice(0, 120),
-      who: String((t.user && t.user.username) || "").slice(0, 120),
-      art: String(t.artwork_url || (t.user && t.user.avatar_url) || ""),
-      ms: t.duration || 0,
-      part: t.access === "preview",
-    }));
 }
