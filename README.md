@@ -580,6 +580,25 @@ Playing does not come through here at all. The page embeds Spotify's own
 player, so **a pasted track link works with no keys set up anywhere**, and
 Spotify counts the play as Spotify's.
 
+### Two sources, one turntable
+
+Spotify search and a YouTube link sit side by side, and only one plays at a
+time — putting either on takes the other off. The two dedication boxes that
+used to say who was playing what are gone; the thing itself plays now, so
+naming it was doing no work.
+
+YouTube here is the same deck the watch party uses. `TUNE` holds it once and
+is pointed at whichever room keys the caller names — `yt.*` for the film,
+`sy.*` for the song — so two decks never see each other and there is one copy
+of the clock trick rather than two that can drift apart. It takes a watch
+link, a share link, a shorts link, a **music.youtube.com** link, or the bare
+eleven characters.
+
+**Which matters more than it sounds.** Spotify's embed only gives a browser
+the whole song when Premium is signed in on that side. YouTube has no such
+catch, so for anyone without Premium the YouTube box is not the fallback —
+it is the way it works.
+
 ### The honest limit
 
 What each of you hears depends on your own Spotify. Signed in with Premium in

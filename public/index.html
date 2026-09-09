@@ -274,8 +274,6 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .record{width:min(260px,70vw);margin:0 auto;display:block}
 .record.spin{animation:spin 3.4s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.dedications{display:grid;gap:14px;margin-top:24px}
-.ded label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px;letter-spacing:.05em}
 
 /* letter */
 .letter{
@@ -502,6 +500,13 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .spot-hit:hover .spot-words i{color:#3A4A6B}
 .spot-slip{background:rgba(207,62,87,.07);border-color:rgba(207,62,87,.25)}
 .spot-slip b{color:var(--rose)}
+.spot-tube{
+  position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#12203F;
+  max-height:min(330px,44vh);margin:0 auto      /* a song does not need the whole card */
+}
+.spot-tube[hidden]{display:none}
+.spot-tube iframe{width:100%;height:100%;border:0;display:block}
+.spot-now > div[hidden]{display:none}
 .spot-now{margin-top:14px}
 .spot-now[hidden]{display:none}
 .spot-now iframe{border-radius:12px;display:block;width:100%}
@@ -1614,6 +1619,7 @@ const MARKS = [
 
   /* the record shop */
   [/^search$/i,                                "find"],
+  [/^sign in/i,                                "door"],
   [/^pause/i,                                  "pause"],
   [/^take it off$/i,                           "eject"],
   [/^put it on$|^both press play$/i,           "play"],
@@ -3072,6 +3078,116 @@ ACTS.jar = b => {
 };
 
 /* =======================================================================
+   YOUTUBE, ON ONE CLOCK. The watch party and the record shop both want a
+   player two people share, so it lives here once and is pointed at whichever
+   set of room keys the caller uses. Nobody sends "play": the room stores
+   where the thing was and when that was true by the shared clock, and each
+   side works out for itself where it should be.
+   ======================================================================= */
+const TUNE = {
+  ready:false, waiting:[],
+
+  /* an id out of a watch link, a share link, a shorts link, music.youtube,
+     or the bare eleven characters */
+  id(u){
+    u = (u || "").trim();
+    if(/^[\w-]{11}$/.test(u)) return u;
+    const m = u.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+    return m ? m[1] : "";
+  },
+
+  load(onFail){
+    if(window.YT && window.YT.Player){ TUNE.ready = true; TUNE.flush(); return; }
+    if(!document.getElementById("ytapi")){
+      const t = el("script"); t.id = "ytapi"; t.src = "https://www.youtube.com/iframe_api";
+      t.onerror = () => { if(onFail) onFail(); };
+      document.head.appendChild(t);
+    }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if(prev) prev(); TUNE.ready = true; TUNE.flush(); };
+  },
+  flush(){ TUNE.waiting.splice(0).forEach(f => { try { f(); } catch(_){} }); },
+  when(fn){ TUNE.ready ? fn() : TUNE.waiting.push(fn); },
+
+  /* One deck, kept on the room's clock under `k`: k.v, k.at, k.since,
+     k.playing, k.by. Two decks with different keys never see each other. */
+  deck(host, k, onFail){
+    let player = null, applying = false, loaded = "";
+    const key = x => k + "." + x;
+
+    const push = playing => {
+      if(!player || applying) return;
+      SYNC.set(key("at"), player.getCurrentTime ? player.getCurrentTime() : 0);
+      SYNC.set(key("since"), SYNC.now());
+      SYNC.set(key("playing"), !!playing);
+    };
+
+    const build = id => {
+      if(!window.YT || !window.YT.Player || !document.getElementById(host.id)) return;
+      if(player && loaded !== id){ try { player.loadVideoById(id); } catch(_){} loaded = id; return; }
+      if(player) return;
+      loaded = id;
+      player = new window.YT.Player(host.id, {
+        videoId: id, host: "https://www.youtube-nocookie.com",
+        playerVars: { modestbranding:1, rel:0, playsinline:1 },
+        events: {
+          onReady: () => deck.sync(),
+          /* the player's own controls are the sync control, rather than a
+             second set of buttons that has to be kept in agreement */
+          onStateChange: e => {
+            if(applying) return;
+            if(e.data === 1) push(true);
+            else if(e.data === 2) push(false);
+          }
+        }
+      });
+    };
+
+    const deck = {
+      on(){ return SYNC.get(key("v"), ""); },
+      by(){ return SYNC.get(key("by"), ""); },
+      title(){
+        try { return (player && player.getVideoData && player.getVideoData().title) || ""; }
+        catch(_){ return ""; }
+      },
+      put(id){
+        SYNC.set(key("v"), id);
+        SYNC.set(key("at"), 0); SYNC.set(key("since"), SYNC.now());
+        SYNC.set(key("playing"), true);
+        SYNC.set(key("by"), ME.name || nameOf(mySide()));
+      },
+      clear(){ SYNC.set(key("v"), ""); SYNC.set(key("playing"), false); },
+      drop(){ if(player){ try { player.destroy(); } catch(_){} player = null; loaded = ""; } },
+
+      paint(){
+        const id = deck.on();
+        if(!id){ deck.drop(); return false; }
+        TUNE.load(onFail);
+        TUNE.when(() => build(id));
+        return true;
+      },
+
+      sync(){
+        const id = deck.on();
+        if(!id || !player || !player.getCurrentTime) return;
+        const playing = SYNC.get(key("playing"), false);
+        const at = SYNC.get(key("at"), 0), since = SYNC.get(key("since"), 0);
+        const target = playing && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
+        const cur = player.getCurrentTime();
+        const hold = () => { applying = true; setTimeout(() => { applying = false; }, 700); };
+        if(Math.abs(cur - target) > 1.5){ hold(); player.seekTo(target, true); }
+        const st = player.getPlayerState ? player.getPlayerState() : -1;
+        if(playing && st !== 1 && st !== 3){ hold(); player.playVideo(); }
+        if(!playing && st === 1){ hold(); player.pauseVideo(); }
+      },
+
+      keys(){ return ["v","at","since","playing","by"].map(key); }
+    };
+    return deck;
+  }
+};
+
+/* =======================================================================
    THE RECORD SHOP. Searching Spotify needs the app's secret, so that part
    goes through the Worker. Playing does not go through us at all — the page
    embeds Spotify's own player, which means a pasted track link works with
@@ -3117,7 +3233,8 @@ window.onSpotifyIframeApiReady = api => {
 /* --- 17:00 one song each --- */
 ACTS.song = b => {
   ACTS.song._n = (ACTS.song._n || 0);
-  lede(b, "Search it, put it on, and it plays on both sides at once. Then don't talk.");
+  const n = ++ACTS.song._n;
+  lede(b, "Put a song on and it plays on both sides at once. Then don't talk.");
   const box = el("div","card");
   box.innerHTML = `<svg class="record" viewBox="0 0 200 200">
     <circle cx="100" cy="100" r="96" fill="#243350" stroke="#FAF4E4" stroke-width="1.5" opacity=".9"/>
@@ -3127,61 +3244,66 @@ ACTS.song = b => {
     <circle cx="100" cy="100" r="38" fill="#F4A93C"/>
     <circle cx="100" cy="100" r="5" fill="#FAF4E4"/>
     <path id="labelpath" d="M100 100 m -26 0 a 26 26 0 1 1 52 0 a 26 26 0 1 1 -52 0" fill="none"/>
-    <text font-size="9" fill="#12203F" font-family="Optima,Candara,sans-serif"><textPath id="lab" href="#labelpath" startOffset="4%">side a — side b</textPath></text>
+    <text font-size="9" fill="#12203F" font-family="Optima,Candara,sans-serif"><textPath id="lab" href="#labelpath" startOffset="4%">put a song on</textPath></text>
   </svg>`;
 
-  /* ---- the shop ---- */
   const shop = el("div","spot");
+
+  /* ---- Spotify: search it, or paste a link ---- */
   const find = el("div","spot-find");
   const q = el("input"); q.type = "text";
-  q.placeholder = "her song, or paste a Spotify link";
+  q.placeholder = "search Spotify, or paste a Spotify link";
   const go = el("button","btn","Search");
   find.appendChild(q); find.appendChild(go);
   shop.appendChild(find);
   const said = el("div","spot-note"); said.hidden = true;
   shop.appendChild(said);
-  const slip = el("div","spot-note spot-slip"); slip.hidden = true;
   const hits = el("div","spot-hits");
   shop.appendChild(hits);
 
+  /* ---- YouTube: the whole song, for anyone, free ---- */
+  const yfind = el("div","spot-find yt");
+  const yq = el("input"); yq.type = "text";
+  yq.placeholder = "or paste a YouTube / YouTube Music link";
+  const ygo = el("button","btn","Put it on");
+  yfind.appendChild(yq); yfind.appendChild(ygo);
+  shop.appendChild(yfind);
+  note(shop, "Spotify only hands a browser the whole song when <b>Premium</b> is signed in on that side — everyone else gets thirty seconds of it. YouTube has no such catch: paste a link and it plays in full, in step, for both of you.");
+
   const now = el("div","spot-now"); now.hidden = true;
-  const host = el("div"); host.id = "spotHost" + (++ACTS.song._n);
-  now.appendChild(host);
+  const spotHost = el("div","spot-embed"); spotHost.id = "spotHost" + n;
+  const tuneWrap = el("div","spot-tube");
+  const tuneHost = el("div"); tuneHost.id = "tuneHost" + n;
+  tuneWrap.appendChild(tuneHost);
+  now.appendChild(spotHost); now.appendChild(tuneWrap);
+  const slip = el("div","spot-note spot-slip"); slip.hidden = true;
   now.appendChild(slip);
   const bar = el("div","spot-bar");
   const bPlay = el("button","btn","Both press play");
   const bOff  = el("button","btn ghost","Take it off");
-  bar.appendChild(bPlay); bar.appendChild(bOff);
+  const bIn   = el("button","btn ghost","Sign in to Spotify");
+  bar.appendChild(bPlay); bar.appendChild(bOff); bar.appendChild(bIn);
   now.appendChild(bar);
   shop.appendChild(now);
   box.appendChild(shop);
 
-  const d = el("div","dedications");
-  const mk = side => {
-    const g = el("div","ded");
-    g.appendChild(el("label", null, nameOf(side) + " is playing"));
-    const i2 = el("input"); i2.type = "text"; i2.placeholder = "song and artist";
-    i2.readOnly = !(alone() || side === mySide());
-    g.appendChild(i2); d.appendChild(g); return i2;
-  };
-  const inHer = mk("her"), inYou = mk("you");
-  box.appendChild(d);
   const r = el("div","row");
   const play = el("button","btn","Start the three minutes");
   const t = el("div","timer","3:00");
   r.appendChild(play); r.appendChild(t); box.appendChild(r);
   b.appendChild(box);
-  note(box, "Whoever talks first over the other's song loses and has to explain why they picked it. What you each hear depends on your own Spotify: signed in with Premium, the whole song — otherwise the thirty seconds the embed gives anyone.");
+  note(box, "Whoever talks first over the other's song loses and has to explain why they picked it.");
 
-  /* ---- the player, and keeping it in step ---- */
+  /* ---- the two players ---- */
+  const deck = TUNE.deck(tuneHost, "sy", () => tell("YouTube wouldn't load here."));
   let ctrl = null, on = "", pos = 0, paused = true;
 
   const build = id => {
     if(ctrl || !id) return;
     SPOT.ready(api => {
-      if(ctrl || !document.body.contains(host)) return;
+      if(ctrl || !document.body.contains(spotHost)) return;
       try {
-        api.createController(host, { uri: "spotify:track:" + id, width:"100%", height:"152" }, c => {
+        api.createController(spotHost, { uri: "spotify:track:" + id, width:"100%", height:"152" }, c => {
           ctrl = c; on = id;
           c.addListener("playback_update", e => {
             const dd = (e && e.data) || {};
@@ -3193,18 +3315,18 @@ ACTS.song = b => {
     });
   };
 
-  /* Correcting once a second was the lag rather than the cure: a seek takes a
-     moment to bite, the player keeps reporting where it used to be, so the
-     next tick seeks again — a sawtooth you can hear. Nudge, then leave it
-     alone long enough to settle. */
+  const tell = txt => { said.innerHTML = txt; said.hidden = !txt; };
+  const warn = txt => { slip.innerHTML = txt; slip.hidden = !txt; };
+
   let settle = 0, still = 0, lastPos = -1;
   const syncSp = () => {
+    if(deck.on()){ deck.sync(); return; }        // YouTube keeps its own step
     const id = SYNC.get("sp.id", "");
     if(!id) return;
     if(!ctrl){ build(id); return; }
     if(on !== id){
       on = id; still = 0; lastPos = -1; warn("");
-      settle = SYNC.now() + 4000;                    // a fresh track needs loading
+      settle = SYNC.now() + 4000;
       try { ctrl.loadUri("spotify:track:" + id); } catch(_){}
       return;
     }
@@ -3215,10 +3337,10 @@ ACTS.song = b => {
       if(going && paused) ctrl.play();
       if(!going && !paused) ctrl.pause();
 
-      /* Whether it MOVED since the last look is the useful question. Falling
-         behind while playing is drift, and worth a nudge. Not moving at all
-         is one of two things, and they need opposite answers — so say which
-         rather than dragging at something that cannot go anywhere. */
+      /* Whether it MOVED since the last look is the useful question. Late but
+         moving is drift. Not moving at all is one of two things, and they need
+         opposite answers — so say which rather than dragging at something that
+         cannot go anywhere. */
       const moved = Math.abs(pos - lastPos) > 0.15;
       lastPos = pos;
       still = (going && !moved) ? still + 1 : 0;
@@ -3228,34 +3350,34 @@ ACTS.song = b => {
           ? "Nothing is playing on this side yet. A browser won't start sound on its own — "
             + "press play in the player once and it will fall into step."
           : "This side has stopped at " + Math.round(pos) + " seconds. That is Spotify's sample, "
-            + "which is all it gives a browser that isn't signed in — sign in to Spotify <b>here</b> "
-            + "for the whole song.");
+            + "which is all the embed gives without <b>Premium signed in on this side</b>. "
+            + "Paste the song from YouTube instead and it plays in full for both of you.");
         return;
       }
-      if(moved && slip.innerHTML) warn("");          // it caught up; take it back
+      if(moved && slip.innerHTML) warn("");
 
       if(SYNC.now() > settle && Math.abs(pos - want) > 3){
-        const to = Math.max(0, want + 0.4);          // a beat of lead for the seek itself
+        const to = Math.max(0, want + 0.4);
         ctrl.seek(to);
         settle = SYNC.now() + 6000;
-        /* Our own nudge is not the player moving. Counting it as movement
-           reset the stall count every time and kept a dead player looking
-           merely late. */
-        lastPos = to;
+        lastPos = to;                            // our own nudge is not movement
       }
     } catch(_){}
   };
 
+  const dropSpot = () => {
+    if(ctrl){ try { ctrl.pause(); } catch(_){} }
+    on = ""; still = 0; lastPos = -1; warn("");
+  };
+
   const putOn = trk => {
+    deck.clear();                                 // one at a time on the turntable
     SYNC.set("sp.id", trk.id);
     SYNC.set("sp.name", trk.name || ""); SYNC.set("sp.who", trk.who || "");
     SYNC.set("sp.by", ME.name || nameOf(mySide()));
     SYNC.set("sp.at", 0); SYNC.set("sp.since", SYNC.now()); SYNC.set("sp.playing", true);
     hits.innerHTML = ""; tell(""); warn("");
   };
-
-  const tell = txt => { said.innerHTML = txt; said.hidden = !txt; };
-  const warn = txt => { slip.innerHTML = txt; slip.hidden = !txt; };
 
   const search = async () => {
     const term = q.value.trim();
@@ -3271,7 +3393,7 @@ ACTS.song = b => {
     if(!j || j.ok !== true){
       const why = (j && j.why) || "net";
       tell(why === "unset"
-        ? "Searching needs a Spotify app key on the Worker — <b>SPOTIFY_CLIENT_ID</b> and <b>SPOTIFY_CLIENT_SECRET</b>, the README has the steps. Until then, paste a Spotify track link in here and it plays."
+        ? "Searching needs a Spotify app key on the Worker — <b>SPOTIFY_CLIENT_ID</b> and <b>SPOTIFY_CLIENT_SECRET</b>, the README has the steps. A pasted Spotify or YouTube link works without it."
         : why === "keys"
           ? "Spotify turned the app key down. Check SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET on the Worker."
           : why === "net"
@@ -3296,6 +3418,18 @@ ACTS.song = b => {
   go.addEventListener("click", search);
   q.addEventListener("keydown", e => { if(e.key === "Enter") search(); });
 
+  const putTube = () => {
+    const id = TUNE.id(yq.value);
+    if(!id){ tell("That doesn't look like a YouTube link."); return; }
+    yq.value = ""; tell(""); warn("");
+    SYNC.set("sp.id", "");                        // one at a time
+    SYNC.set("sp.playing", false);
+    dropSpot();
+    deck.put(id);
+  };
+  ygo.addEventListener("click", putTube);
+  yq.addEventListener("keydown", e => { if(e.key === "Enter") putTube(); });
+
   bPlay.addEventListener("click", () => {
     const going = SYNC.get("sp.playing", false);
     if(going){ SYNC.set("sp.at", pos); SYNC.set("sp.playing", false); }
@@ -3304,44 +3438,42 @@ ACTS.song = b => {
   });
   bOff.addEventListener("click", () => {
     SYNC.set("sp.id", ""); SYNC.set("sp.playing", false); SYNC.set("sp.at", 0);
+    deck.clear(); dropSpot();
+  });
+  bIn.addEventListener("click", () => {
+    window.open("https://open.spotify.com/", "_blank", "noopener");
   });
 
   /* ---- what it all looks like ---- */
   const rec = box.querySelector(".record"), lab = box.querySelector("#lab");
   const render = () => {
-    const a = SYNC.get("song.her", ""), c = SYNC.get("song.you", "");
-    if(document.activeElement !== inHer) inHer.value = a;
-    if(document.activeElement !== inYou) inYou.value = c;
+    const spId = SYNC.get("sp.id", ""), tube = deck.on();
+    const nm = SYNC.get("sp.name", "");
+    const going = tube ? SYNC.get("sy.playing", false) : SYNC.get("sp.playing", false);
 
-    const id = SYNC.get("sp.id", ""), nm = SYNC.get("sp.name", "");
-    const going = SYNC.get("sp.playing", false);
-    now.hidden = !id;
-    bPlay.textContent = going ? "Pause it for both" : "Both press play";
-    if(id) build(id);
+    now.hidden = !(spId || tube);
+    spotHost.hidden = !spId;
+    tuneWrap.hidden = !tube;
+    bPlay.hidden = !spId;                         // YouTube's own controls do this
+    bIn.hidden = !spId;
+    if(spId) build(spId);
+    const onTube = deck.paint();
 
-    lab.textContent = nm ? nm.slice(0, 40)
-      : ((a || "side a") + " — " + (c || "side b"));
+    bPlay.textContent = SYNC.get("sp.playing", false) ? "Pause it for both" : "Both press play";
+    lab.textContent = (nm && spId ? nm : onTube ? (deck.title() || "from YouTube") : "put a song on").slice(0, 40);
     const endsAt = SYNC.get("song.endsAt", 0);
     const running = endsAt && SYNC.now() < endsAt;
     rec.classList.toggle("spin", !!(running || going));
     play.disabled = !!running;
   };
 
-  const wire = (input, key) => {
-    let to = null;
-    input.addEventListener("input", () => {
-      clearTimeout(to);
-      to = setTimeout(() => SYNC.set(key, input.value.slice(0,80)), 220);
-      stageTimers.push(to);
-    });
-  };
-  wire(inHer, "song.her"); wire(inYou, "song.you");
   play.addEventListener("click", () => SYNC.set("song.endsAt", SYNC.now() + 180000));
 
-  ["song.her","song.you","song.endsAt","sp.id","sp.name","sp.who","sp.playing","sp.by"]
+  ["song.endsAt","sp.id","sp.name","sp.who","sp.playing","sp.by","sy.v","sy.playing","sy.by"]
     .forEach(k => bind(k, render));
   every(1000, syncSp);
-  onClose(() => { ctrl = null; });
+  every(2000, render);                            // the YouTube title arrives late
+  onClose(() => { ctrl = null; deck.drop(); });
   sharedClock(t, "song.endsAt", { idle:"3:00", done:"now you can talk" }, render);
   render();
 };
@@ -5749,92 +5881,25 @@ ACTS.watch = b => {
   bind("chat.msgs", paintChat);
 
   /* ---- YouTube, kept in step on both sides ---- */
-  const ytId = u => {
-    u = (u || "").trim();
-    if(/^[\w-]{11}$/.test(u)) return u;
-    const m = u.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
-    return m ? m[1] : "";
-  };
-  let player = null, ytReady = false, applying = false, loadedId = "";
-
-  const loadApi = () => {
-    if(window.YT && window.YT.Player){ ytReady = true; return; }
-    if(!document.getElementById("ytapi")){
-      const t = el("script"); t.id = "ytapi"; t.src = "https://www.youtube.com/iframe_api";
-      t.onerror = () => say("YouTube wouldn't load here — the screen share still works.");
-      document.head.appendChild(t);
-    }
-    const prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => { if(prev) prev(); ytReady = true; paintShare(); };
-  };
-
-  const pushYt = playing => {
-    if(!player || applying) return;
-    SYNC.set("yt.at", player.getCurrentTime ? player.getCurrentTime() : 0);
-    SYNC.set("yt.since", SYNC.now());
-    SYNC.set("yt.playing", !!playing);
-  };
-
-  const makePlayer = id => {
-    if(!ytReady || !window.YT || !window.YT.Player) return;
-    if(player && loadedId !== id){ try { player.loadVideoById(id); } catch(_){} loadedId = id; return; }
-    if(player) return;
-    loadedId = id;
-    player = new window.YT.Player(ytHost.id, {
-      videoId: id, host: "https://www.youtube-nocookie.com",
-      playerVars: { modestbranding:1, rel:0, playsinline:1 },
-      events: {
-        onReady: () => { syncYt(); },
-        onStateChange: e => {
-          if(applying) return;
-          if(e.data === 1) pushYt(true);
-          else if(e.data === 2) pushYt(false);
-        }
-      }
-    });
-  };
-
-  /* Everyone works out where the film should be from one clock, so a lagging
-     tab catches up instead of the two of you drifting apart. */
-  const syncYt = () => {
-    const id = SYNC.get("yt.v", "");
-    if(!id || !player || !player.getCurrentTime) return;
-    const playing = SYNC.get("yt.playing", false);
-    const at = SYNC.get("yt.at", 0), since = SYNC.get("yt.since", 0);
-    const target = playing && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
-    const cur = player.getCurrentTime();
-    const hold = () => { applying = true; setTimeout(() => { applying = false; }, 700); };
-    if(Math.abs(cur - target) > 1.5){ hold(); player.seekTo(target, true); }
-    const st = player.getPlayerState ? player.getPlayerState() : -1;
-    if(playing && st !== 1 && st !== 3){ hold(); player.playVideo(); }
-    if(!playing && st === 1){ hold(); player.pauseVideo(); }
-  };
+  const deck = TUNE.deck(ytHost, "yt",
+    () => say("YouTube wouldn't load here — the screen share still works."));
+  const syncYt = () => deck.sync();
 
   ytGo.addEventListener("click", () => {
-    const id = ytId(ytIn.value);
+    const id = TUNE.id(ytIn.value);
     if(!id){ say("That doesn't look like a YouTube link."); return; }
     ytIn.value = "";
     stopShare();
-    SYNC.set("yt.v", id);
-    SYNC.set("yt.at", 0); SYNC.set("yt.since", SYNC.now()); SYNC.set("yt.playing", true);
-    SYNC.set("yt.by", ME.name || nameOf(mySide()));
+    deck.put(id);
     msg = "";
   });
   clearAll.addEventListener("click", () => {
     stopShare();
-    SYNC.set("yt.v", ""); SYNC.set("yt.playing", false);
+    deck.clear();
   });
 
   const paintYt = () => {
-    const id = SYNC.get("yt.v", "");
-    if(!id){
-      if(player){ try { player.destroy(); } catch(_){} player = null; loadedId = ""; }
-      screen.classList.remove("mode-yt");
-      return;
-    }
-    screen.classList.add("mode-yt");
-    loadApi();
-    makePlayer(id);
+    screen.classList.toggle("mode-yt", deck.paint());
   };
 
   const pcs = new Map();
@@ -6159,7 +6224,7 @@ ACTS.watch = b => {
     stopShare();
     document.body.classList.remove("watching");
     GLITTER.resume();
-    if(player){ try { player.destroy(); } catch(_){} player = null; }
+    deck.drop();
   });
   window.addEventListener("beforeunload", stopShare);
   paintWho(); paintChat(); paintYt();
