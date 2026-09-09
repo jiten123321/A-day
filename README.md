@@ -92,13 +92,27 @@ off" — so an icon placed by hand at each call site is lost the first time the
 text changes, because setting `textContent` takes the whole child with it.
 
 `dressButtons` picks the mark from the words on the button instead, and a
-`MutationObserver` puts it back whenever a label is rewritten (coalesced to
-five times a second, because the arcade repaints a score every frame). Add a
-button anywhere and it gets its icon without anyone remembering to ask.
+`MutationObserver` catches buttons as new activities open. Add a button
+anywhere and it gets its icon without anyone remembering to ask.
 
-Only buttons carrying words are dressed — the game tiles, the pad keys, the
-mole holes and the little round ones already say what they are, and anything
-under three characters (`+`, `−`, `→`, `✕`, the arrows) is left alone.
+**The mark is painted, not parented.** It began as a child `<span>`, which
+looked identical and was quietly wrong: whack-a-mole rewrites its label
+eleven times a second, and every `textContent` assignment threw the child
+away faster than the observer could put it back — a flicker you could see.
+It is now the button's own `::before`, stencilled in `currentColor` through a
+`mask-image` held in a custom property. A pseudo-element is not a child, so
+nothing can rewrite it away, and the icon takes the button's text colour for
+free.
+
+**The mark suits the activity, not just the verb.** A spin on the roulette is
+a wheel, a new wall in breakout is a wall, hangman's *Set it* is an A and a B,
+the film quiz gets a film, and both *Skip* and *Neither, forfeit* get a flag.
+
+Buttons with no letters in them are left alone — `+`, `−`, `→`, `✕`, the pad
+arrows — along with rock, paper and scissors, which carry their own emoji.
+The rule is *has letters*, not *is longer than two characters*: **Go** is two
+characters and every bit a word, and the length rule silently stripped its
+icon the moment whack-a-mole started a round.
 
 
 ### The five with moving parts
@@ -576,9 +590,24 @@ record says so rather than pretending.
 Unset, the search box says which two secrets are missing and reminds you that
 pasting a link still works.
 
+### Keeping it in step without the sawtooth
+
+Correcting once a second was the lag rather than the cure. A seek takes a
+moment to bite, the player keeps reporting where it used to be, so the next
+tick seeks again — a stutter you can hear. It now nudges at most once every
+six seconds, only past three seconds of drift, with a beat of lead for the
+seek itself, and it leaves a freshly loaded track alone for four seconds.
+
+Falling behind again and again is almost never the network. It is that
+browser being handed Spotify's thirty-second sample, which cannot follow a
+whole song however often it is dragged forward. After three corrections in
+the same direction the panel says so, rather than tugging at it forever.
+
 **Not verified here.** `api.spotify.com`, `accounts.spotify.com` and
 `open.spotify.com` are all unreachable from the sandbox this was built in, so
-the token call, the search and the real embed have never run. What is tested
+the token call and the real embed have never run — though search has since
+been confirmed working against the live Worker, and the page has been checked
+against a real eight-track response. What is tested
 is the endpoint's shape, the unconfigured message, the tidying of Spotify's
 response, a pasted link going on for both sides, and the whole sync — play,
 pause, and a late arrival being seeked — against a stand-in player.
