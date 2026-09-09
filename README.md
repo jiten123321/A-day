@@ -270,6 +270,40 @@ The whole thing is a doodle: pen on paper rather than the old night theme.
 The palette tokens kept their names, so `--paper` is the ink and `--night` is
 the page. Every existing rule therefore keeps meaning what it meant.
 
+## The way in
+
+The gate asks who is there before anything else, so the day knows which side of
+it you are on. Names come from `CFG.her` and `CFG.you` — and from `CFG.herAlso`
+and `CFG.youAlso`, which is the list of other things either of you might
+actually type. Without those, typing a real name instead of the pet name in
+`CFG` lands you on the page as a stranger — *someone else's day, but stay* —
+which is a cold thing to be told by your own present. Case does not matter.
+
+**Two roses, for her.** When the name is hers, the gate does not lift straight
+away: two roses draw themselves, the heads open one after the other, a ribbon
+ties them, a few petals let go, and the whole thing says *For you, <name>.*
+Four seconds later the day opens on its own. Nothing waits for a press —
+there is nothing to press.
+
+The four seconds are not idle. `SYNC.connect()` is called the moment the name
+is known, so the room is joined while she is still looking at them and the page
+behind is ready by the time it shows.
+
+Everyone else — him, or anybody who was sent the link — goes straight in, which
+is the point: it is a thing given to one person, not a splash screen.
+
+A note on how it is drawn, because it caught me out. Each falling petal is
+placed by a `transform` attribute on a wrapping `<g>`, never on the petal
+itself. A CSS `transform` in a keyframe *replaces* the element's own transform
+attribute rather than composing with it, so animating the petal directly threw
+every one of them back to the origin and they fell from the corner of the
+drawing in a neat stack. The wrapper holds the place; the animation only ever
+touches the child. There is a test that measures how far each petal starts
+from a rose, so it cannot come back.
+
+For `prefers-reduced-motion`, the roses are still given — drawn, tied and
+named — with nothing moving, and the four seconds stand.
+
 ## The page
 
 The header carries an analog watch rather than a digital clock, and the hour
