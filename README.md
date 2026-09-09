@@ -169,6 +169,71 @@ find out they disagree — the server has one of them stored, but neither
 learns which. Anything that needs two tabs to agree has to be written so they
 never race for the same key.
 
+### Snakes and ladders
+
+A hundred squares numbered the way a real board is: left to right along the
+bottom row, right to left along the next, and so on up — so square 1 is
+bottom-left and 100 is top-left. Everything else is looked up from that one
+rule rather than worked out twice: `SL.cell(n)` turns a number into a place on
+the board, and both the tokens and the drawing use it.
+
+The snakes and the ladders are drawn as one SVG over the grid rather than
+placed square by square. A ladder is two rails offset either side of the line
+between its feet, with rungs at even intervals along it; a snake is a curve
+bowed out from the straight line, with a head and two eyes at the top of it.
+Both are drawn in a 10×10 space, so they land on the squares whatever size the
+board is on the screen.
+
+Nine ladders and ten snakes, the classic set. A six rolls again, the way the
+ludo board next door does, so the two of them agree about dice. You need the
+exact number to land on a hundred — anything over and you stay where you are,
+and the board says how many you needed.
+
+One trap worth naming: the squares are `.slsq`, not `.sq`. Chess already owns
+a **bare** `.sq` rule further down the file, and a second board using the same
+name would have quietly inherited it.
+
+### The cabinet, and filling the screen
+
+The game panel now sits inside a cabinet with the same button the watch party
+uses. It wraps the panel rather than living inside it, because the panel is
+emptied and rebuilt every time you change game and would throw the button away
+with it.
+
+Filling the screen is one person's choice about their own eyes, so unlike
+almost everything else here it is **not** shared. Esc leaves the big cabinet
+rather than the whole arcade, and the browser's own exit is followed.
+
+A bigger cabinet is only bigger if what is in it grows too, so every board that
+caps its own width is let out in `.arcstage.wide` — sized off the viewport
+*height*, because on a wide screen that is what runs out first.
+
+### Three, two, one
+
+Pressing play used to start the round in the same instant, which is fine alone
+and rude with two people: one of you is already playing before the other has
+looked up. Whoever presses writes the moment the round begins; both sides count
+down to that moment off the shared clock, so the numbers land together however
+far apart you are.
+
+**Only the presser starts it.** Every one of these games already knows how to
+tell the other side — `drives() ? start() : SYNC.ev("mole.go")` — and running
+that on both sides would start the round twice.
+
+**And only the presser clears the count.** Clearing it from both sides is a
+race, and it lost: whichever clock ran a hair ahead wiped the shared key first,
+and the side that was supposed to start the round found nothing there and
+started nothing. The other side needs no clearing at all — a moment that has
+passed paints as no countdown. There is a test that presses on one side and
+checks the round is running on both a moment after the three is up.
+
+A second, nervous press during a countdown does nothing rather than restarting
+it. A count left behind by a tab that closed mid-three is not a countdown, and
+does not block the next one.
+
+Six games take it: pong, breakout, whack-a-mole, pac-man, doodle jump and
+snake. The board games do not — nobody needs counting in before a chess move.
+
 ### Whack-a-mole, out of the ground
 
 It began as a mouse emoji sliding up inside a flat grey circle, which is a
@@ -256,7 +321,7 @@ compare `myRound` against `rps.round`. And a reload loses the local throw but
 not the flag, so a side that is locked with nothing to publish gets its pick
 handed back rather than stranding the round: nothing was revealed, so nothing
 is lost.
-Seventeen games, all shared — every move lands on both boards.
+Eighteen games, all shared — every move lands on both boards.
 
 **Chess** is the real thing: legal move generation, castling (including through
 check), en passant, promotion with a picker, check, checkmate, stalemate and the

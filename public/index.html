@@ -397,6 +397,94 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 }
 .screen:hover .maxbtn, .maxbtn:focus-visible, .screen.on .maxbtn{opacity:1}
 .maxbtn:hover{background:rgba(18,32,63,.8)}
+/* snakes and ladders */
+.slad{position:relative;width:min(430px,100%);margin:10px auto 4px}
+.slad-grid{
+  display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);
+  aspect-ratio:1;border:2px solid var(--line);border-radius:10px;overflow:hidden;
+  background:#F6ECD6
+}
+/* not .sq — chess already owns that one, bare, further down the file */
+.slsq{position:relative;display:block;background:#F6ECD6}
+.slsq.dark{background:#EADFC2}
+.slsq.foot{background:#DCEDE4}
+.slsq.head{background:#F6DCE0}
+.slsq.last{background:var(--marigold)}
+.slsq b{
+  position:absolute;left:3px;top:2px;font-weight:400;
+  font-size:.55rem;color:var(--muted);font-style:normal;line-height:1
+}
+.slsq.last b{color:#12203F}
+.slad-art{
+  position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible
+}
+.slad-art .lad path{
+  fill:none;stroke:#B07A3A;stroke-width:.075;stroke-linecap:round;opacity:.92
+}
+.slad-art .snk-body{fill:none;stroke:#17796C;stroke-width:.15;stroke-linecap:round;opacity:.9}
+.slad-art .snk-head{fill:#17796C}
+.slad-art .snk-eye{fill:#FAF4E4}
+.slad .tok{
+  position:absolute;left:50%;top:50%;width:56%;height:56%;
+  transform:translate(-50%,-50%);border-radius:50%;
+  border:1.6px solid var(--ink);z-index:2;
+  box-shadow:0 0 0 2px #FAF4E4                   /* off the snake it is sitting on */
+}
+.slad .tok.her{background:var(--marigold)}
+.slad .tok.you{background:var(--teal)}
+.slad .tok.her.stack{transform:translate(-78%,-50%)}
+.slad .tok.you.stack{transform:translate(-22%,-50%)}
+
+/* The arcade cabinet, and the same button giving it the whole screen.
+   The panel inside is rebuilt every time you change game, so the button
+   hangs off the wrapper or it would be thrown away with it. */
+.arcstage{position:relative}
+.arcpanel{position:relative;min-width:0}    /* the countdown hangs off this */
+/* the cabinet sits on cream, not on a film, so the glass button would be
+   a smudge — it is drawn the way the rest of the page is */
+.arcmax{
+  background:var(--night);border:1.5px solid var(--line);color:var(--paper);
+  top:2px;right:2px;opacity:.75;font-size:1.05rem
+}
+.arcstage:hover .arcmax, .arcmax:hover, .arcmax:focus-visible{opacity:1;background:var(--indigo)}
+.arcstage.wide{
+  position:fixed;inset:0;z-index:200;margin:0;padding:18px 14px 14px;
+  background:var(--night);overflow:auto;display:flex;
+  align-items:flex-start;justify-content:center
+}
+.arcstage.wide .arcpanel{margin:0 auto!important;width:min(1100px,100%)}
+.arcstage.wide .arcmax{opacity:1;position:fixed;top:12px;right:12px}
+/* A bigger cabinet is only bigger if what is in it grows too, so every
+   board that caps its own width is let out here. Sized off the viewport
+   height, because that is what runs out first on a wide screen. */
+.arcstage.wide .card{max-width:none}
+.arcstage.wide .arcwrap{max-width:min(38vh,420px)}
+.arcstage.wide .pitch{max-width:min(62vh,560px)}
+.arcstage.wide .slad{width:min(66vh,620px)}
+.arcstage.wide .chess, .arcstage.wide .ludo{max-width:min(66vh,620px);margin:16px auto}
+.arcstage.wide .c4{max-width:min(76vh,700px);margin:18px auto}
+.arcstage.wide .moles{gap:12px}
+
+/* three, two, one — over the cabinet, on the shared clock */
+.three{
+  position:absolute;inset:0;z-index:6;display:flex;
+  align-items:center;justify-content:center;
+  background:rgba(250,244,228,.62);border-radius:16px;pointer-events:none
+}
+.three[hidden]{display:none}
+.three-n{
+  font-family:var(--serif);font-size:clamp(4.5rem,20vw,9rem);line-height:1;
+  color:var(--mango);text-shadow:0 3px 0 rgba(36,51,80,.12)
+}
+.three-n.beat{animation:threeBeat .85s ease-out}
+@keyframes threeBeat{
+  0%{transform:scale(.55);opacity:0}
+  18%{transform:scale(1.12);opacity:1}
+  40%{transform:scale(1)}
+  100%{transform:scale(1);opacity:.85}
+}
+@media (prefers-reduced-motion: reduce){ .three-n.beat{animation:none} }
+
 /* the whole room goes up, so the chat in the rail comes with the picture */
 .room.cinema{
   position:fixed;inset:0;z-index:200;margin:0;
@@ -3725,12 +3813,21 @@ ACTS.letter = b => {
 
 /* --- 11:00 the arcade --- */
 ACTS.arcade = b => {
-  lede(b, "Twelve games, all shared. Every move lands on both boards.");
+  lede(b, "Eighteen games, all shared. Every move lands on both boards.");
   const hub = el("div","tiles");
-  const panel = el("div"); panel.style.marginTop = "10px";
+  /* The cabinet, and the button that gives it the whole screen. It wraps
+     the panel rather than living inside it, because the panel is rebuilt
+     from nothing every time you change game and would take the button with
+     it. Filling the screen is one person's choice about their own eyes, so
+     it is not shared. */
+  const cab = el("div","arcstage");
+  const max = el("button","maxbtn arcmax", "\u2921");
+  const panel = el("div","arcpanel"); panel.style.marginTop = "10px";
+  cab.appendChild(max); cab.appendChild(panel);
   const GAMES = [
     {n:"Chess", d:"Real rules. Castling, en passant, checkmate.", f:chessGame},
     {n:"Ludo", d:"Four tokens each. Sixes to come out, exact number to get home.", f:ludoGame},
+    {n:"Snakes and ladders", d:"A hundred squares. Ladders up, snakes down, exact number to finish.", f:sladGame},
     {n:"Snake", d:"One board each, both live. Longest wins.", f:snakeGame},
     {n:"Hangman", d:"One of you sets a word, the other has six wrong guesses.", f:hangmanGame},
     {n:"Tic tac toe", d:"Three in a row. Loser starts the next one.", f:tttGame},
@@ -3764,15 +3861,49 @@ ACTS.arcade = b => {
     hub.appendChild(t);
     return t;
   });
-  b.appendChild(hub); b.appendChild(panel);
+  b.appendChild(hub); b.appendChild(cab);
+
+  const big = () => document.fullscreenElement === cab || cab.classList.contains("wide");
+  const grow = () => {
+    cab.classList.add("wide");                 // in place at once, whatever fullscreen does
+    if(cab.requestFullscreen) cab.requestFullscreen().catch(() => {});
+    paintMax();
+  };
+  const shrink = () => {
+    cab.classList.remove("wide");
+    if(document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    paintMax();
+  };
+  const paintMax = () => {
+    max.innerHTML = big() ? "\u2922" : "\u2921";
+    const t = big() ? "Back to the page" : "Fill the screen";
+    max.title = t; max.setAttribute("aria-label", t);
+    max.hidden = SYNC.get("arcade.game", null) === null;   // nothing to fill it with
+  };
+  max.addEventListener("click", () => big() ? shrink() : grow());
+  /* Esc leaves the big cabinet rather than the whole arcade. Named so it
+     cannot shadow the global that escapes HTML. */
+  const escKey = e => { if(e.key === "Escape" && big()){ e.stopPropagation(); shrink(); } };
+  document.addEventListener("keydown", escKey, true);
+  const fsOut = () => { if(!document.fullscreenElement) cab.classList.remove("wide"); paintMax(); };
+  document.addEventListener("fullscreenchange", fsOut);
+  const onCall = () => { if(big()) shrink(); };
+  window.addEventListener("call:incoming", onCall);
+  onClose(() => {
+    document.removeEventListener("keydown", escKey, true);
+    document.removeEventListener("fullscreenchange", fsOut);
+    window.removeEventListener("call:incoming", onCall);
+    if(cab.classList.contains("wide")) shrink();
+  });
 
   const render = () => {
     gclear();
     panel.innerHTML = "";
     const gi = SYNC.get("arcade.game", null);
     tiles.forEach((t,i) => t.classList.toggle("on", i === gi));
-    if(gi === null || !GAMES[gi]) return;
+    if(gi === null || !GAMES[gi]){ paintMax(); return; }
     GAMES[gi].f(panel, gbind, gevery, gclean);
+    paintMax();
   };
   bind("arcade.game", render);
   render();
@@ -4816,6 +4947,67 @@ const ARC = {
   }
 };
 
+/* =======================================================================
+   THREE, TWO, ONE. Pressing play used to start the round in the same
+   instant, which is fine alone and rude with two people — one of you is
+   already playing before the other has looked up.
+
+   Whoever presses writes the moment the round begins. Both sides count
+   down to that moment off the shared clock, so the numbers land together
+   however far apart the two of you are, and only the presser actually
+   starts it: every one of these games already knows how to tell the other
+   side, and two starts in the same instant would run that twice.
+   ======================================================================= */
+const GO = {
+  wire(host, key, gbind, gevery, gclean, run){
+    const veil = el("div","three"); veil.hidden = true;
+    const num = el("div","three-n","3");
+    veil.appendChild(num);
+    host.appendChild(veil);
+
+    let fired = 0, shown = "";
+    const at = () => SYNC.get(key, null);
+
+    const paint = () => {
+      const c = at();
+      const left = c && c.at ? c.at - SYNC.now() : 0;
+      if(left <= 0){ veil.hidden = true; shown = ""; return; }
+      const n = String(Math.ceil(left / 1000));
+      veil.hidden = false;
+      if(n !== shown){                        // a beat per number, not per frame
+        shown = n;
+        num.textContent = n;
+        num.classList.remove("beat"); void num.offsetWidth; num.classList.add("beat");
+      }
+    };
+
+    gevery(70, () => {
+      const c = at();
+      paint();
+      if(c && c.at && c.at !== fired && SYNC.now() >= c.at){
+        fired = c.at;
+        /* Only the presser touches the key. Clearing it from both sides is a
+           race: whichever clock ran a hair ahead wiped it first, and the
+           side that was supposed to start the round found nothing there and
+           started nothing. The other side needs no clearing — a moment that
+           has passed paints as no countdown at all. */
+        if(c.by === SYNC.id){ SYNC.set(key, null); run(); }
+      }
+    });
+    gbind(key, paint);
+    gclean(() => { if(at()) SYNC.set(key, null); });
+
+    /* Pressing again during a countdown does nothing rather than restarting
+       it, which is what a second, nervous press means. A count left behind by
+       a tab that closed mid-three is not a countdown and does not block one. */
+    return () => {
+      const c = at();
+      if(c && c.at > SYNC.now()) return;
+      SYNC.set(key, { at: SYNC.now() + 3000, by: SYNC.id });
+    };
+  }
+};
+
 /* --- arcade: pong --- */
 function pongGame(host, gbind, gevery, gclean){
   const W = 420, H = 250, PW = 9, PH = 54, TO = 7;
@@ -4860,11 +5052,11 @@ function pongGame(host, gbind, gevery, gclean){
   });
   gev("pong.serve", () => { if(drives() && !live && !won(score())) serve(Math.random() < .5); });
 
-  go.addEventListener("click", () => {
-    if(won(score())) return;
+  const three = GO.wire(host, "pong.count", gbind, gevery, gclean, () => {
     if(drives()){ if(!live) serve(Math.random() < .5); }
     else SYNC.ev("pong.serve", {});
   });
+  go.addEventListener("click", () => { if(!won(score())) three(); });
   zero.addEventListener("click", () => { SYNC.set("pong.score", {her:0, you:0}); live = false; });
 
   const step = dt => {
@@ -4998,7 +5190,9 @@ function brickGame(host, gbind, gevery, gclean){
   const blast = () => SYNC.ev("brick.state", { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy,
     live, l:lives, h:hits, done, w:wall.join(""), pads });
 
-  go.addEventListener("click", () => drives() ? push(mySide()) : SYNC.ev("brick.go", { s: mySide() }));
+  const three = GO.wire(host, "brick.count", gbind, gevery, gclean,
+    () => drives() ? push(mySide()) : SYNC.ev("brick.go", { s: mySide() }));
+  go.addEventListener("click", three);
   again.addEventListener("click", () => {
     if(drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
   });
@@ -5244,7 +5438,9 @@ function moleGame(host, gbind, gevery, gclean){
     else { hitBy[i] = me; paint(); SYNC.ev("mole.hit", { i, s: me }); }
   }
 
-  go.addEventListener("click", () => drives() ? start() : SYNC.ev("mole.go", {}));
+  const three = GO.wire(host, "mole.count", gbind, gevery, gclean,
+    () => drives() ? start() : SYNC.ev("mole.go", {}));
+  go.addEventListener("click", three);
 
   const tick = () => {
     const ends = SYNC.get("mole.ends", 0);
@@ -5312,6 +5508,160 @@ function moleGame(host, gbind, gevery, gclean){
   ["mole.score","mole.ends","mole.best"].forEach(k => gbind(k, paint));
   gevery(90, tick);
   paint();
+}
+
+
+/* --- arcade: snakes and ladders ---
+   A hundred squares, numbered the way a real board is: left to right along
+   the bottom row, right to left along the next, and so on up. Everything
+   about the game is that numbering, so it lives in one function and every
+   drop and climb is looked up rather than worked out twice. */
+const SL = {
+  UP:   { 1:38, 4:14, 9:31, 21:42, 28:84, 36:44, 51:67, 71:91, 80:100 },
+  DOWN: { 16:6, 47:26, 49:11, 56:53, 62:19, 64:60, 87:24, 93:73, 95:75, 98:78 },
+
+  /* square number to its place on the board, 0..9 across and down */
+  cell(n){
+    const band = Math.floor((n - 1) / 10);          // 0 at the bottom
+    const along = (n - 1) % 10;
+    return { x: band % 2 === 0 ? along : 9 - along, y: 9 - band };
+  },
+  mid(n){ const c = SL.cell(n); return { x: c.x + 0.5, y: c.y + 0.5 }; },
+
+  fresh(){ return { pos:{her:0, you:0}, turn:"her", die:0, rolled:false, over:"", note:"" }; },
+
+  /* One roll, all of it: the move, the overshoot, the snake or the ladder,
+     and whose turn it is next. A six rolls again, the way the ludo board
+     next door does, so the two of them agree about dice. */
+  step(st, side, die){
+    const s = JSON.parse(JSON.stringify(st));
+    const from = s.pos[side];
+    let to = from + die, note = "";
+    if(to > 100){ to = from; note = "needs " + (100 - from) + " exactly"; }
+    else {
+      if(SL.UP[to]){ note = "up the ladder, " + to + " to " + SL.UP[to]; to = SL.UP[to]; }
+      else if(SL.DOWN[to]){ note = "down the snake, " + to + " to " + SL.DOWN[to]; to = SL.DOWN[to]; }
+    }
+    s.pos[side] = to;
+    s.die = die;
+    s.note = note;
+    if(to === 100){ s.over = side; s.rolled = false; return s; }
+    s.turn = die === 6 ? side : (side === "her" ? "you" : "her");
+    s.rolled = false;
+    return s;
+  }
+};
+
+function sladGame(host, gbind, gevery, gclean){
+  const box = el("div","card");
+  const status = el("div","turnbar","");
+  box.appendChild(status);
+
+  const wrap = el("div","slad");
+  const grid = el("div","slad-grid");
+  const squares = [];
+  for(let i = 0; i < 100; i++) squares.push(null);
+  for(let n = 100; n >= 1; n--){                    // build in screen order
+    const c = SL.cell(n);
+    const d = el("i","slsq");
+    d.style.gridColumn = (c.x + 1);
+    d.style.gridRow = (c.y + 1);
+    if((c.x + c.y) % 2 === 0) d.classList.add("dark");
+    if(SL.UP[n]) d.classList.add("foot");
+    if(SL.DOWN[n]) d.classList.add("head");
+    if(n === 100) d.classList.add("last");
+    d.appendChild(el("b", null, String(n)));
+    grid.appendChild(d);
+    squares[n - 1] = d;
+  }
+  wrap.appendChild(grid);
+
+  /* the snakes and the ladders themselves, over the squares */
+  let art = '<svg class="slad-art" viewBox="0 0 10 10" aria-hidden="true">';
+  Object.keys(SL.UP).forEach(k => {
+    const a = SL.mid(+k), b2 = SL.mid(SL.UP[k]);
+    const dx = b2.x - a.x, dy = b2.y - a.y, len = Math.hypot(dx, dy);
+    const nx = -dy / len * 0.17, ny = dx / len * 0.17;     // half the rail spacing
+    art += '<g class="lad">'
+         + '<path d="M' + (a.x+nx) + ' ' + (a.y+ny) + 'L' + (b2.x+nx) + ' ' + (b2.y+ny) + '"/>'
+         + '<path d="M' + (a.x-nx) + ' ' + (a.y-ny) + 'L' + (b2.x-nx) + ' ' + (b2.y-ny) + '"/>';
+    const rungs = Math.max(2, Math.round(len * 1.5));
+    for(let r = 1; r < rungs; r++){
+      const t = r / rungs, px = a.x + dx*t, py = a.y + dy*t;
+      art += '<path d="M' + (px+nx) + ' ' + (py+ny) + 'L' + (px-nx) + ' ' + (py-ny) + '"/>';
+    }
+    art += '</g>';
+  });
+  Object.keys(SL.DOWN).forEach(k => {
+    const a = SL.mid(+k), b2 = SL.mid(SL.DOWN[k]);
+    const mx = (a.x + b2.x) / 2, my = (a.y + b2.y) / 2;
+    const dx = b2.x - a.x, dy = b2.y - a.y, len = Math.hypot(dx, dy) || 1;
+    const bend = 0.7;
+    art += '<g class="snk">'
+         + '<path class="snk-body" d="M' + a.x + ' ' + a.y
+         +   'Q' + (mx - dy/len*bend) + ' ' + (my + dx/len*bend) + ' ' + b2.x + ' ' + b2.y + '"/>'
+         + '<circle class="snk-head" cx="' + a.x + '" cy="' + a.y + '" r="0.3"/>'
+         + '<circle class="snk-eye" cx="' + (a.x - 0.11) + '" cy="' + (a.y - 0.09) + '" r="0.055"/>'
+         + '<circle class="snk-eye" cx="' + (a.x + 0.11) + '" cy="' + (a.y - 0.09) + '" r="0.055"/>'
+         + '</g>';
+  });
+  art += '</svg>';
+  wrap.insertAdjacentHTML("beforeend", art);
+  box.appendChild(wrap);
+
+  const r = el("div","row");
+  const die = el("button","die","–");
+  const again = el("button","btn ghost","New game");
+  r.appendChild(die); r.appendChild(again);
+  box.appendChild(r);
+  const said = el("div","qnum",""); said.style.marginTop = "8px";
+  box.appendChild(said);
+  box.appendChild(el("p","note","Ladders carry you up, snakes take you back down, and you need the exact number to land on a hundred. A six rolls again."));
+  host.appendChild(box);
+
+  const st = () => SYNC.get("slad.st", null) || SL.fresh();
+
+  const render = () => {
+    const s = st();
+    grid.querySelectorAll(".tok").forEach(t => t.remove());
+    ["her","you"].forEach(side => {
+      const n = s.pos[side];
+      if(n < 1) return;                             // still off the board
+      const t = el("i","tok " + side);
+      if(s.pos.her === s.pos.you) t.classList.add("stack");
+      squares[n - 1].appendChild(t);
+    });
+    const off = ["her","you"].filter(x => s.pos[x] < 1);
+    grid.classList.toggle("waiting", off.length > 0);
+
+    const mine = canPlay(s.turn);
+    die.textContent = s.die ? "⚀⚁⚂⚃⚄⚅"[s.die-1] : "roll";
+    die.disabled = !!s.over || !mine;
+    die.classList.toggle("live", mine && !s.over);
+
+    said.textContent = s.note || (s.pos.her || s.pos.you
+      ? CFG.her + " on " + s.pos.her + "  ·  " + CFG.you + " on " + s.pos.you : "");
+
+    if(s.over){
+      status.textContent = (s.over === mySide() && !alone() ? "You win." : nameOf(s.over) + " wins.")
+        + " Home on a hundred.";
+      status.style.color = "var(--teal)"; status.classList.remove("mine");
+    } else {
+      status.style.color = "";
+      status.textContent = mine ? "Your roll." : nameOf(s.turn) + "'s turn.";
+      status.classList.toggle("mine", mine);
+    }
+  };
+
+  die.addEventListener("click", () => {
+    const s = st();
+    if(s.over || !canPlay(s.turn)) return;
+    SYNC.set("slad.st", SL.step(s, s.turn, 1 + Math.floor(Math.random() * 6)));
+  });
+  again.addEventListener("click", () => SYNC.set("slad.st", SL.fresh()));
+
+  gbind("slad.st", render);
+  render();
 }
 
 /* --- arcade: pac-man, a maze each --- */
@@ -5535,7 +5885,8 @@ function pacGame(host, gbind, gevery, gclean){
     themUI.sc.textContent = them ? them.n + (them.dead ? " — out" : "") + "  ·  " + Math.max(0, them.l) + " left" : "–";
   };
 
-  go.addEventListener("click", start);
+  const three = GO.wire(host, "pac.count", gbind, gevery, gclean, start);
+  go.addEventListener("click", three);
   ARC.swipe(mineUI.s.cv, d => { if(me) me.p.want = d; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
@@ -5668,7 +6019,8 @@ function jumpGame(host, gbind, gevery, gclean){
     themUI.sc.textContent = them ? them.n + (them.dead ? " — fell" : "") : "–";
   };
 
-  go.addEventListener("click", start);
+  const three = GO.wire(host, "jump.count", gbind, gevery, gclean, start);
+  go.addEventListener("click", three);
   ARC.drag(mineUI.s.cv, fx => { aim = fx * W; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
@@ -5954,7 +6306,8 @@ function snakeGame(host, gbind, gevery, gclean){
     turn(Math.abs(dx) > Math.abs(dy) ? [dx > 0 ? 1 : -1, 0] : [0, dy > 0 ? 1 : -1]);
   }, {passive:true});
 
-  go.addEventListener("click", start);
+  const three = GO.wire(host, "snake.count", gbind, gevery, gclean, start);
+  go.addEventListener("click", three);
 
   gbind("snake.best.her", () => paintBest());
   gbind("snake.best.you", () => paintBest());
