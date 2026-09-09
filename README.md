@@ -179,10 +179,15 @@ the board, and both the tokens and the drawing use it.
 
 The snakes and the ladders are drawn as one SVG over the grid rather than
 placed square by square. A ladder is two rails offset either side of the line
-between its feet, with rungs at even intervals along it; a snake is a curve
-bowed out from the straight line, with a head and two eyes at the top of it.
-Both are drawn in a 10×10 space, so they land on the squares whatever size the
-board is on the screen.
+between its feet, with rungs at even intervals along it. Both are drawn in a
+10×10 space, so they land on the squares whatever size the board is.
+
+**A snake is a shape, not a line.** The first attempt was a curve with a circle
+on the end of it, which is a diagram of a snake. An SVG stroke cannot taper, so
+the body is a filled outline instead: sample a curve that bends one way and
+then the other, step out either side of it by a width that thins from the neck
+to the tail, and come back along the other side. Bands across the back, a jaw
+turned to face the way it is going, eyes with pupils, and a forked tongue.
 
 Nine ladders and ten snakes, the classic set. A six rolls again, the way the
 ludo board next door does, so the two of them agree about dice. You need the
@@ -192,6 +197,50 @@ and the board says how many you needed.
 One trap worth naming: the squares are `.slsq`, not `.sq`. Chess already owns
 a **bare** `.sq` rule further down the file, and a second board using the same
 name would have quietly inherited it.
+
+### Four more, in the shape of four everybody knows
+
+Best of three, Up the girders, Hold the line and Back to back — a one-on-one
+fight, a climb up girders away from barrels, a run and gun, and a walk down a
+street with your fists.
+
+**They are not the machines they are shaped like.** Double Dragon, Donkey Kong,
+Contra and Street Fighter II — the names, the characters and the artwork —
+belong to the people who made them, and none of that is here. What is here is
+the *kind* of game, drawn from nothing in this page's own hand.
+
+Three of the four are the "one ball, two chairs" shape and share their wiring,
+which is written once in `ARC.crew`: each side posts what it is holding down,
+one side runs the world and posts the world back. Written out three times it
+would have been three chances to get the echo rules wrong.
+
+**The world goes out twenty times a second, not sixty.** It is posted from
+inside the frame loop, so without a throttle that is sixty messages a second
+down one socket for a game nobody can see moving that fast. Pong has always
+used twenty; so do these.
+
+**Best of three** is the fight. Punch is short and quick, kick is longer and
+slower, block takes a third of what a face takes. A swing lands once, at the
+moment it is fully out, rather than every frame it overlaps. Three rounds of
+forty-five seconds; whoever has more health when the clock runs out takes the
+round.
+
+**Up the girders** is the odd one out: one tower each, both live, the shape
+pac-man and doodle jump use. Five girders sloped alternately, a ladder at each
+high end, barrels released from the top that roll downhill and drop to the next
+girder when they run out of girder. Three lives. The foot of a ladder is
+sixteen pixels wide either side rather than twelve, because on a board a
+hundred and ninety across, twelve is a pixel you have to find rather than a
+place you can stand.
+
+**Hold the line** is the run and gun. Ten waves, both of you on one line,
+shooting the way you are facing. They shoot back, and walking into one costs
+you as much as being shot.
+
+**Back to back** is the street. It has depth — up and down the street as well
+as along it — and everything is drawn back to front by how far up the street it
+is, so whoever is nearest is in front. They close on whichever of you is
+nearer, which is what makes standing together worth doing.
 
 ### The cabinet, and filling the screen
 
@@ -321,7 +370,7 @@ compare `myRound` against `rps.round`. And a reload loses the local throw but
 not the flag, so a side that is locked with nothing to publish gets its pick
 handed back rather than stranding the round: nothing was revealed, so nothing
 is lost.
-Eighteen games, all shared — every move lands on both boards.
+Twenty-two games, all shared — every move lands on both boards.
 
 **Chess** is the real thing: legal move generation, castling (including through
 check), en passant, promotion with a picker, check, checkmate, stalemate and the
