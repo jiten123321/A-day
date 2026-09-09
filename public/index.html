@@ -476,12 +476,7 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 
 /* the record shop */
 .spot{margin:16px 0 6px}
-.spot-find{display:flex;gap:8px;align-items:center;margin-top:10px}
-/* the shop's name goes when there is no room for it; the mark stays */
-@media (max-width:620px){ .spot-find .wide{display:none} }
-/* one width for all three, so the boxes line up instead of stepping */
-@media (min-width:621px){ .spot-find > .btn{flex:0 0 auto;min-width:210px} }
-.spot > .spot-find:first-child{margin-top:0}
+.spot-find{display:flex;gap:8px;align-items:center}
 .spot-find input{flex:1;min-width:0;margin:0}
 .spot-note{
   font-size:.85rem;color:var(--muted);line-height:1.55;margin-top:10px;
@@ -491,7 +486,7 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .spot-note[hidden]{display:none}
 .spot-note b{color:var(--mango);font-weight:400}
 .spot-hits{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.spot-hits:empty{display:none}          /* three shelves, three lists, mostly empty */
+.spot-hits:empty{display:none}
 .spot-hit{
   display:flex;align-items:center;gap:11px;text-align:left;width:100%;
   padding:7px 10px;border-radius:12px 10px 13px 9px;
@@ -504,15 +499,11 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .spot-words b{font-weight:600;font-size:.94rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spot-words i{font-style:normal;font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spot-hit:hover .spot-words i{color:#3A4A6B}
-.spot-slip{background:rgba(207,62,87,.07);border-color:rgba(207,62,87,.25)}
-.spot-slip b{color:var(--rose)}
 .spot-tube{
   position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#12203F;
   max-height:min(330px,44vh);margin:0 auto      /* a song does not need the whole card */
 }
 .spot-tube[hidden]{display:none}
-.spot-cloud[hidden]{display:none}
-.spot-cloud iframe{width:100%;height:166px;border:0;display:block;border-radius:12px}
 .spot-tube iframe{width:100%;height:100%;border:0;display:block}
 .spot-now > div[hidden]{display:none}
 .spot-now{margin-top:14px}
@@ -1622,15 +1613,13 @@ const MARKS = [
   [/hang up|^decline$/i,                       "hang"],
   [/mute/i,                                    "mic"],
   [/^camera/i,                                 "cam"],
-  [/^sound\b/i,                                "sound"],   // and not "Search SoundCloud"
+  [/^sound\b/i,                                "sound"],
   [/^send$/i,                                  "send"],
 
   /* the record shop */
   [/^search\b/i,                               "find"],
-  [/^sign in/i,                                "door"],
-  [/^pause/i,                                  "pause"],
   [/^take it off$/i,                           "eject"],
-  [/^put it on$|^both press play$/i,           "play"],
+  [/^put it on$/i,                             "play"],
 
   /* whatever is left, by what it does */
   [/^copy/i,                                   "copy"],
@@ -3202,167 +3191,17 @@ const TUNE = {
 };
 
 /* =======================================================================
-   SOUNDCLOUD, ON THE SAME CLOCK. The third way to put a song on, and the
-   other one that hands a whole track to a browser nobody has signed in.
-   Its widget has a real API — play, pause and seekTo — which is the only
-   reason it can join the other two here; an embed you cannot drive is two
-   people pressing play and hoping.
+   THE RECORD SHOP. Searching needs a key, and a key must never reach a
+   browser, so that part goes through the Worker. Playing does not come
+   through us at all — the page embeds YouTube's own player, which means a
+   pasted link works with no key set up anywhere.
+
+   It was three shops once: Spotify and SoundCloud sat here too. Spotify
+   hands a browser thirty seconds unless Premium is signed in on that side,
+   which is not a song; SoundCloud plays in full but its catalogue is thin
+   where it matters and its keys are not reliably granted. One shop that
+   works every time beats three you have to choose between.
    ======================================================================= */
-const CLOUD = {
-  ready:false, waiting:[],
-
-  /* Their links come in several shapes and the widget wants the whole URL,
-     not an id, so this cleans rather than extracts. */
-  url(v){
-    const t = String(v || "").trim();
-    if(!/^https?:\/\//i.test(t)) return "";
-    let u;
-    try { u = new URL(t); } catch(_){ return ""; }
-    const host = u.hostname.replace(/^www\./, "").toLowerCase();
-    const mine = ["soundcloud.com", "m.soundcloud.com", "on.soundcloud.com", "snd.sc"];
-    if(mine.indexOf(host) === -1) return "";
-    if(u.pathname.length < 2) return "";
-    return "https://" + host + u.pathname;      // the tracking tail is nobody's business
-  },
-
-  load(onFail){
-    if(window.SC && window.SC.Widget){ CLOUD.ready = true; CLOUD.flush(); return; }
-    if(!document.getElementById("scapi")){
-      const t = el("script"); t.id = "scapi"; t.src = "https://w.soundcloud.com/player/api.js";
-      t.onload = () => { CLOUD.ready = true; CLOUD.flush(); };
-      t.onerror = () => { if(onFail) onFail(); };
-      document.head.appendChild(t);
-    }
-  },
-  flush(){ CLOUD.waiting.splice(0).forEach(f => { try { f(); } catch(_){} }); },
-  when(fn){ CLOUD.ready ? fn() : CLOUD.waiting.push(fn); },
-
-  /* Keys under `k`: k.u, k.at, k.since, k.playing, k.by. */
-  deck(host, k, onFail){
-    let w = null, loaded = "", applying = false, pos = 0, paused = true;
-    const key = x => k + "." + x;
-    const hold = () => { applying = true; setTimeout(() => { applying = false; }, 700); };
-
-    const push = playing => {
-      if(!w || applying) return;
-      SYNC.set(key("at"), pos);
-      SYNC.set(key("since"), SYNC.now());
-      SYNC.set(key("playing"), !!playing);
-    };
-
-    const build = u => {
-      const SC = window.SC;
-      if(!SC || !SC.Widget || !document.body.contains(host)) return;
-      if(w && loaded !== u){
-        loaded = u; pos = 0;
-        try { w.load(u, { auto_play:true, show_comments:false }); } catch(_){}
-        return;
-      }
-      if(w) return;
-      loaded = u;
-      const frame = el("iframe");
-      frame.width = "100%"; frame.height = "166";
-      frame.setAttribute("frameborder", "no");
-      frame.setAttribute("scrolling", "no");
-      frame.allow = "autoplay";
-      frame.title = "SoundCloud";
-      frame.src = "https://w.soundcloud.com/player/?url=" + encodeURIComponent(u)
-                + "&auto_play=false&hide_related=true&show_comments=false&show_teaser=false";
-      host.innerHTML = "";
-      host.appendChild(frame);
-      w = SC.Widget(frame);
-      const E = SC.Widget.Events;
-      w.bind(E.READY, () => {
-        deck.sync();
-        try { w.getCurrentSound(snd => {
-          if(snd && snd.title) SYNC.set(key("name"), String(snd.title).slice(0, 80));
-        }); } catch(_){}
-      });
-      /* Its own transport is the sync control, the way the other two work. */
-      w.bind(E.PLAY_PROGRESS, e => { pos = ((e && e.currentPosition) || 0) / 1000; });
-      w.bind(E.PLAY,  () => { paused = false; push(true); });
-      w.bind(E.PAUSE, () => { paused = true;  push(false); });
-    };
-
-    const deck = {
-      on(){ return SYNC.get(key("u"), ""); },
-      put(u, name){
-        SYNC.set(key("u"), u);
-        SYNC.set(key("name"), name || "");     // the widget confirms it on READY
-        SYNC.set(key("at"), 0); SYNC.set(key("since"), SYNC.now());
-        SYNC.set(key("playing"), true);
-        SYNC.set(key("by"), ME.name || nameOf(mySide()));
-      },
-      clear(){ SYNC.set(key("u"), ""); SYNC.set(key("name"), ""); SYNC.set(key("playing"), false); },
-      drop(){ w = null; loaded = ""; pos = 0; paused = true; host.innerHTML = ""; },
-
-      paint(){
-        const u = deck.on();
-        if(!u){ if(loaded) deck.drop(); return false; }
-        CLOUD.load(onFail);
-        CLOUD.when(() => build(u));
-        return true;
-      },
-
-      sync(){
-        const u = deck.on();
-        if(!u || !w) return;
-        const playing = SYNC.get(key("playing"), false);
-        const at = SYNC.get(key("at"), 0), since = SYNC.get(key("since"), 0);
-        const target = playing && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
-        try {
-          if(Math.abs(pos - target) > 2){ hold(); w.seekTo(Math.max(0, target) * 1000); }
-          if(playing && paused){ hold(); w.play(); }
-          if(!playing && !paused){ hold(); w.pause(); }
-        } catch(_){}
-      }
-    };
-    return deck;
-  }
-};
-
-/* =======================================================================
-   THE RECORD SHOP. Searching Spotify needs the app's secret, so that part
-   goes through the Worker. Playing does not go through us at all — the page
-   embeds Spotify's own player, which means a pasted track link works with
-   no keys set up anywhere, and Spotify counts the play as Spotify's.
-
-   What each of you hears depends on your own Spotify: signed in with
-   Premium, the whole song; otherwise the thirty seconds the embed gives
-   anyone. There is no way around that from a web page and nothing here
-   pretends otherwise.
-   ======================================================================= */
-const SPOT = {
-  api:null, waiting:[],
-
-  load(){
-    if(SPOT.api || document.getElementById("spotapi")) return;
-    const s = document.createElement("script");
-    s.id = "spotapi";
-    s.src = "https://open.spotify.com/embed/iframe-api/v1";
-    s.async = true;
-    document.head.appendChild(s);
-  },
-  ready(fn){
-    SPOT.load();
-    if(SPOT.api) fn(SPOT.api); else SPOT.waiting.push(fn);
-  },
-
-  /* A track out of whatever was pasted: a link, a uri, or the bare id. */
-  id(v){
-    const t = String(v || "").trim();
-    let m = t.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?track\/([A-Za-z0-9]{22})/);
-    if(m) return m[1];
-    m = t.match(/^spotify:track:([A-Za-z0-9]{22})$/);
-    if(m) return m[1];
-    m = t.match(/^[A-Za-z0-9]{22}$/);
-    return m ? t : "";
-  }
-};
-window.onSpotifyIframeApiReady = api => {
-  SPOT.api = api;
-  SPOT.waiting.splice(0).forEach(fn => { try { fn(api); } catch(_){} });
-};
 
 /* --- 17:00 one song each --- */
 ACTS.song = b => {
@@ -3383,121 +3222,29 @@ ACTS.song = b => {
 
   const shop = el("div","spot");
 
-  /* ---- three shelves, one behaviour ----
-     Each is a box to type in, its own line of talk-back, and its own list of
-     what came back. Words search; a pasted link skips the search and puts
-     that record straight on, which is what you want when somebody has
-     already sent you the song. */
-  const shelves = [];
-  const shelf = o => {
-    const row = el("div", "spot-find" + (o.cls ? " " + o.cls : ""));
-    const box = el("input"); box.type = "text"; box.placeholder = o.hint;
-    const go = el("button","btn","Search<span class=\"wide\"> " + o.who + "</span>");
-    row.appendChild(box); row.appendChild(go);
-    const line = el("div","spot-note"); line.hidden = true;
-    const list = el("div","spot-hits");
-    shop.appendChild(row); shop.appendChild(line); shop.appendChild(list);
-
-    const say  = txt => { line.innerHTML = txt; line.hidden = !txt; };
-    const wipe = () => { list.innerHTML = ""; say(""); };
-    /* Picking anywhere clears everywhere: three lists of records nobody put
-       on is three chances to wonder what is actually playing. */
-    const take = trk => { box.value = ""; shelves.forEach(x => x.wipe()); o.pick(trk); };
-
-    const run = async () => {
-      const term = box.value.trim();
-      if(!term) return;
-      const straight = o.straight(term);
-      if(straight){ take(straight); return; }
-      /* A link this shelf does not know is not a search term. Searching for
-         it finds nothing and blames the search; saying so is the truth. */
-      if(/^https?:\/\//i.test(term)){
-        list.innerHTML = "";
-        say("That doesn't look like a " + o.who + " link.");
-        return;
-      }
-      list.innerHTML = "";
-      say("looking…");
-      let j;
-      try { j = await (await fetch(o.at + "?q=" + encodeURIComponent(term), { cache:"no-store" })).json(); }
-      catch(_){ j = { ok:false, why:"net" }; }
-
-      if(!j || j.ok !== true){
-        const why = (j && j.why) || "net";
-        say(why === "unset" ? o.unset
-          : why === "keys"  ? o.wrong
-          : why === "net"   ? "Couldn't reach the search."
-          : o.who + " wouldn't answer that search"
-            + (j.detail ? ": " + esc(String(j.detail).slice(0,120)) : "."));
-        return;
-      }
-      if(!j.tracks || !j.tracks.length){ say("Nothing came back for that."); return; }
-      say("");
-      j.tracks.forEach(trk => {
-        const hit = el("button","spot-hit");
-        if(trk.art){ const im = el("img"); im.src = trk.art; im.alt = ""; im.loading = "lazy"; hit.appendChild(im); }
-        const words = el("span","spot-words");
-        words.appendChild(el("b", null, esc(trk.name)));
-        words.appendChild(el("i", null, esc(trk.who) + (trk.part ? " · a preview only" : "")));
-        hit.appendChild(words);
-        hit.addEventListener("click", () => take(trk));
-        list.appendChild(hit);
-      });
-    };
-    go.addEventListener("click", run);
-    box.addEventListener("keydown", e => { if(e.key === "Enter") run(); });
-
-    const me = { say, wipe, run, box, go, list };
-    shelves.push(me);
-    return me;
-  };
-
-  /* The picks are declared further down, so each is reached through an arrow
-     rather than handed over here, where it does not exist yet. */
-  const spShelf = shelf({
-    hint:"search Spotify, or paste a Spotify link",
-    at:"/spotify", who:"Spotify",
-    straight: t => { const id = SPOT.id(t); return id ? { id } : null; },
-    pick: trk => putOn(trk),
-    unset:"Searching Spotify needs an app key on the Worker — <b>SPOTIFY_CLIENT_ID</b> and <b>SPOTIFY_CLIENT_SECRET</b>, the README has the steps. A pasted Spotify link works without it.",
-    wrong:"Spotify turned the app key down. Check SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET on the Worker."
-  });
-
-  const ytShelf = shelf({
-    cls:"yt", hint:"search YouTube Music, or paste a link",
-    at:"/youtube", who:"YouTube",
-    straight: t => { const id = TUNE.id(t); return id ? { id } : null; },
-    pick: trk => putTube(trk.id, trk.name || ""),
-    unset:"Searching YouTube needs a free Google API key on the Worker — <b>YOUTUBE_API_KEY</b>, the README has the steps. A pasted YouTube link works without it.",
-    wrong:"Google turned that key down. Check <b>YOUTUBE_API_KEY</b> on the Worker, and that the YouTube Data API is switched on for it."
-  });
-
-  const scShelf = shelf({
-    cls:"sc", hint:"search SoundCloud, or paste a link",
-    at:"/soundcloud", who:"SoundCloud",
-    straight: t => { const u = CLOUD.url(t); return u ? { url:u } : null; },
-    pick: trk => putCloud(trk.url, trk.name || ""),
-    unset:"Searching SoundCloud needs app keys on the Worker — <b>SOUNDCLOUD_CLIENT_ID</b> and <b>SOUNDCLOUD_CLIENT_SECRET</b>, the README has the steps. A pasted SoundCloud link works without it.",
-    wrong:"SoundCloud turned the app keys down. Check SOUNDCLOUD_CLIENT_ID and SOUNDCLOUD_CLIENT_SECRET on the Worker."
-  });
-  note(shop, "Spotify only hands a browser the whole song when <b>Premium</b> is signed in on that side — everyone else gets thirty seconds of it. YouTube and SoundCloud have no such catch: pick a song on either one and it plays in full, in step, for both of you.");
+  /* One box that takes both. Words search YouTube; a link it recognises
+     skips the search and goes straight on, which is what you want when
+     somebody has already sent you the song. A link it does not recognise
+     is refused by name — searching for a URL finds nothing and then looks
+     like the search is broken. */
+  const row = el("div","spot-find yt");
+  const find = el("input"); find.type = "text";
+  find.placeholder = "search YouTube Music, or paste a link";
+  const go = el("button","btn","Search");
+  row.appendChild(find); row.appendChild(go);
+  const said = el("div","spot-note"); said.hidden = true;
+  const hits = el("div","spot-hits");
+  shop.appendChild(row); shop.appendChild(said); shop.appendChild(hits);
+  note(shop, "Whatever goes on plays in full, in step, for both of you — no account, no signing in, no thirty-second sample.");
 
   const now = el("div","spot-now"); now.hidden = true;
-  const spotHost = el("div","spot-embed"); spotHost.id = "spotHost" + n;
   const tuneWrap = el("div","spot-tube");
   const tuneHost = el("div"); tuneHost.id = "tuneHost" + n;
   tuneWrap.appendChild(tuneHost);
-  const cloudWrap = el("div","spot-cloud");
-  const cloudHost = el("div"); cloudHost.id = "cloudHost" + n;
-  cloudWrap.appendChild(cloudHost);
-  now.appendChild(spotHost); now.appendChild(tuneWrap); now.appendChild(cloudWrap);
-  const slip = el("div","spot-note spot-slip"); slip.hidden = true;
-  now.appendChild(slip);
+  now.appendChild(tuneWrap);
   const bar = el("div","spot-bar");
-  const bPlay = el("button","btn","Both press play");
-  const bOff  = el("button","btn ghost","Take it off");
-  const bIn   = el("button","btn ghost","Sign in to Spotify");
-  bar.appendChild(bPlay); bar.appendChild(bOff); bar.appendChild(bIn);
+  const bOff = el("button","btn ghost","Take it off");
+  bar.appendChild(bOff);
   now.appendChild(bar);
   shop.appendChild(now);
   box.appendChild(shop);
@@ -3509,154 +3256,69 @@ ACTS.song = b => {
   b.appendChild(box);
   note(box, "Whoever talks first over the other's song loses and has to explain why they picked it.");
 
-  /* ---- the two players ---- */
-  const deck = TUNE.deck(tuneHost, "sy", () => ytShelf.say("YouTube wouldn't load here."));
-  const cloud = CLOUD.deck(cloudHost, "sc", () => scShelf.say("SoundCloud wouldn't load here."));
-  let ctrl = null, on = "", pos = 0, paused = true;
+  const say = txt => { said.innerHTML = txt; said.hidden = !txt; };
+  const deck = TUNE.deck(tuneHost, "sy", () => say("YouTube wouldn't load here."));
 
-  const build = id => {
-    if(ctrl || !id) return;
-    SPOT.ready(api => {
-      if(ctrl || !document.body.contains(spotHost)) return;
-      try {
-        api.createController(spotHost, { uri: "spotify:track:" + id, width:"100%", height:"152" }, c => {
-          ctrl = c; on = id;
-          c.addListener("playback_update", e => {
-            const dd = (e && e.data) || {};
-            pos = (dd.position || 0) / 1000;
-            paused = dd.isPaused !== false;
-          });
-        });
-      } catch(_){ tell("Spotify's player wouldn't load. A blocker or a strict network will do that."); }
-    });
-  };
-
-  const tell = txt => spShelf.say(txt);          // the Spotify shelf owns the player
-  const warn = txt => { slip.innerHTML = txt; slip.hidden = !txt; };
-
-  let settle = 0, still = 0, lastPos = -1;
-  /* One at a time: putting any of the three on takes the other two off. */
-  const only = keep => {
-    if(keep !== "sp"){
-      if(SYNC.get("sp.id", "")){ SYNC.set("sp.id", ""); SYNC.set("sp.playing", false); }
-      dropSpot();
-    }
-    if(keep !== "sy" && deck.on()) deck.clear();
-    if(keep !== "sc" && cloud.on()) cloud.clear();
-  };
-
-  const syncSp = () => {
-    if(deck.on()){ deck.sync(); return; }        // YouTube keeps its own step
-    if(cloud.on()){ cloud.sync(); return; }
-    const id = SYNC.get("sp.id", "");
+  const putOn = (id, name) => {
     if(!id) return;
-    if(!ctrl){ build(id); return; }
-    if(on !== id){
-      on = id; still = 0; lastPos = -1; warn("");
-      settle = SYNC.now() + 4000;
-      try { ctrl.loadUri("spotify:track:" + id); } catch(_){}
-      return;
-    }
-    const going = SYNC.get("sp.playing", false);
-    const at = SYNC.get("sp.at", 0), since = SYNC.get("sp.since", 0);
-    const want = going && since ? at + Math.max(0, (SYNC.now() - since) / 1000) : at;
-    try {
-      if(going && paused) ctrl.play();
-      if(!going && !paused) ctrl.pause();
-
-      /* Whether it MOVED since the last look is the useful question. Late but
-         moving is drift. Not moving at all is one of two things, and they need
-         opposite answers — so say which rather than dragging at something that
-         cannot go anywhere. */
-      const moved = Math.abs(pos - lastPos) > 0.15;
-      lastPos = pos;
-      still = (going && !moved) ? still + 1 : 0;
-
-      if(going && still >= 4){
-        warn(paused
-          ? "Nothing is playing on this side yet. A browser won't start sound on its own — "
-            + "press play in the player once and it will fall into step."
-          : "This side has stopped at " + Math.round(pos) + " seconds. That is Spotify's sample, "
-            + "which is all the embed gives without <b>Premium signed in on this side</b>. "
-            + "Search for it on YouTube or SoundCloud below and it plays in full for both of you.");
-        return;
-      }
-      if(moved && slip.innerHTML) warn("");
-
-      if(SYNC.now() > settle && Math.abs(pos - want) > 3){
-        const to = Math.max(0, want + 0.4);
-        ctrl.seek(to);
-        settle = SYNC.now() + 6000;
-        lastPos = to;                            // our own nudge is not movement
-      }
-    } catch(_){}
-  };
-
-  const dropSpot = () => {
-    if(ctrl){ try { ctrl.pause(); } catch(_){} }
-    on = ""; still = 0; lastPos = -1; warn("");
-  };
-
-  const putOn = trk => {
-    only("sp");
-    SYNC.set("sp.id", trk.id);
-    SYNC.set("sp.name", trk.name || ""); SYNC.set("sp.who", trk.who || "");
-    SYNC.set("sp.by", ME.name || nameOf(mySide()));
-    SYNC.set("sp.at", 0); SYNC.set("sp.since", SYNC.now()); SYNC.set("sp.playing", true);
-    tell(""); warn("");
-  };
-
-  const putTube = (id, name) => {
-    if(!id) return;
-    tell(""); warn("");
-    only("sy");
+    find.value = ""; hits.innerHTML = ""; say("");
     deck.put(id, name);
   };
 
-  const putCloud = (u, name) => {
-    if(!u) return;
-    tell(""); warn("");
-    only("sc");
-    cloud.put(u, name);
-  };
+  const search = async () => {
+    const term = find.value.trim();
+    if(!term) return;
+    const straight = TUNE.id(term);
+    if(straight){ putOn(straight, ""); return; }
+    hits.innerHTML = "";
+    if(/^https?:\/\//i.test(term)){ say("That doesn't look like a YouTube link."); return; }
 
-  bPlay.addEventListener("click", () => {
-    const going = SYNC.get("sp.playing", false);
-    if(going){ SYNC.set("sp.at", pos); SYNC.set("sp.playing", false); }
-    else { SYNC.set("sp.at", pos); SYNC.set("sp.since", SYNC.now()); SYNC.set("sp.playing", true); }
-    if(ctrl){ try { going ? ctrl.pause() : ctrl.play(); } catch(_){} }   // this side's gesture
-  });
-  bOff.addEventListener("click", () => {
-    SYNC.set("sp.at", 0);
-    only("");                                     // nothing kept: clear all three
-  });
-  bIn.addEventListener("click", () => {
-    window.open("https://open.spotify.com/", "_blank", "noopener");
-  });
+    say("looking…");
+    let j;
+    try { j = await (await fetch("/youtube?q=" + encodeURIComponent(term), { cache:"no-store" })).json(); }
+    catch(_){ j = { ok:false, why:"net" }; }
+
+    if(!j || j.ok !== true){
+      const why = (j && j.why) || "net";
+      say(why === "unset"
+        ? "Searching needs a free Google API key on the Worker — <b>YOUTUBE_API_KEY</b>, the README has the steps. A pasted YouTube link works without it."
+        : why === "keys"
+          ? "Google turned that key down. Check <b>YOUTUBE_API_KEY</b> on the Worker, and that the YouTube Data API is switched on for it."
+          : why === "net"
+            ? "Couldn't reach the search."
+            : "YouTube wouldn't answer that search"
+              + (j.detail ? ": " + esc(String(j.detail).slice(0,120)) : "."));
+      return;
+    }
+    if(!j.tracks || !j.tracks.length){ say("Nothing came back for that."); return; }
+    say("");
+    j.tracks.forEach(trk => {
+      const hit = el("button","spot-hit");
+      if(trk.art){ const im = el("img"); im.src = trk.art; im.alt = ""; im.loading = "lazy"; hit.appendChild(im); }
+      const words = el("span","spot-words");
+      words.appendChild(el("b", null, esc(trk.name)));
+      words.appendChild(el("i", null, esc(trk.who)));
+      hit.appendChild(words);
+      hit.addEventListener("click", () => putOn(trk.id, trk.name || ""));
+      hits.appendChild(hit);
+    });
+  };
+  go.addEventListener("click", search);
+  find.addEventListener("keydown", e => { if(e.key === "Enter") search(); });
+
+  /* No play and pause of our own: the player's own transport is the sync
+     control, so there is never a second set of buttons to keep in
+     agreement with the first. */
+  bOff.addEventListener("click", () => { deck.clear(); say(""); });
 
   /* ---- what it all looks like ---- */
   const rec = box.querySelector(".record"), lab = box.querySelector("#lab");
   const render = () => {
-    const spId = SYNC.get("sp.id", ""), tube = deck.on(), sc = cloud.on();
-    const nm = SYNC.get("sp.name", "");
-    const going = tube ? SYNC.get("sy.playing", false)
-                : sc   ? SYNC.get("sc.playing", false)
-                       : SYNC.get("sp.playing", false);
-
-    now.hidden = !(spId || tube || sc);
-    spotHost.hidden = !spId;
-    tuneWrap.hidden = !tube;
-    cloudWrap.hidden = !sc;
-    bPlay.hidden = !spId;                         // the other two have their own
-    bIn.hidden = !spId;
-    if(spId) build(spId);
-    const onTube = deck.paint(), onCloud = cloud.paint();
-
-    bPlay.textContent = SYNC.get("sp.playing", false) ? "Pause it for both" : "Both press play";
-    lab.textContent = (spId ? (nm || "from Spotify")
-                    : onTube ? (deck.title() || "from YouTube")
-                    : onCloud ? (SYNC.get("sc.name", "") || "from SoundCloud")
-                    : "put a song on").slice(0, 40);
+    const on = deck.on();
+    now.hidden = !on;
+    const going = on && SYNC.get("sy.playing", false);
+    deck.paint();
+    lab.textContent = (on ? (deck.title() || "from YouTube") : "put a song on").slice(0, 40);
     const endsAt = SYNC.get("song.endsAt", 0);
     const running = endsAt && SYNC.now() < endsAt;
     rec.classList.toggle("spin", !!(running || going));
@@ -3665,12 +3327,10 @@ ACTS.song = b => {
 
   play.addEventListener("click", () => SYNC.set("song.endsAt", SYNC.now() + 180000));
 
-  ["song.endsAt","sp.id","sp.name","sp.who","sp.playing","sp.by",
-   "sy.v","sy.name","sy.playing","sy.by","sc.u","sc.name","sc.playing","sc.by"]
-    .forEach(k => bind(k, render));
-  every(1000, syncSp);
+  ["song.endsAt","sy.v","sy.name","sy.playing","sy.by"].forEach(k => bind(k, render));
+  every(1000, () => deck.sync());
   every(2000, render);                            // the YouTube title arrives late
-  onClose(() => { ctrl = null; deck.drop(); cloud.drop(); });
+  onClose(() => deck.drop());
   sharedClock(t, "song.endsAt", { idle:"3:00", done:"now you can talk" }, render);
   render();
 };

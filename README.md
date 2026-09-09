@@ -562,102 +562,69 @@ whatever `/ice` returns reaches the connection with its credentials intact.
 
 ## One song each
 
-The 17:00 hour is a record shop. Type a song into any of the three boxes,
-press one of the results, and it goes on for both of you at once — the same
-clock trick as the video, so whoever presses pause pauses it on both sides and
-a side that arrives late is dragged to where the song already is.
+The 17:00 hour is a record shop. Type a song, press one of the results, and it
+goes on for both of you at once — the same clock trick as the video, so
+whoever presses pause pauses it on both sides and a side that arrives late is
+dragged to where the song already is.
+
+**One box that takes both.** Words search YouTube Music. A link it recognises
+skips the search and goes straight on, which is what you want when somebody
+has already sent you the song. It takes a watch link, a share link, a shorts
+link, a **music.youtube.com** link, or the bare eleven characters. A link it
+does *not* recognise is refused by name — searching for a URL finds nothing
+and then looks like the search is the thing that is broken.
 
 **Searching and playing are two different things, and only one of them
 touches this Worker.**
 
-Searching needs each service's secret, which must never reach a browser. Three
-endpoints do the same job for the three shelves — `GET /spotify?q=…`, `GET
-/youtube?q=…`, `GET /soundcloud?q=…`. Each asks its service for a token or
-carries a key, caches what can be cached per isolate until a minute before it
-lapses, and hands back only the handful of fields the page draws. `tidyTracks`,
-`tidyTube` and `tidyCloud` throw away everything else, because the rest is
-somebody's data for no reason.
+Searching needs a key, and a key in a page is a key anybody can spend, so it
+stays here. `GET /youtube?q=…` asks the YouTube Data API and hands back only
+the four fields the page draws; `tidyTube` throws away everything else,
+because the rest is somebody's data for no reason. It also unpicks their
+HTML-escaped titles, since the page escapes again on the way to the screen
+and an apostrophe would otherwise arrive as `&#39;` and stay that way.
 
-Playing does not come through here at all. The page embeds each service's own
-player, so **a pasted track link works with no keys set up anywhere**, and
-each play is counted by whoever it belongs to.
+Playing does not come through here at all. The page embeds YouTube's own
+player, so **a pasted link works with no key set up anywhere**, and the play
+is counted by YouTube.
 
-### Three sources, one turntable
-
-Spotify, YouTube Music and SoundCloud sit one under the other, each with its
-own box, its own line of talk-back and its own list of results. Only one plays
-at a time — putting a record on anywhere takes the other two off, and clears
-every list, because three lists of records nobody put on is three chances to
-wonder what is actually playing. The two dedication boxes that used to say who
-was playing what are gone; the thing itself plays now, so naming it was doing
-no work.
-
-**Words search; a link goes straight on.** Every box takes both. Type and it
-searches that service; paste a link it recognises and it skips the search
-entirely, which is what you want when somebody has already sent you the song.
-Paste a link it does *not* recognise — a Spotify link into the SoundCloud box
-— and it says so, rather than searching for a URL, finding nothing, and
-leaving you to blame the search.
+The deck itself is the one the watch party uses. `TUNE` holds it once and is
+pointed at whichever room keys the caller names — `yt.*` for the film, `sy.*`
+for the song — so two decks never see each other and there is one copy of the
+clock trick rather than two that can drift apart. The player's own transport
+is the sync control: there is no second set of buttons here to keep in
+agreement with the first.
 
 A name picked out of a search is known before the player has loaded anything,
 so the sleeve on the record reads right immediately instead of catching up a
 second later. A pasted link has no such name and waits for the player to say.
 
-YouTube here is the same deck the watch party uses. `TUNE` holds it once and
-is pointed at whichever room keys the caller names — `yt.*` for the film,
-`sy.*` for the song — so two decks never see each other and there is one copy
-of the clock trick rather than two that can drift apart. It takes a watch
-link, a share link, a shorts link, a **music.youtube.com** link, or the bare
-eleven characters.
+### It was three shops once
 
-SoundCloud is the third, and the second one that hands a whole track to a
-browser nobody has signed in. Its widget has a real API — `play`, `pause`,
-`seekTo` and a progress event — which is the only reason it can join the
-others: an embed you cannot drive is two people pressing play and hoping.
-`CLOUD.url` cleans a pasted link down to the track and drops the tracking
-tail, and accepts the `m.`, `on.` and `snd.sc` shapes as well as the plain
-one. Its catalogue is strong on remixes, covers, live sets and anything
-independent, and thin on major-label pop, so it complements YouTube rather
-than replacing it.
+Spotify and SoundCloud sat here too, and both are gone.
 
-**Which matters more than it sounds.** Spotify's embed only gives a browser
-the whole song when Premium is signed in on that side. YouTube and SoundCloud
-have no such catch, so for anyone without Premium those two shelves are not
-the fallback — they are the way it works, and both of them can now be searched
-from the page rather than hunted for in another tab.
+Spotify's embed hands a browser thirty seconds unless Premium is signed in on
+*that* side. There is no way around it from a web page — full playback needs
+Spotify's own SDK and a Premium account per listener — so what it mostly did
+was start a song and then stop in the middle of it, which is worse than not
+offering the song at all.
 
-**The ones deliberately left out.** Apple Music and Deezer embed thirty-second
-previews without a paid account, which is the same wall in different paint.
-Bandcamp plays in full but its embed has no control API, so it could never be
-kept in step. Amazon Music has no embeddable player at all.
+SoundCloud plays in full and its widget can be driven, so it was a fair
+second. But its catalogue is thin exactly where this hour is not — major-label
+pop, film songs — and its app registration has been shut for long stretches,
+so the search half might never have been switched on at all.
 
-### The honest limit
-
-What each of you hears depends on your own Spotify. Signed in with Premium in
-that browser, the whole song. Otherwise, the thirty seconds the embed gives
-anyone. There is no way around that from a web page — full playback needs
-Spotify's own SDK and a Premium account per listener — and the note under the
-record says so rather than pretending.
+One shop that works every time beats three you have to choose between, and
+choosing was itself work: three boxes, three lists, and a rule about which one
+wins. Apple Music and Deezer were never candidates — thirty-second previews,
+the same wall in different paint. Bandcamp plays in full but its embed has no
+control API, so it could never be kept in step. Amazon Music has no embeddable
+player at all.
 
 ### Turning search on
 
-Each shelf is independent. Set none of these and all three still work by
-pasted link; set one and that shelf gains a search box that means it. Unset,
-a shelf names the secret it wants and reminds you that pasting still works,
-rather than failing quietly.
-
-Every key below goes in the same place: **Workers & Pages → a-day → Settings
-→ Variables and Secrets → Add**, type *Secret*. Then deploy.
-
-**Spotify** — `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`
-
-1. [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-   → **Create app**. Any name; the redirect URI is not used by this and can be
-   anything valid.
-2. Open the app → **Settings** → copy the **Client ID**, then **View client
-   secret**.
-
-**YouTube Music** — `YOUTUBE_API_KEY`
+Without a key everything still works by pasted link, and the box says which
+key is missing rather than failing quietly. With one, it searches.
 
 1. [console.cloud.google.com](https://console.cloud.google.com) → a project,
    new or existing.
@@ -665,6 +632,9 @@ Every key below goes in the same place: **Workers & Pages → a-day → Settings
 3. **APIs & Services → Credentials → Create credentials → API key**. Restrict
    it to the YouTube Data API while you are there; it is read-only either way,
    but a key that can only do one thing is a key worth less if it leaks.
+4. Add it as a secret on the Worker, exactly as with TURN: **Workers & Pages →
+   a-day → Settings → Variables and Secrets → Add**, type *Secret*, named
+   `YOUTUBE_API_KEY`. Deploy.
 
 Free, and the daily allowance is 10,000 units. A search costs 100, so that is
 100 searches a day — for two people, an allowance you will not notice.
@@ -676,64 +646,30 @@ refuses to load in the player. If the Music category comes back with nothing
 the search runs again without it, because a great deal of music is filed under
 nothing in particular.
 
-**SoundCloud** — `SOUNDCLOUD_CLIENT_ID`, `SOUNDCLOUD_CLIENT_SECRET`
+To check the key landed, open `https://<your-worker>/youtube?q=test`.
+`{"ok":false,"why":"unset"}` means the Worker cannot see it — the secret is
+missing, or it was added but not deployed. `{"ok":false,"why":"keys"}` means
+Google refused it, usually because the YouTube Data API is not enabled on that
+project. A list of tracks means it is working.
 
-1. [soundcloud.com/you/apps](https://soundcloud.com/you/apps) → register an
-   app, or use their API request form if registration is closed to you.
-2. Copy the **Client ID** and **Client Secret**.
+### Keeping it in step
 
-Be warned: SoundCloud has kept new app registration shut for long stretches
-and there is no promise you will be granted keys. That is why the SoundCloud
-shelf was built to work by pasted link first and gain search second — if the
-keys never come, nothing here stops working. Search results carry the track's
-own link rather than an id, because the widget wants a page, not a number, and
-a track their API marks **blocked** is dropped before you can pick it and be
-refused. One marked preview-only is kept, and says so.
+The correction is deliberately lazy, because eager correction *is* the
+stutter: a seek takes a moment to bite, the player keeps reporting where it
+used to be, and the next tick seeks again. It nudges only past a second and a
+half of drift, and holds off for a beat afterwards so its own seek is not
+mistaken for the player drifting again.
 
-### Keeping it in step without the sawtooth
-
-Correcting once a second was the lag rather than the cure. A seek takes a
-moment to bite, the player keeps reporting where it used to be, so the next
-tick seeks again — a stutter you can hear. It now nudges at most once every
-six seconds, only past three seconds of drift, with a beat of lead for the
-seek itself, and it leaves a freshly loaded track alone for four seconds.
-
-Falling behind is not one problem, and the two need opposite answers, so the
-useful question is whether the player **moved** since the last look.
-
-- Moving but late — drift. Nudge it and say nothing.
-- Not moving, and paused — the browser is refusing to start. Nothing here
-  can fix that: a browser will not begin sound on its own, so it asks for one
-  press of play on that side.
-- Not moving, and playing — it has run out. That is Spotify's thirty-second
-  sample, all it gives a browser that is not signed in, and no amount of
-  dragging will carry it further.
-
-Our own nudge is not the player moving. Counting it as movement reset the
-stall count every time a correction landed, which kept a dead player looking
-merely late — so a seek sets the last-seen position to where it was aimed.
-
-**Not verified here.** `api.spotify.com`, `accounts.spotify.com`,
-`open.spotify.com`, `googleapis.com`, `youtube.com`, `api.soundcloud.com` and
-`soundcloud.com` are all unreachable from the sandbox this was built in, so no
-token call and no real embed has ever run from here — though Spotify search
-has since been confirmed working against the live Worker, and the page has
-been checked against a real eight-track response.
-
-What *is* tested, and against what: the three endpoints' shapes and their
-unconfigured messages, live, against the running Worker. The tidying of all
-three services' answers — `tidyTracks`, `tidyTube`, `tidyCloud` — against
-copies of what each really sends, including YouTube's HTML-escaped titles,
-its non-video results, SoundCloud's blocked and preview-only tracks, and a
-missing thumbnail on each. And the whole of the page's behaviour — searching,
-drawing results, picking one, a pasted link skipping the search, a foreign
-link being refused, one source taking the others off, and the full sync of
-play, pause and a late arrival being seeked — against stand-in players, from
-two browsers at once.
-
-The gap is the same one as before, and worth naming plainly: the calls to
-Google and SoundCloud themselves have not run. If a key is right and the
-answer still does not come, the shelf will say what the service said.
+**Not verified here.** `googleapis.com` and `youtube.com` are both unreachable
+from the sandbox this was built in, so the call to Google has never run from
+here. What is tested is everything either side of it: the endpoint's shape and
+its unconfigured message against the running Worker; `tidyTube` against a copy
+of what YouTube really sends, including escaped titles, non-video results and
+a missing thumbnail; and the whole of the page — searching, drawing results,
+picking one, a pasted link skipping the search, a foreign link being refused,
+the clock, and a late arrival being seeked — from two browsers at once against
+a stand-in player. If the key is right and the answer still does not come, the
+box will say what Google said.
 
 ## Rooms
 
