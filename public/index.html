@@ -397,6 +397,118 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 }
 .screen:hover .maxbtn, .maxbtn:focus-visible, .screen.on .maxbtn{opacity:1}
 .maxbtn:hover{background:rgba(18,32,63,.8)}
+/* the four newest cabinets */
+.fight-bars{display:flex;align-items:center;gap:10px;margin:6px 0 2px}
+.fight-side{flex:1 1 0;min-width:0}
+.fight-side label{display:block;font-size:.72rem;letter-spacing:.05em;color:var(--muted)}
+.fight-bar{
+  height:12px;border-radius:7px;border:1.5px solid var(--line);
+  background:rgba(36,51,80,.08);overflow:hidden
+}
+.fight-bar i{display:block;height:100%;width:100%;transition:width .12s}
+.fight-bar.her i{background:var(--marigold)}
+.fight-bar.you i{background:var(--teal)}
+.fight-side:last-of-type .fight-bar i{margin-left:auto}
+.fight-clock{
+  font-family:var(--serif);font-size:1.5rem;color:var(--mango);
+  min-width:2ch;text-align:center;flex:0 0 auto
+}
+.arcscreen.fight, .arcscreen.gun, .arcscreen.brawl{width:100%;max-width:520px}
+.arcstage.wide .arcscreen.fight,
+.arcstage.wide .arcscreen.gun,
+.arcstage.wide .arcscreen.brawl{max-width:min(150vh,900px)}
+
+/* snakes and ladders */
+.slad{position:relative;width:min(430px,100%);margin:10px auto 4px}
+.slad-grid{
+  display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);
+  aspect-ratio:1;border:2px solid var(--line);border-radius:10px;overflow:hidden;
+  background:#F6ECD6
+}
+/* not .sq — chess already owns that one, bare, further down the file */
+.slsq{position:relative;display:block;background:#F6ECD6}
+.slsq.dark{background:#EADFC2}
+.slsq.foot{background:#DCEDE4}
+.slsq.head{background:#F6DCE0}
+.slsq.last{background:var(--marigold)}
+.slsq b{
+  position:absolute;left:3px;top:2px;font-weight:400;
+  font-size:.55rem;color:var(--muted);font-style:normal;line-height:1
+}
+.slsq.last b{color:#12203F}
+.slad-art{
+  position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible
+}
+.slad-art .lad path{
+  fill:none;stroke:#B07A3A;stroke-width:.075;stroke-linecap:round;opacity:.92
+}
+.slad-art .snk-body{fill:#2E8B62;stroke:#14513C;stroke-width:.035;stroke-linejoin:round}
+.slad-art .snk-band{fill:none;stroke:#1B6B4B;stroke-width:.045;opacity:.55;stroke-linecap:round}
+.slad-art .snk-jaw{fill:#2E8B62;stroke:#14513C;stroke-width:.035}
+.slad-art .snk-tongue{fill:none;stroke:#CF3E57;stroke-width:.04;stroke-linecap:round}
+.slad-art .snk-eye{fill:#F7E7A8;stroke:#14513C;stroke-width:.022}
+.slad-art .snk-pupil{fill:#14513C}
+.slad .tok{
+  position:absolute;left:50%;top:50%;width:56%;height:56%;
+  transform:translate(-50%,-50%);border-radius:50%;
+  border:1.6px solid var(--ink);z-index:2;
+  box-shadow:0 0 0 2px #FAF4E4                   /* off the snake it is sitting on */
+}
+.slad .tok.her{background:var(--marigold)}
+.slad .tok.you{background:var(--teal)}
+.slad .tok.her.stack{transform:translate(-78%,-50%)}
+.slad .tok.you.stack{transform:translate(-22%,-50%)}
+
+/* The arcade cabinet, and the same button giving it the whole screen.
+   The panel inside is rebuilt every time you change game, so the button
+   hangs off the wrapper or it would be thrown away with it. */
+.arcstage{position:relative}
+.arcpanel{position:relative;min-width:0}    /* the countdown hangs off this */
+/* the cabinet sits on cream, not on a film, so the glass button would be
+   a smudge — it is drawn the way the rest of the page is */
+.arcmax{
+  background:var(--night);border:1.5px solid var(--line);color:var(--paper);
+  top:2px;right:2px;opacity:.75;font-size:1.05rem
+}
+.arcstage:hover .arcmax, .arcmax:hover, .arcmax:focus-visible{opacity:1;background:var(--indigo)}
+.arcstage.wide{
+  position:fixed;inset:0;z-index:200;margin:0;padding:18px 14px 14px;
+  background:var(--night);overflow:auto;display:flex;
+  align-items:flex-start;justify-content:center
+}
+.arcstage.wide .arcpanel{margin:0 auto!important;width:min(1100px,100%)}
+.arcstage.wide .arcmax{opacity:1;position:fixed;top:12px;right:12px}
+/* A bigger cabinet is only bigger if what is in it grows too, so every
+   board that caps its own width is let out here. Sized off the viewport
+   height, because that is what runs out first on a wide screen. */
+.arcstage.wide .card{max-width:none}
+.arcstage.wide .arcwrap{max-width:min(38vh,420px)}
+.arcstage.wide .pitch{max-width:min(62vh,560px)}
+.arcstage.wide .slad{width:min(66vh,620px)}
+.arcstage.wide .chess, .arcstage.wide .ludo{max-width:min(66vh,620px);margin:16px auto}
+.arcstage.wide .c4{max-width:min(76vh,700px);margin:18px auto}
+.arcstage.wide .moles{gap:12px}
+
+/* three, two, one — over the cabinet, on the shared clock */
+.three{
+  position:absolute;inset:0;z-index:6;display:flex;
+  align-items:center;justify-content:center;
+  background:rgba(250,244,228,.62);border-radius:16px;pointer-events:none
+}
+.three[hidden]{display:none}
+.three-n{
+  font-family:var(--serif);font-size:clamp(4.5rem,20vw,9rem);line-height:1;
+  color:var(--mango);text-shadow:0 3px 0 rgba(36,51,80,.12)
+}
+.three-n.beat{animation:threeBeat .85s ease-out}
+@keyframes threeBeat{
+  0%{transform:scale(.55);opacity:0}
+  18%{transform:scale(1.12);opacity:1}
+  40%{transform:scale(1)}
+  100%{transform:scale(1);opacity:.85}
+}
+@media (prefers-reduced-motion: reduce){ .three-n.beat{animation:none} }
+
 /* the whole room goes up, so the chat in the rail comes with the picture */
 .room.cinema{
   position:fixed;inset:0;z-index:200;margin:0;
@@ -3725,12 +3837,21 @@ ACTS.letter = b => {
 
 /* --- 11:00 the arcade --- */
 ACTS.arcade = b => {
-  lede(b, "Twelve games, all shared. Every move lands on both boards.");
+  lede(b, "Twenty-two games, all shared. Every move lands on both boards.");
   const hub = el("div","tiles");
-  const panel = el("div"); panel.style.marginTop = "10px";
+  /* The cabinet, and the button that gives it the whole screen. It wraps
+     the panel rather than living inside it, because the panel is rebuilt
+     from nothing every time you change game and would take the button with
+     it. Filling the screen is one person's choice about their own eyes, so
+     it is not shared. */
+  const cab = el("div","arcstage");
+  const max = el("button","maxbtn arcmax", "\u2921");
+  const panel = el("div","arcpanel"); panel.style.marginTop = "10px";
+  cab.appendChild(max); cab.appendChild(panel);
   const GAMES = [
     {n:"Chess", d:"Real rules. Castling, en passant, checkmate.", f:chessGame},
     {n:"Ludo", d:"Four tokens each. Sixes to come out, exact number to get home.", f:ludoGame},
+    {n:"Snakes and ladders", d:"A hundred squares. Ladders up, snakes down, exact number to finish.", f:sladGame},
     {n:"Snake", d:"One board each, both live. Longest wins.", f:snakeGame},
     {n:"Hangman", d:"One of you sets a word, the other has six wrong guesses.", f:hangmanGame},
     {n:"Tic tac toe", d:"Three in a row. Loser starts the next one.", f:tttGame},
@@ -3745,7 +3866,11 @@ ACTS.arcade = b => {
     {n:"Breakout", d:"A bat each on the same floor. Clear the wall together.", f:brickGame},
     {n:"Whack-a-mole", d:"Nine holes, two hands. Thirty seconds.", f:moleGame},
     {n:"Pac-man", d:"A maze each, both live. Pellets, ghosts, three lives.", f:pacGame},
-    {n:"Doodle jump", d:"A tower each, both live. Highest wins.", f:jumpGame}
+    {n:"Doodle jump", d:"A tower each, both live. Highest wins.", f:jumpGame},
+    {n:"Best of three", d:"One on one. Punch, kick, block. Three rounds.", f:fightGame},
+    {n:"Up the girders", d:"A tower each. Climb the ladders, dodge the barrels.", f:kongGame},
+    {n:"Hold the line", d:"Both of you, one line. Ten waves coming.", f:gunGame},
+    {n:"Back to back", d:"Walk down the street together. Six waves of trouble.", f:brawlGame}
   ];
 
   /* the open game owns its own subscriptions, dropped when you switch */
@@ -3764,15 +3889,49 @@ ACTS.arcade = b => {
     hub.appendChild(t);
     return t;
   });
-  b.appendChild(hub); b.appendChild(panel);
+  b.appendChild(hub); b.appendChild(cab);
+
+  const big = () => document.fullscreenElement === cab || cab.classList.contains("wide");
+  const grow = () => {
+    cab.classList.add("wide");                 // in place at once, whatever fullscreen does
+    if(cab.requestFullscreen) cab.requestFullscreen().catch(() => {});
+    paintMax();
+  };
+  const shrink = () => {
+    cab.classList.remove("wide");
+    if(document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    paintMax();
+  };
+  const paintMax = () => {
+    max.innerHTML = big() ? "\u2922" : "\u2921";
+    const t = big() ? "Back to the page" : "Fill the screen";
+    max.title = t; max.setAttribute("aria-label", t);
+    max.hidden = SYNC.get("arcade.game", null) === null;   // nothing to fill it with
+  };
+  max.addEventListener("click", () => big() ? shrink() : grow());
+  /* Esc leaves the big cabinet rather than the whole arcade. Named so it
+     cannot shadow the global that escapes HTML. */
+  const escKey = e => { if(e.key === "Escape" && big()){ e.stopPropagation(); shrink(); } };
+  document.addEventListener("keydown", escKey, true);
+  const fsOut = () => { if(!document.fullscreenElement) cab.classList.remove("wide"); paintMax(); };
+  document.addEventListener("fullscreenchange", fsOut);
+  const onCall = () => { if(big()) shrink(); };
+  window.addEventListener("call:incoming", onCall);
+  onClose(() => {
+    document.removeEventListener("keydown", escKey, true);
+    document.removeEventListener("fullscreenchange", fsOut);
+    window.removeEventListener("call:incoming", onCall);
+    if(cab.classList.contains("wide")) shrink();
+  });
 
   const render = () => {
     gclear();
     panel.innerHTML = "";
     const gi = SYNC.get("arcade.game", null);
     tiles.forEach((t,i) => t.classList.toggle("on", i === gi));
-    if(gi === null || !GAMES[gi]) return;
+    if(gi === null || !GAMES[gi]){ paintMax(); return; }
     GAMES[gi].f(panel, gbind, gevery, gclean);
+    paintMax();
   };
   bind("arcade.game", render);
   render();
@@ -4804,6 +4963,32 @@ const ARC = {
     };
   },
 
+
+  /* Three of the new cabinets are wired the same way: each side posts what
+     it is holding down, one side runs the world and posts the world back.
+     Written out three times it was three chances to get the echo rules
+     wrong, so it is written once. */
+  crew(key, gevery, gclean, onWorld){
+    const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+    const drives = ARC.own(key, gevery, gclean);
+    const mine = {};
+    const held = { her:{}, you:{} };
+    gev(key + ".in", m => { if(m && m.s && m.s !== mySide()) held[m.s] = m.k || {}; });
+    gev(key + ".w", m => { if(!drives() && m) onWorld(m); });
+    gevery(70, () => { held[mySide()] = mine; SYNC.ev(key + ".in", { s: mySide(), k: mine }); });
+    /* The world is posted from inside the frame loop, which would be sixty
+       messages a second down one socket. Twenty is smooth and is what pong
+       has always used. */
+    let last = 0;
+    return { drives, mine, held, say: w => {
+      if(!drives()) return;
+      const t = SYNC.now();
+      if(t - last < 50) return;
+      last = t;
+      SYNC.ev(key + ".w", w);
+    } };
+  },
+
   round(ctx, x, y, w, h, r){
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -4813,6 +4998,67 @@ const ARC = {
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
     ctx.fill();
+  }
+};
+
+/* =======================================================================
+   THREE, TWO, ONE. Pressing play used to start the round in the same
+   instant, which is fine alone and rude with two people — one of you is
+   already playing before the other has looked up.
+
+   Whoever presses writes the moment the round begins. Both sides count
+   down to that moment off the shared clock, so the numbers land together
+   however far apart the two of you are, and only the presser actually
+   starts it: every one of these games already knows how to tell the other
+   side, and two starts in the same instant would run that twice.
+   ======================================================================= */
+const GO = {
+  wire(host, key, gbind, gevery, gclean, run){
+    const veil = el("div","three"); veil.hidden = true;
+    const num = el("div","three-n","3");
+    veil.appendChild(num);
+    host.appendChild(veil);
+
+    let fired = 0, shown = "";
+    const at = () => SYNC.get(key, null);
+
+    const paint = () => {
+      const c = at();
+      const left = c && c.at ? c.at - SYNC.now() : 0;
+      if(left <= 0){ veil.hidden = true; shown = ""; return; }
+      const n = String(Math.ceil(left / 1000));
+      veil.hidden = false;
+      if(n !== shown){                        // a beat per number, not per frame
+        shown = n;
+        num.textContent = n;
+        num.classList.remove("beat"); void num.offsetWidth; num.classList.add("beat");
+      }
+    };
+
+    gevery(70, () => {
+      const c = at();
+      paint();
+      if(c && c.at && c.at !== fired && SYNC.now() >= c.at){
+        fired = c.at;
+        /* Only the presser touches the key. Clearing it from both sides is a
+           race: whichever clock ran a hair ahead wiped it first, and the
+           side that was supposed to start the round found nothing there and
+           started nothing. The other side needs no clearing — a moment that
+           has passed paints as no countdown at all. */
+        if(c.by === SYNC.id){ SYNC.set(key, null); run(); }
+      }
+    });
+    gbind(key, paint);
+    gclean(() => { if(at()) SYNC.set(key, null); });
+
+    /* Pressing again during a countdown does nothing rather than restarting
+       it, which is what a second, nervous press means. A count left behind by
+       a tab that closed mid-three is not a countdown and does not block one. */
+    return () => {
+      const c = at();
+      if(c && c.at > SYNC.now()) return;
+      SYNC.set(key, { at: SYNC.now() + 3000, by: SYNC.id });
+    };
   }
 };
 
@@ -4860,11 +5106,11 @@ function pongGame(host, gbind, gevery, gclean){
   });
   gev("pong.serve", () => { if(drives() && !live && !won(score())) serve(Math.random() < .5); });
 
-  go.addEventListener("click", () => {
-    if(won(score())) return;
+  const three = GO.wire(host, "pong.count", gbind, gevery, gclean, () => {
     if(drives()){ if(!live) serve(Math.random() < .5); }
     else SYNC.ev("pong.serve", {});
   });
+  go.addEventListener("click", () => { if(!won(score())) three(); });
   zero.addEventListener("click", () => { SYNC.set("pong.score", {her:0, you:0}); live = false; });
 
   const step = dt => {
@@ -4998,7 +5244,9 @@ function brickGame(host, gbind, gevery, gclean){
   const blast = () => SYNC.ev("brick.state", { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy,
     live, l:lives, h:hits, done, w:wall.join(""), pads });
 
-  go.addEventListener("click", () => drives() ? push(mySide()) : SYNC.ev("brick.go", { s: mySide() }));
+  const three = GO.wire(host, "brick.count", gbind, gevery, gclean,
+    () => drives() ? push(mySide()) : SYNC.ev("brick.go", { s: mySide() }));
+  go.addEventListener("click", three);
   again.addEventListener("click", () => {
     if(drives()){ build(); blast(); } else SYNC.ev("brick.new", {});
   });
@@ -5244,7 +5492,9 @@ function moleGame(host, gbind, gevery, gclean){
     else { hitBy[i] = me; paint(); SYNC.ev("mole.hit", { i, s: me }); }
   }
 
-  go.addEventListener("click", () => drives() ? start() : SYNC.ev("mole.go", {}));
+  const three = GO.wire(host, "mole.count", gbind, gevery, gclean,
+    () => drives() ? start() : SYNC.ev("mole.go", {}));
+  go.addEventListener("click", three);
 
   const tick = () => {
     const ends = SYNC.get("mole.ends", 0);
@@ -5312,6 +5562,946 @@ function moleGame(host, gbind, gevery, gclean){
   ["mole.score","mole.ends","mole.best"].forEach(k => gbind(k, paint));
   gevery(90, tick);
   paint();
+}
+
+
+
+/* =======================================================================
+   FOUR MORE CABINETS, in the shape of four arcade machines everybody
+   knows. They are not those machines: the names, the characters and the
+   artwork of Double Dragon, Donkey Kong, Contra and Street Fighter II all
+   belong to the people who made them. What is here is the *kind* of game —
+   a one-on-one fight, a climb up girders away from barrels, a run and gun,
+   a walk down a street with your fists — drawn from nothing in this
+   page's own hand.
+   ======================================================================= */
+
+/* --- arcade: best of three, a fight --- */
+function fightGame(host, gbind, gevery, gclean){
+  const W = 380, H = 190, FLOOR = 162, R = 22, HP = 100, LIM = 45000;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","arrows to move and jump, Z punch, X kick, C block — or the buttons. Best of three."));
+  const bars = el("div","fight-bars");
+  const mkBar = side => {
+    const w = el("div","fight-bar" + (side === "her" ? " her" : " you"));
+    const fill = el("i"); w.appendChild(fill);
+    const nm = el("label", null, nameOf(side));
+    const holder = el("div","fight-side");
+    holder.appendChild(nm); holder.appendChild(w);
+    bars.appendChild(holder);
+    return fill;
+  };
+  const barHer = mkBar("her");
+  const clock = el("div","fight-clock","45");
+  bars.appendChild(clock);
+  const barYou = mkBar("you");
+  box.appendChild(bars);
+  const line = el("div","arc-score","");
+  box.appendChild(line);
+  const sc = ARC.screen(box, W, H, "fight");
+  const pad = {};
+  ARC.pad(box, [["◀","left"],["▶","right"],["▲","jump"],["punch","punch"],["kick","kick"],["block","block"]],
+          (k, on) => { pad[k] = on; });
+  const r = el("div","row");
+  const go = el("button","btn","Start");
+  const zero = el("button","btn ghost","Start again");
+  r.appendChild(go); r.appendChild(zero); box.appendChild(r);
+  const said = el("div","qnum"); said.style.marginTop = "10px";
+  box.appendChild(said);
+  host.appendChild(box);
+
+  const keys = ARC.keys(gclean);
+  const fresh = () => ({
+    her: { x: W*0.3, y: FLOOR, vy: 0, face: 1, st:"idle", t:0, hp:HP },
+    you: { x: W*0.7, y: FLOOR, vy: 0, face:-1, st:"idle", t:0, hp:HP },
+    ends: 0, over: "", hit: 0
+  });
+  let w = fresh();
+  const net = ARC.crew("fight", gevery, gclean, m => { w = m; });
+
+  const score = () => Object.assign({her:0, you:0}, SYNC.get("fight.score", {}));
+
+  const begin = () => {
+    if(!net.drives()) return;
+    const s = score();
+    if(s.her >= 2 || s.you >= 2) SYNC.set("fight.score", {her:0, you:0});
+    w = fresh();
+    w.ends = SYNC.now() + LIM;
+    net.say(w);
+  };
+  const three = GO.wire(host, "fight.count", gbind, gevery, gclean,
+    () => net.drives() ? begin() : SYNC.ev("fight.go", {}));
+  gclean(SYNC.onEv("fight.go", () => { if(net.drives()) begin(); }));
+  go.addEventListener("click", three);
+  zero.addEventListener("click", () => { SYNC.set("fight.score", {her:0, you:0}); w = fresh(); net.say(w); });
+
+  /* a swing lands once, at the moment it is fully out */
+  const REACH = { punch: 40, kick: 54 };
+  const DAMAGE = { punch: 7, kick: 11 };
+  const SPAN = { punch: 0.30, kick: 0.44 };
+
+  const step = dt => {
+    if(!net.drives()) return;
+    const live = w.ends && SYNC.now() < w.ends && !w.over;
+    ["her","you"].forEach(side => {
+      const f = w[side], k = net.held[side] || {};
+      const foe = w[side === "her" ? "you" : "her"];
+      f.face = foe.x < f.x ? -1 : 1;
+      if(f.t > 0){ f.t -= dt; if(f.t <= 0){ f.t = 0; f.st = "idle"; } }
+
+      if(live && (f.st === "idle" || f.st === "walk" || f.st === "block")){
+        const blocking = !!k.block;
+        f.st = blocking ? "block" : "idle";
+        if(!blocking){
+          let vx = 0;
+          if(k.left) vx -= 132; if(k.right) vx += 132;
+          if(vx){ f.x = Math.max(R, Math.min(W - R, f.x + vx*dt)); f.st = "walk"; }
+          if(k.jump && f.y >= FLOOR){ f.vy = -400; }
+          if(k.punch || k.kick){
+            const kind = k.punch ? "punch" : "kick";
+            f.st = kind; f.t = SPAN[kind]; f.swung = false;
+          }
+        }
+      }
+
+      /* gravity, always: a jump has to land even mid-swing */
+      f.vy += 1200 * dt;
+      f.y = Math.min(FLOOR, f.y + f.vy * dt);
+      if(f.y >= FLOOR){ f.y = FLOOR; f.vy = 0; }
+
+      if((f.st === "punch" || f.st === "kick") && !f.swung && f.t <= SPAN[f.st] * 0.55){
+        f.swung = true;
+        const gap = Math.abs(foe.x - f.x), sameAir = Math.abs(foe.y - f.y) < 46;
+        const facing = (foe.x - f.x) * f.face > 0;
+        if(live && facing && sameAir && gap < REACH[f.st] + R){
+          const guard = foe.st === "block";
+          foe.hp = Math.max(0, foe.hp - (guard ? Math.round(DAMAGE[f.st]/3) : DAMAGE[f.st]));
+          if(!guard){ foe.st = "hurt"; foe.t = 0.26; }
+          foe.x = Math.max(R, Math.min(W - R, foe.x + f.face * (guard ? 6 : 16)));
+          w.hit = (w.hit || 0) + 1;
+        }
+      }
+    });
+
+    if(live && (w.her.hp <= 0 || w.you.hp <= 0 || SYNC.now() >= w.ends)){
+      const win = w.her.hp === w.you.hp ? "" : (w.her.hp > w.you.hp ? "her" : "you");
+      w.over = win || "draw";
+      if(win){ const s = score(); s[win]++; SYNC.set("fight.score", s); }
+    }
+    net.say(w);
+  };
+
+  const body = (ctx, f, side) => {
+    const c = side === "her" ? "#DE8C0E" : "#17796C";
+    const dark = side === "her" ? "#8A5407" : "#0C4A41";
+    const x = f.x, y = f.y, up = f.st === "hurt" ? 4 : 0;
+    ctx.save(); ctx.translate(x, y + up);
+    ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+    /* legs */
+    const stride = f.st === "walk" ? 8 : 4;
+    ctx.beginPath(); ctx.moveTo(0,-26); ctx.lineTo(-stride, 0); ctx.moveTo(0,-26); ctx.lineTo(stride, 0); ctx.stroke();
+    /* body */
+    ctx.fillStyle = c;
+    ARC.round(ctx, -11, -52, 22, 28, 7);
+    /* arms, drawn from the shoulder OUT — short ones sat inside the torso
+       and read as a chevron printed on his shirt */
+    ctx.strokeStyle = dark; ctx.lineWidth = 5;
+    ctx.beginPath();
+    if(f.st === "block"){
+      ctx.moveTo(f.face*8,-48); ctx.lineTo(f.face*20,-56);
+      ctx.moveTo(f.face*8,-40); ctx.lineTo(f.face*20,-46);
+    } else if(f.st === "punch"){
+      ctx.moveTo(f.face*6,-46); ctx.lineTo(f.face*44,-46);
+      ctx.moveTo(-f.face*6,-46); ctx.lineTo(-f.face*18,-34);
+    } else if(f.st === "kick"){
+      ctx.moveTo(-f.face*6,-46); ctx.lineTo(-f.face*22,-34);
+      ctx.moveTo(f.face*6,-46); ctx.lineTo(f.face*14,-30);
+    } else {
+      ctx.moveTo(-f.face*8,-46); ctx.lineTo(-f.face*20,-30);
+      ctx.moveTo(f.face*8,-46); ctx.lineTo(f.face*18,-32);
+    }
+    ctx.stroke();
+    if(f.st === "kick"){                              // a leg out in front
+      ctx.beginPath(); ctx.moveTo(0,-26); ctx.lineTo(f.face*50,-30); ctx.stroke();
+    }
+    /* head */
+    ctx.fillStyle = c; ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(f.face*2, -62, 10, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#243350";
+    ctx.beginPath(); ctx.arc(f.face*6, -64, 1.8, 0, 7); ctx.fill();
+    ctx.restore();
+  };
+
+  const draw = () => {
+    const ctx = sc.ctx;
+    ctx.fillStyle = "#F3EAD3"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = "#E4D6B4"; ctx.fillRect(0, FLOOR, W, H - FLOOR);
+    ctx.strokeStyle = "rgba(36,51,80,.25)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, FLOOR); ctx.lineTo(W, FLOOR); ctx.stroke();
+    body(ctx, w.her, "her"); body(ctx, w.you, "you");
+    if(w.over){
+      ctx.fillStyle = "rgba(250,244,228,.72)"; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = "#B4700D"; ctx.font = "600 26px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(w.over === "draw" ? "Even" : nameOf(w.over) + " takes it", W/2, H/2);
+      ctx.textAlign = "left";
+    }
+  };
+
+  const paint = () => {
+    const s = score();
+    barHer.style.width = Math.max(0, w.her.hp) + "%";
+    barYou.style.width = Math.max(0, w.you.hp) + "%";
+    const leftMs = w.ends ? Math.max(0, w.ends - SYNC.now()) : LIM;
+    clock.textContent = w.over ? "–" : String(Math.ceil(leftMs / 1000));
+    line.textContent = CFG.her + " " + s.her + "  —  " + s.you + " " + CFG.you;
+    go.disabled = !!(w.ends && !w.over && SYNC.now() < w.ends);
+    go.textContent = (s.her >= 2 || s.you >= 2) ? "Again" : (w.ends ? "Next round" : "Start");
+    said.textContent = (s.her >= 2 || s.you >= 2)
+      ? (s.her > s.you ? CFG.her : CFG.you) + " wins the set."
+      : (w.over ? "Round to " + (w.over === "draw" ? "nobody" : nameOf(w.over)) + "." : "");
+  };
+
+  const feel = () => {
+    const m = net.mine;
+    m.left  = keys.has("ArrowLeft")  || keys.has("a") || !!pad.left;
+    m.right = keys.has("ArrowRight") || keys.has("d") || !!pad.right;
+    m.jump  = keys.has("ArrowUp")    || keys.has("w") || !!pad.jump;
+    m.punch = keys.has("z") || !!pad.punch;
+    m.kick  = keys.has("x") || !!pad.kick;
+    m.block = keys.has("c") || !!pad.block;
+  };
+  ARC.loop(dt => { feel(); step(dt); draw(); }, gclean);
+  gbind("fight.score", paint);
+  gevery(200, paint);
+  paint();
+}
+
+/* --- arcade: up the girders, a climb --- */
+function kongGame(host, gbind, gevery, gclean){
+  const W = 190, H = 300, ROWS = 5, GAP = 52, TOP = 34, R = 7;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","arrows or the buttons — up the ladders, over the barrels, one tower each"));
+  const pair = el("div","arcpair");
+  const mk = side => {
+    const w = el("div","arcwrap");
+    w.appendChild(el("label", null, side === mySide() ? "yours" : nameOf(side) + "'s"));
+    const s = ARC.screen(w, W, H, "kong");
+    const sc = el("div","sscore","0");
+    w.appendChild(sc);
+    pair.appendChild(w);
+    return { s, sc };
+  };
+  const mineUI = mk(mySide()), themUI = mk(theirSide());
+  box.appendChild(pair);
+  const pad = {};
+  ARC.pad(box, [["◀","left"],["▶","right"],["▲","up"],["▼","down"]], (k, on) => { pad[k] = on; });
+  const r = el("div","row");
+  const go = el("button","btn","Start");
+  r.appendChild(go); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "10px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  const keys = ARC.keys(gclean);
+  const gev = (k, fn) => gclean(SYNC.onEv(k, fn));
+
+  /* Five girders, each tilted the other way, with a ladder at the low end
+     so a barrel that reaches it can come down and meet you. */
+  const deckY = i => H - 26 - i * GAP;                    // 0 is the floor
+  const tilt  = i => (i % 2 === 0 ? -1 : 1);              // which way it slopes
+  const yOn   = i => x => deckY(i) + tilt(i) * (x / W - 0.5) * 14;
+  const LADX  = i => (tilt(i) === -1 ? W - 30 : 30);      // at the high end
+
+  const fresh = () => ({
+    x: 24, i: 0, y: yOn(0)(24), vy: 0, climb: false,
+    barrels: [], t: 0, spawn: 0, lives: 3, n: 0, up: 0, dead: false
+  });
+  let me = null, them = null, alive = false;
+
+  const start = () => { me = fresh(); alive = true; go.textContent = "Restart"; send(); };
+  const three = GO.wire(host, "kong.count", gbind, gevery, gclean, start);
+  go.addEventListener("click", three);
+
+  const send = () => {
+    if(!me) return;
+    SYNC.ev("kong.live", { s: mySide(), n: me.n, l: me.lives, dead: me.dead,
+      x: Math.round(me.x), y: Math.round(me.y), i: me.i,
+      b: me.barrels.map(b => [Math.round(b.x), Math.round(b.y)]) });
+  };
+  gev("kong.live", m => { if(m && m.s !== mySide()) them = m; });
+  gevery(100, send);
+
+  const step = dt => {
+    if(!me || !alive) return;
+    me.t += dt;
+    const k = {
+      left: keys.has("ArrowLeft") || keys.has("a") || pad.left,
+      right: keys.has("ArrowRight") || keys.has("d") || pad.right,
+      up: keys.has("ArrowUp") || keys.has("w") || pad.up,
+      down: keys.has("ArrowDown") || keys.has("s") || pad.down
+    };
+
+    /* on a ladder, or on a girder */
+    const lx = LADX(me.i);
+    /* the foot of a ladder is a place you can stand, not a pixel you have
+       to find: sixteen either side, on a board a hundred and ninety wide */
+    const atLadder = me.i < ROWS - 1 && Math.abs(me.x - lx) < 16;
+    const lxDown = me.i > 0 ? LADX(me.i - 1) : 0;
+    const atDown = me.i > 0 && Math.abs(me.x - lxDown) < 16;
+
+    if(me.climb){
+      me.y += (k.up ? -58 : k.down ? 58 : 0) * dt;
+      const topY = yOn(me.i + 1)(me.x);
+      const botY = yOn(me.i)(me.x);
+      if(me.y <= topY){ me.y = topY; me.i += 1; me.climb = false; me.up = Math.max(me.up, me.i); }
+      if(me.y >= botY){ me.y = botY; me.climb = false; }
+    } else {
+      if(k.left)  me.x = Math.max(10, me.x - 74 * dt);
+      if(k.right) me.x = Math.min(W - 10, me.x + 74 * dt);
+      me.y = yOn(me.i)(me.x);
+      if(k.up && atLadder){ me.climb = true; me.x = lx; }
+      if(k.down && atDown){ me.climb = true; me.x = lxDown; me.i -= 1; me.y = yOn(me.i + 1)(me.x); me.i += 0; }
+    }
+    if(me.i >= ROWS - 1 && me.y <= yOn(ROWS - 1)(me.x) + 1 && me.x > W - 46){
+      me.n += 100; me.i = 0; me.x = 24; me.y = yOn(0)(24); me.barrels = [];   // round the tower again
+    }
+
+    /* barrels: along a girder, downhill, then over the edge to the next */
+    me.spawn -= dt;
+    if(me.spawn <= 0){
+      me.spawn = Math.max(0.9, 2.4 - me.t * 0.03);
+      const i0 = ROWS - 1;
+      me.barrels.push({ x: tilt(i0) === -1 ? 16 : W - 16, i: i0, y: yOn(i0)(16), vy: 0, fall: false });
+    }
+    me.barrels.forEach(b => {
+      if(b.fall){
+        b.vy += 520 * dt; b.y += b.vy * dt;
+        const land = yOn(b.i)(b.x);
+        if(b.y >= land){ b.y = land; b.vy = 0; b.fall = false; }
+      } else {
+        b.x += (tilt(b.i) === -1 ? 1 : -1) * 62 * dt;     // always downhill
+        b.y = yOn(b.i)(b.x);
+        if(b.x < 10 || b.x > W - 10){
+          if(b.i === 0){ b.gone = true; }
+          else { b.i -= 1; b.fall = true; b.x = Math.max(12, Math.min(W - 12, b.x)); }
+        }
+      }
+    });
+    me.barrels = me.barrels.filter(b => !b.gone).slice(-14);
+
+    if(!me.dead) me.barrels.forEach(b => {
+      if(Math.abs(b.x - me.x) < 11 && Math.abs(b.y - me.y) < 13){
+        b.gone = true;
+        me.lives -= 1;
+        me.x = 24; me.i = 0; me.y = yOn(0)(24); me.climb = false;
+        if(me.lives <= 0){ me.dead = true; alive = false; }
+      }
+    });
+    me.n = Math.max(me.n, me.up * 40 + Math.round(me.t * 2));
+  };
+
+  const drawOne = (s, st) => {
+    const ctx = s.ctx;
+    ctx.fillStyle = "#F3EAD3"; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = "#B07A3A"; ctx.lineWidth = 5; ctx.lineCap = "round";
+    for(let i = 0; i < ROWS; i++){
+      const f = yOn(i);
+      ctx.beginPath(); ctx.moveTo(6, f(6)); ctx.lineTo(W - 6, f(W - 6)); ctx.stroke();
+      if(i < ROWS - 1){
+        const lx = LADX(i);
+        ctx.strokeStyle = "#8A6335"; ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(lx - 6, f(lx)); ctx.lineTo(lx - 6, yOn(i+1)(lx));
+        ctx.moveTo(lx + 6, f(lx)); ctx.lineTo(lx + 6, yOn(i+1)(lx));
+        for(let y = f(lx); y > yOn(i+1)(lx); y -= 9){ ctx.moveTo(lx - 6, y); ctx.lineTo(lx + 6, y); }
+        ctx.stroke();
+        ctx.strokeStyle = "#B07A3A"; ctx.lineWidth = 5;
+      }
+    }
+    /* the top, and the thing worth reaching */
+    ctx.fillStyle = "#DE8C0E";
+    ARC.round(ctx, W - 40, yOn(ROWS-1)(W-30) - 20, 22, 18, 4);
+    if(!st) return;
+    (st.b || []).forEach(([x, y]) => {
+      ctx.fillStyle = "#8A5407"; ctx.beginPath(); ctx.arc(x, y - 6, 6, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#4A3117"; ctx.lineWidth = 1.6; ctx.stroke();
+    });
+    ctx.save(); ctx.translate(st.x, st.y);
+    ctx.fillStyle = st.dead ? "#9AA3B4" : "#CF3E57";
+    ARC.round(ctx, -6, -18, 12, 13, 3);
+    ctx.beginPath(); ctx.arc(0, -22, 5.5, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#243350"; ctx.lineWidth = 1.8; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(-4,2); ctx.moveTo(0,-5); ctx.lineTo(4,2); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "rgba(36,51,80,.6)"; ctx.font = "11px system-ui, sans-serif";
+    ctx.fillText("♥".repeat(Math.max(0, st.l === undefined ? 3 : st.l)), 8, 16);
+  };
+
+  const draw = () => {
+    drawOne(mineUI.s, me && { x:me.x, y:me.y, l:me.lives, dead:me.dead,
+                              b: me.barrels.map(b => [b.x, b.y]) });
+    drawOne(themUI.s, them);
+    mineUI.sc.textContent = me ? me.n + (me.dead ? " — done" : "") : "–";
+    themUI.sc.textContent = them ? them.n + (them.dead ? " — done" : "") : "–";
+  };
+
+  const paint = () => {
+    const b = SYNC.get("kong.best", 0);
+    if(me && me.n > b) SYNC.set("kong.best", me.n);
+    best.textContent = b ? "Highest so far: " + Math.max(b, me ? me.n : 0) + "." : "";
+  };
+  ARC.loop(dt => { step(dt); draw(); }, gclean);
+  gbind("kong.best", paint);
+  gevery(1000, paint);
+  paint();
+}
+
+/* --- arcade: hold the line, a run and gun --- */
+function gunGame(host, gbind, gevery, gclean){
+  const W = 420, H = 152, FLOOR = 124, R = 11;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","arrows to move and jump, Z to fire — or the buttons. Both of you, one line, ten waves."));
+  const line = el("div","arc-score","");
+  box.appendChild(line);
+  const sc = ARC.screen(box, W, H, "gun");
+  const pad = {};
+  ARC.pad(box, [["◀","left"],["▶","right"],["▲","jump"],["fire","fire"]], (k, on) => { pad[k] = on; });
+  const r = el("div","row");
+  const go = el("button","btn","Start");
+  r.appendChild(go); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "10px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  const keys = ARC.keys(gclean);
+  const fresh = () => ({
+    her: { x: 40, y: FLOOR, vy: 0, cool: 0, hp: 3, face: 1 },
+    you: { x: 76, y: FLOOR, vy: 0, cool: 0, hp: 3, face: 1 },
+    ours: [], theirs: [], foes: [], wave: 0, left: 0, spawn: 0, n: 0, over: "", live: false
+  });
+  let w = fresh();
+  const net = ARC.crew("gun", gevery, gclean, m => { w = m; });
+
+  const begin = () => {
+    if(!net.drives()) return;
+    w = fresh(); w.live = true; w.wave = 1; w.left = 5; w.spawn = 0.6;
+    net.say(w);
+  };
+  const three = GO.wire(host, "gun.count", gbind, gevery, gclean,
+    () => net.drives() ? begin() : SYNC.ev("gun.go", {}));
+  gclean(SYNC.onEv("gun.go", () => { if(net.drives()) begin(); }));
+  go.addEventListener("click", three);
+
+  const step = dt => {
+    if(!net.drives()) return;
+    if(w.live){
+      ["her","you"].forEach(side => {
+        const p = w[side], k = net.held[side] || {};
+        if(p.hp <= 0) return;
+        if(k.left){ p.x -= 128 * dt; p.face = -1; }
+        if(k.right){ p.x += 128 * dt; p.face = 1; }
+        p.x = Math.max(R, Math.min(W - R, p.x));
+        if(k.jump && p.y >= FLOOR) p.vy = -370;
+        p.vy += 1150 * dt; p.y = Math.min(FLOOR, p.y + p.vy * dt);
+        if(p.y >= FLOOR){ p.y = FLOOR; p.vy = 0; }
+        p.cool -= dt;
+        if(k.fire && p.cool <= 0){
+          p.cool = 0.22;
+          w.ours.push({ x: p.x + p.face * 14, y: p.y - 22, v: p.face * 330, s: side });
+        }
+      });
+
+      w.spawn -= dt;
+      if(w.spawn <= 0 && w.left > 0){
+        w.left -= 1;
+        w.spawn = Math.max(0.5, 1.5 - w.wave * 0.08);
+        const fromRight = Math.random() < 0.75;
+        w.foes.push({ x: fromRight ? W + 14 : -14, y: FLOOR, v: (fromRight ? -1 : 1) * (34 + w.wave * 4),
+                      cool: 0.9 + Math.random(), hp: 1 + (w.wave > 4 ? 1 : 0) });
+      }
+
+      w.foes.forEach(f => {
+        f.x += f.v * dt;
+        f.cool -= dt;
+        if(f.cool <= 0){
+          f.cool = Math.max(0.7, 2.1 - w.wave * 0.1);
+          w.theirs.push({ x: f.x, y: FLOOR - 20, v: (f.v < 0 ? -1 : 1) * 210 });
+        }
+      });
+
+      const move = (list, keep) => {
+        list.forEach(b => { b.x += b.v * dt; });
+        return list.filter(b => b.x > -20 && b.x < W + 20 && !b.gone && keep(b));
+      };
+      w.ours = move(w.ours, b => {
+        let hit = false;
+        w.foes.forEach(f => {
+          if(!hit && Math.abs(f.x - b.x) < 12 && Math.abs(f.y - 20 - b.y) < 18 && f.hp > 0){
+            f.hp -= 1; hit = true;
+            if(f.hp <= 0){ f.gone = true; w.n += 10; }
+          }
+        });
+        return !hit;
+      });
+      w.theirs = move(w.theirs, b => {
+        let hit = false;
+        ["her","you"].forEach(side => {
+          const p = w[side];
+          if(!hit && p.hp > 0 && Math.abs(p.x - b.x) < 12 && Math.abs(p.y - 22 - b.y) < 20){
+            p.hp -= 1; hit = true;
+          }
+        });
+        return !hit;
+      });
+      /* walking into one costs you too */
+      w.foes.forEach(f => ["her","you"].forEach(side => {
+        const p = w[side];
+        if(!f.gone && p.hp > 0 && Math.abs(p.x - f.x) < 16 && Math.abs(p.y - f.y) < 20){
+          f.gone = true; p.hp -= 1;
+        }
+      }));
+      w.foes = w.foes.filter(f => !f.gone && f.x > -30 && f.x < W + 30);
+
+      if(w.left === 0 && w.foes.length === 0){
+        w.wave += 1;
+        if(w.wave > 10){ w.live = false; w.over = "clear"; }
+        else { w.left = 4 + w.wave; w.spawn = 1.2; w.n += 25; }
+      }
+      if(w.her.hp <= 0 && w.you.hp <= 0){ w.live = false; w.over = "down"; }
+    }
+    net.say(w);
+  };
+
+  const man = (ctx, p, side) => {
+    if(p.hp <= 0) return;
+    ctx.save(); ctx.translate(p.x, p.y);
+    ctx.fillStyle = side === "her" ? "#DE8C0E" : "#17796C";
+    ARC.round(ctx, -8, -26, 16, 20, 5);
+    ctx.beginPath(); ctx.arc(0, -32, 7, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(0,-6); ctx.lineTo(-5,0); ctx.moveTo(0,-6); ctx.lineTo(5,0);
+    ctx.moveTo(0,-22); ctx.lineTo(p.face * 16, -22); ctx.stroke();
+    ctx.restore();
+  };
+
+  const draw = () => {
+    const ctx = sc.ctx;
+    ctx.fillStyle = "#EBF1EC"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = "#D6E3D4"; ctx.fillRect(0, FLOOR, W, H - FLOOR);
+    ctx.strokeStyle = "rgba(36,51,80,.22)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, FLOOR); ctx.lineTo(W, FLOOR); ctx.stroke();
+    (w.foes || []).forEach(f => {
+      ctx.save(); ctx.translate(f.x, f.y);
+      ctx.fillStyle = "#7A4A6B";
+      ARC.round(ctx, -8, -24, 16, 18, 4);
+      ctx.beginPath(); ctx.arc(0, -29, 6, 0, 7); ctx.fill();
+      ctx.restore();
+    });
+    ctx.fillStyle = "#B4700D";
+    (w.ours || []).forEach(b => ctx.fillRect(b.x - 4, b.y - 2, 8, 4));
+    ctx.fillStyle = "#CF3E57";
+    (w.theirs || []).forEach(b => ctx.fillRect(b.x - 4, b.y - 2, 8, 4));
+    man(ctx, w.her, "her"); man(ctx, w.you, "you");
+    if(w.over){
+      ctx.fillStyle = "rgba(250,244,228,.72)"; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = w.over === "clear" ? "#17796C" : "#CF3E57";
+      ctx.font = "600 24px system-ui, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(w.over === "clear" ? "Line held" : "Line broken", W/2, H/2);
+      ctx.textAlign = "left";
+    }
+  };
+
+  const paint = () => {
+    const hearts = s => "♥".repeat(Math.max(0, w[s].hp)) || "–";
+    line.textContent = CFG.her + " " + hearts("her") + "   ·   wave " + Math.min(10, w.wave || 0)
+      + " of 10   ·   " + (w.n || 0) + "   ·   " + hearts("you") + " " + CFG.you;
+    go.disabled = !!w.live;
+    go.textContent = w.live ? "Holding" : (w.over ? "Again" : "Start");
+    const b = SYNC.get("gun.best", 0);
+    if(net.drives() && !w.live && w.n > b) SYNC.set("gun.best", w.n);
+    best.textContent = b ? "Best run so far: " + Math.max(b, w.n || 0) + "." : "";
+  };
+
+  const feel = () => {
+    const m = net.mine;
+    m.left  = keys.has("ArrowLeft")  || keys.has("a") || !!pad.left;
+    m.right = keys.has("ArrowRight") || keys.has("d") || !!pad.right;
+    m.jump  = keys.has("ArrowUp")    || keys.has("w") || !!pad.jump;
+    m.fire  = keys.has("z") || keys.has(" ") || !!pad.fire;
+  };
+  ARC.loop(dt => { feel(); step(dt); draw(); }, gclean);
+  gbind("gun.best", paint);
+  gevery(250, paint);
+  paint();
+}
+
+/* --- arcade: back to back, a walk down the street --- */
+function brawlGame(host, gbind, gevery, gclean){
+  const W = 400, H = 186, TOPZ = 96, BOTZ = 168, R = 13;
+  const box = el("div","card");
+  box.appendChild(el("div","qnum","arrows to walk anywhere on the street, Z to swing — or the buttons. Six waves, back to back."));
+  const line = el("div","arc-score","");
+  box.appendChild(line);
+  const sc = ARC.screen(box, W, H, "brawl");
+  const pad = {};
+  ARC.pad(box, [["◀","left"],["▶","right"],["▲","up"],["▼","down"],["hit","hit"]], (k, on) => { pad[k] = on; });
+  const r = el("div","row");
+  const go = el("button","btn","Start");
+  r.appendChild(go); box.appendChild(r);
+  const best = el("div","qnum"); best.style.marginTop = "10px";
+  box.appendChild(best);
+  host.appendChild(box);
+
+  const keys = ARC.keys(gclean);
+  const fresh = () => ({
+    her: { x: 90,  z: 150, face: 1, sw: 0, hp: 5, hurt: 0 },
+    you: { x: 130, z: 176, face: 1, sw: 0, hp: 5, hurt: 0 },
+    foes: [], wave: 0, left: 0, spawn: 0, n: 0, over: "", live: false
+  });
+  let w = fresh();
+  const net = ARC.crew("brawl", gevery, gclean, m => { w = m; });
+
+  const begin = () => {
+    if(!net.drives()) return;
+    w = fresh(); w.live = true; w.wave = 1; w.left = 3; w.spawn = 0.5;
+    net.say(w);
+  };
+  const three = GO.wire(host, "brawl.count", gbind, gevery, gclean,
+    () => net.drives() ? begin() : SYNC.ev("brawl.go", {}));
+  gclean(SYNC.onEv("brawl.go", () => { if(net.drives()) begin(); }));
+  go.addEventListener("click", three);
+
+  const near = (a, b, dx, dz) => Math.abs(a.x - b.x) < dx && Math.abs(a.z - b.z) < dz;
+
+  const step = dt => {
+    if(!net.drives()) return;
+    if(w.live){
+      ["her","you"].forEach(side => {
+        const p = w[side], k = net.held[side] || {};
+        if(p.hp <= 0) return;
+        if(p.hurt > 0){ p.hurt -= dt; return; }
+        let dx = 0, dz = 0;
+        if(k.left)  dx -= 1; if(k.right) dx += 1;
+        if(k.up)    dz -= 1; if(k.down)  dz += 1;
+        if(dx){ p.face = dx; }
+        p.x = Math.max(R, Math.min(W - R, p.x + dx * 118 * dt));
+        p.z = Math.max(TOPZ, Math.min(BOTZ, p.z + dz * 78 * dt));
+        p.sw -= dt;
+        if(k.hit && p.sw <= -0.12){
+          p.sw = 0.22;
+          w.foes.forEach(f => {
+            if(f.hp > 0 && (f.x - p.x) * p.face > -6 && near(p, f, 40, 20)){
+              f.hp -= 1; f.hurt = 0.28; f.x += p.face * 16;
+              if(f.hp <= 0){ f.gone = true; w.n += 15; }
+            }
+          });
+        }
+      });
+
+      w.spawn -= dt;
+      if(w.spawn <= 0 && w.left > 0){
+        w.left -= 1;
+        w.spawn = Math.max(0.4, 1.3 - w.wave * 0.1);
+        const side = Math.random() < 0.5 ? -18 : W + 18;
+        w.foes.push({ x: side, z: TOPZ + Math.random() * (BOTZ - TOPZ),
+                      hp: 1 + (w.wave > 3 ? 1 : 0), sw: 0, hurt: 0 });
+      }
+
+      w.foes.forEach(f => {
+        if(f.hurt > 0){ f.hurt -= dt; return; }
+        const p = [w.her, w.you].filter(q => q.hp > 0)
+          .sort((a, b2) => Math.hypot(a.x-f.x, a.z-f.z) - Math.hypot(b2.x-f.x, b2.z-f.z))[0];
+        if(!p) return;
+        const gap = p.x - f.x, dz = p.z - f.z;
+        if(Math.abs(gap) > 26) f.x += Math.sign(gap) * (36 + w.wave * 3) * dt;
+        if(Math.abs(dz) > 4) f.z += Math.sign(dz) * 44 * dt;
+        f.sw -= dt;
+        if(f.sw <= 0 && near(p, f, 32, 16)){
+          f.sw = 1.1;
+          if(p.hurt <= 0){ p.hp -= 1; p.hurt = 0.5; p.x += Math.sign(-gap) * 14; }
+        }
+      });
+      w.foes = w.foes.filter(f => !f.gone);
+
+      if(w.left === 0 && w.foes.length === 0){
+        w.wave += 1;
+        if(w.wave > 6){ w.live = false; w.over = "clear"; }
+        else { w.left = 2 + w.wave; w.spawn = 1.1; w.n += 30; }
+      }
+      if(w.her.hp <= 0 && w.you.hp <= 0){ w.live = false; w.over = "down"; }
+    }
+    net.say(w);
+  };
+
+  const fig = (ctx, p, fill, swing) => {
+    ctx.save(); ctx.translate(p.x, p.z);
+    const scale = 0.78 + (p.z - TOPZ) / (BOTZ - TOPZ) * 0.34;   // further up the street is smaller
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = p.hurt > 0 ? 0.55 : 1;
+    ctx.fillStyle = "rgba(36,51,80,.14)";
+    ctx.beginPath(); ctx.ellipse(0, 2, 12, 4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = fill;
+    ARC.round(ctx, -9, -30, 18, 24, 5);
+    ctx.beginPath(); ctx.arc(0, -36, 7.5, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0,-6); ctx.lineTo(-5,0); ctx.moveTo(0,-6); ctx.lineTo(5,0);
+    if(swing > 0){ ctx.moveTo(0,-24); ctx.lineTo(p.face * 26, -26); }
+    else { ctx.moveTo(0,-24); ctx.lineTo(p.face * 10, -14); }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  };
+
+  const draw = () => {
+    const ctx = sc.ctx;
+    ctx.fillStyle = "#EFE6D0"; ctx.fillRect(0, 0, W, TOPZ - 26);
+    ctx.fillStyle = "#DCCFAF"; ctx.fillRect(0, TOPZ - 26, W, H - (TOPZ - 26));
+    ctx.strokeStyle = "rgba(36,51,80,.18)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, TOPZ - 26); ctx.lineTo(W, TOPZ - 26); ctx.stroke();
+    for(let x = 18; x < W - 20; x += 58){                // shutters along the back
+      ctx.fillStyle = "rgba(36,51,80,.10)";
+      ctx.fillRect(x, TOPZ - 62, 32, 40);
+    }
+    const all = (w.foes || []).map(f => ({ f, z: f.z, kind: "foe" }))
+      .concat([{ f: w.her, z: w.her.z, kind: "her" }, { f: w.you, z: w.you.z, kind: "you" }])
+      .sort((a, b2) => a.z - b2.z);                      // nearer the front, drawn later
+    all.forEach(o => {
+      if(o.kind === "foe"){ if(o.f.hp > 0) fig(ctx, o.f, "#7A4A6B", o.f.sw > 0.9 ? 1 : 0); }
+      else if(o.f.hp > 0) fig(ctx, o.f, o.kind === "her" ? "#DE8C0E" : "#17796C", o.f.sw);
+    });
+    if(w.over){
+      ctx.fillStyle = "rgba(250,244,228,.72)"; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = w.over === "clear" ? "#17796C" : "#CF3E57";
+      ctx.font = "600 24px system-ui, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(w.over === "clear" ? "Street cleared" : "Both down", W/2, H/2);
+      ctx.textAlign = "left";
+    }
+  };
+
+  const paint = () => {
+    const hearts = s => "♥".repeat(Math.max(0, w[s].hp)) || "–";
+    line.textContent = CFG.her + " " + hearts("her") + "   ·   wave " + Math.min(6, w.wave || 0)
+      + " of 6   ·   " + (w.n || 0) + "   ·   " + hearts("you") + " " + CFG.you;
+    go.disabled = !!w.live;
+    go.textContent = w.live ? "Walking" : (w.over ? "Again" : "Start");
+    const b = SYNC.get("brawl.best", 0);
+    if(net.drives() && !w.live && w.n > b) SYNC.set("brawl.best", w.n);
+    best.textContent = b ? "Best walk so far: " + Math.max(b, w.n || 0) + "." : "";
+  };
+
+  const feel = () => {
+    const m = net.mine;
+    m.left  = keys.has("ArrowLeft")  || keys.has("a") || !!pad.left;
+    m.right = keys.has("ArrowRight") || keys.has("d") || !!pad.right;
+    m.up    = keys.has("ArrowUp")    || keys.has("w") || !!pad.up;
+    m.down  = keys.has("ArrowDown")  || keys.has("s") || !!pad.down;
+    m.hit   = keys.has("z") || keys.has(" ") || !!pad.hit;
+  };
+  ARC.loop(dt => { feel(); step(dt); draw(); }, gclean);
+  gbind("brawl.best", paint);
+  gevery(250, paint);
+  paint();
+}
+
+/* --- arcade: snakes and ladders ---
+   A hundred squares, numbered the way a real board is: left to right along
+   the bottom row, right to left along the next, and so on up. Everything
+   about the game is that numbering, so it lives in one function and every
+   drop and climb is looked up rather than worked out twice. */
+const SL = {
+  UP:   { 1:38, 4:14, 9:31, 21:42, 28:84, 36:44, 51:67, 71:91, 80:100 },
+  DOWN: { 16:6, 47:26, 49:11, 56:53, 62:19, 64:60, 87:24, 93:73, 95:75, 98:78 },
+
+  /* square number to its place on the board, 0..9 across and down */
+  cell(n){
+    const band = Math.floor((n - 1) / 10);          // 0 at the bottom
+    const along = (n - 1) % 10;
+    return { x: band % 2 === 0 ? along : 9 - along, y: 9 - band };
+  },
+  mid(n){ const c = SL.cell(n); return { x: c.x + 0.5, y: c.y + 0.5 }; },
+
+  fresh(){ return { pos:{her:0, you:0}, turn:"her", die:0, rolled:false, over:"", note:"" }; },
+
+  /* A snake, rather than a line with a dot on it. An SVG stroke cannot
+     taper, so the body is a filled outline: sample a curve that bends one
+     way and then the other, step out either side of it by a width that
+     thins from the neck to the tail, and come back along the other side.
+     The head is drawn on afterwards, turned to face the way it is going. */
+  snake(a, b){
+    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;          // along
+    const nx = -uy, ny = ux;                     // across
+    const amp = Math.min(0.85, 0.16 * len + 0.25);
+    const P = [a,
+      { x: a.x + dx*0.28 + nx*amp, y: a.y + dy*0.28 + ny*amp },
+      { x: a.x + dx*0.72 - nx*amp, y: a.y + dy*0.72 - ny*amp }, b];
+    const at = t => {
+      const m = 1 - t, A = m*m*m, B = 3*m*m*t, C = 3*m*t*t, D = t*t*t;
+      return { x: A*P[0].x + B*P[1].x + C*P[2].x + D*P[3].x,
+               y: A*P[0].y + B*P[1].y + C*P[2].y + D*P[3].y };
+    };
+    const N = 26, L = [], R = [], mid = [];
+    for(let i = 0; i <= N; i++){
+      const t = i / N, p = at(t), q = at(Math.min(1, t + 0.02));
+      const tx = q.x - p.x, ty = q.y - p.y, tl = Math.hypot(tx, ty) || 1;
+      const ox = -ty / tl, oy = tx / tl;
+      /* thickest just behind the head, down to a point at the tail */
+      const w = (0.145 * (1 - t) + 0.02) * (1 + 0.3 * Math.sin(Math.PI * t));
+      L.push([p.x + ox*w, p.y + oy*w]);
+      R.push([p.x - ox*w, p.y - oy*w]);
+      mid.push(p);
+    }
+    const pt = q => q[0].toFixed(3) + " " + q[1].toFixed(3);
+    let body = "M" + pt(L[0]);
+    for(let i = 1; i < L.length; i++) body += "L" + pt(L[i]);
+    for(let i = R.length - 1; i >= 0; i--) body += "L" + pt(R[i]);
+    body += "Z";
+
+    /* a few bands down the back, so it is not one flat shape */
+    let bands = "";
+    for(let i = 3; i < N - 2; i += 4){
+      bands += "M" + pt(L[i]) + "L" + pt(R[i]);
+    }
+
+    /* the head faces away from its own body */
+    const h0 = at(0), h1 = at(0.06);
+    const ang = Math.atan2(h0.y - h1.y, h0.x - h1.x) * 180 / Math.PI;
+    const head = '<g class="snk-head" transform="translate(' + a.x.toFixed(3) + ' ' + a.y.toFixed(3)
+      + ') rotate(' + ang.toFixed(1) + ')">'
+      + '<path class="snk-jaw" d="M-0.10 -0.17 C 0.20 -0.19 0.34 -0.09 0.34 0 C 0.34 0.09 0.20 0.19 -0.10 0.17 C -0.22 0.14 -0.22 -0.14 -0.10 -0.17z"/>'
+      + '<path class="snk-tongue" d="M0.34 0 L0.52 0 M0.52 0 L0.60 -0.06 M0.52 0 L0.60 0.06"/>'
+      + '<circle class="snk-eye" cx="0.10" cy="-0.085" r="0.055"/>'
+      + '<circle class="snk-eye" cx="0.10" cy="0.085" r="0.055"/>'
+      + '<circle class="snk-pupil" cx="0.115" cy="-0.085" r="0.022"/>'
+      + '<circle class="snk-pupil" cx="0.115" cy="0.085" r="0.022"/>'
+      + '</g>';
+
+    return '<g class="snk"><path class="snk-body" d="' + body + '"/>'
+         + '<path class="snk-band" d="' + bands + '"/>' + head + '</g>';
+  },
+
+  /* One roll, all of it: the move, the overshoot, the snake or the ladder,
+     and whose turn it is next. A six rolls again, the way the ludo board
+     next door does, so the two of them agree about dice. */
+  step(st, side, die){
+    const s = JSON.parse(JSON.stringify(st));
+    const from = s.pos[side];
+    let to = from + die, note = "";
+    if(to > 100){ to = from; note = "needs " + (100 - from) + " exactly"; }
+    else {
+      if(SL.UP[to]){ note = "up the ladder, " + to + " to " + SL.UP[to]; to = SL.UP[to]; }
+      else if(SL.DOWN[to]){ note = "down the snake, " + to + " to " + SL.DOWN[to]; to = SL.DOWN[to]; }
+    }
+    s.pos[side] = to;
+    s.die = die;
+    s.note = note;
+    if(to === 100){ s.over = side; s.rolled = false; return s; }
+    s.turn = die === 6 ? side : (side === "her" ? "you" : "her");
+    s.rolled = false;
+    return s;
+  }
+};
+
+function sladGame(host, gbind, gevery, gclean){
+  const box = el("div","card");
+  const status = el("div","turnbar","");
+  box.appendChild(status);
+
+  const wrap = el("div","slad");
+  const grid = el("div","slad-grid");
+  const squares = [];
+  for(let i = 0; i < 100; i++) squares.push(null);
+  for(let n = 100; n >= 1; n--){                    // build in screen order
+    const c = SL.cell(n);
+    const d = el("i","slsq");
+    d.style.gridColumn = (c.x + 1);
+    d.style.gridRow = (c.y + 1);
+    if((c.x + c.y) % 2 === 0) d.classList.add("dark");
+    if(SL.UP[n]) d.classList.add("foot");
+    if(SL.DOWN[n]) d.classList.add("head");
+    if(n === 100) d.classList.add("last");
+    d.appendChild(el("b", null, String(n)));
+    grid.appendChild(d);
+    squares[n - 1] = d;
+  }
+  wrap.appendChild(grid);
+
+  /* the snakes and the ladders themselves, over the squares */
+  let art = '<svg class="slad-art" viewBox="0 0 10 10" aria-hidden="true">';
+  Object.keys(SL.UP).forEach(k => {
+    const a = SL.mid(+k), b2 = SL.mid(SL.UP[k]);
+    const dx = b2.x - a.x, dy = b2.y - a.y, len = Math.hypot(dx, dy);
+    const nx = -dy / len * 0.17, ny = dx / len * 0.17;     // half the rail spacing
+    art += '<g class="lad">'
+         + '<path d="M' + (a.x+nx) + ' ' + (a.y+ny) + 'L' + (b2.x+nx) + ' ' + (b2.y+ny) + '"/>'
+         + '<path d="M' + (a.x-nx) + ' ' + (a.y-ny) + 'L' + (b2.x-nx) + ' ' + (b2.y-ny) + '"/>';
+    const rungs = Math.max(2, Math.round(len * 1.5));
+    for(let r = 1; r < rungs; r++){
+      const t = r / rungs, px = a.x + dx*t, py = a.y + dy*t;
+      art += '<path d="M' + (px+nx) + ' ' + (py+ny) + 'L' + (px-nx) + ' ' + (py-ny) + '"/>';
+    }
+    art += '</g>';
+  });
+  Object.keys(SL.DOWN).forEach(k => { art += SL.snake(SL.mid(+k), SL.mid(SL.DOWN[k])); });
+  art += '</svg>';
+  wrap.insertAdjacentHTML("beforeend", art);
+  box.appendChild(wrap);
+
+  const r = el("div","row");
+  const die = el("button","die","–");
+  const again = el("button","btn ghost","New game");
+  r.appendChild(die); r.appendChild(again);
+  box.appendChild(r);
+  const said = el("div","qnum",""); said.style.marginTop = "8px";
+  box.appendChild(said);
+  box.appendChild(el("p","note","Ladders carry you up, snakes take you back down, and you need the exact number to land on a hundred. A six rolls again."));
+  host.appendChild(box);
+
+  const st = () => SYNC.get("slad.st", null) || SL.fresh();
+
+  const render = () => {
+    const s = st();
+    grid.querySelectorAll(".tok").forEach(t => t.remove());
+    ["her","you"].forEach(side => {
+      const n = s.pos[side];
+      if(n < 1) return;                             // still off the board
+      const t = el("i","tok " + side);
+      if(s.pos.her === s.pos.you) t.classList.add("stack");
+      squares[n - 1].appendChild(t);
+    });
+    const off = ["her","you"].filter(x => s.pos[x] < 1);
+    grid.classList.toggle("waiting", off.length > 0);
+
+    const mine = canPlay(s.turn);
+    die.textContent = s.die ? "⚀⚁⚂⚃⚄⚅"[s.die-1] : "roll";
+    die.disabled = !!s.over || !mine;
+    die.classList.toggle("live", mine && !s.over);
+
+    said.textContent = s.note || (s.pos.her || s.pos.you
+      ? CFG.her + " on " + s.pos.her + "  ·  " + CFG.you + " on " + s.pos.you : "");
+
+    if(s.over){
+      status.textContent = (s.over === mySide() && !alone() ? "You win." : nameOf(s.over) + " wins.")
+        + " Home on a hundred.";
+      status.style.color = "var(--teal)"; status.classList.remove("mine");
+    } else {
+      status.style.color = "";
+      status.textContent = mine ? "Your roll." : nameOf(s.turn) + "'s turn.";
+      status.classList.toggle("mine", mine);
+    }
+  };
+
+  die.addEventListener("click", () => {
+    const s = st();
+    if(s.over || !canPlay(s.turn)) return;
+    SYNC.set("slad.st", SL.step(s, s.turn, 1 + Math.floor(Math.random() * 6)));
+  });
+  again.addEventListener("click", () => SYNC.set("slad.st", SL.fresh()));
+
+  gbind("slad.st", render);
+  render();
 }
 
 /* --- arcade: pac-man, a maze each --- */
@@ -5535,7 +6725,8 @@ function pacGame(host, gbind, gevery, gclean){
     themUI.sc.textContent = them ? them.n + (them.dead ? " — out" : "") + "  ·  " + Math.max(0, them.l) + " left" : "–";
   };
 
-  go.addEventListener("click", start);
+  const three = GO.wire(host, "pac.count", gbind, gevery, gclean, start);
+  go.addEventListener("click", three);
   ARC.swipe(mineUI.s.cv, d => { if(me) me.p.want = d; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
@@ -5668,7 +6859,8 @@ function jumpGame(host, gbind, gevery, gclean){
     themUI.sc.textContent = them ? them.n + (them.dead ? " — fell" : "") : "–";
   };
 
-  go.addEventListener("click", start);
+  const three = GO.wire(host, "jump.count", gbind, gevery, gclean, start);
+  go.addEventListener("click", three);
   ARC.drag(mineUI.s.cv, fx => { aim = fx * W; }, gclean);
   ARC.loop(dt => { step(dt); draw(); }, gclean);
   gevery(110, send);
@@ -5954,7 +7146,8 @@ function snakeGame(host, gbind, gevery, gclean){
     turn(Math.abs(dx) > Math.abs(dy) ? [dx > 0 ? 1 : -1, 0] : [0, dy > 0 ? 1 : -1]);
   }, {passive:true});
 
-  go.addEventListener("click", start);
+  const three = GO.wire(host, "snake.count", gbind, gevery, gclean, start);
+  go.addEventListener("click", three);
 
   gbind("snake.best.her", () => paintBest());
   gbind("snake.best.you", () => paintBest());
