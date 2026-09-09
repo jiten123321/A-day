@@ -281,7 +281,8 @@ which is a cold thing to be told by your own present. Case does not matter.
 
 **Two roses, for her.** When the name is hers, the gate does not lift straight
 away: two roses draw themselves, the heads open one after the other, a ribbon
-ties them, a few petals let go, and the whole thing says *For you, <name>.*
+ties them, a few petals let go, and the whole thing says *For you, Ladoo.* —
+`CFG.her`, the name he calls her, rather than whatever she typed to get in.
 Four seconds later the day opens on its own. Nothing waits for a press —
 there is nothing to press.
 

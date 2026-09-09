@@ -6436,7 +6436,7 @@ function nameGate(){
       gate.classList.add("gone");
       setTimeout(() => { if(gate.parentNode) gate.remove(); }, 800);
     };
-    if(ME.side === "her") roses(gate, v, open); else open();
+    if(ME.side === "her") roses(gate, open); else open();
   }
 
   try {
@@ -6449,7 +6449,7 @@ function nameGate(){
    moment, and they are gone in four seconds whether or not anybody presses
    anything. Nothing here waits for her — the day is already opening behind
    them. */
-function roses(gate, name, after){
+function roses(gate, after){
   const bloom = el("div","bloom");
   /* a few petals letting go, from the roses themselves */
   let petals = "";
@@ -6493,7 +6493,8 @@ function roses(gate, name, after){
     + '<path class="tie" d="M152 253 C 159 249 170 249 177 254"/>'
     + '<g class="petals">' + petals + '</g>'
     + '</svg>'
-    + '<p class="bloom-line">For you, ' + esc(name) + '.</p>';
+    /* Her name, not whatever she typed to get in — the one he calls her. */
+    + '<p class="bloom-line">For you, ' + esc(CFG.her) + '.</p>';
   gate.appendChild(bloom);
   gate.classList.add("blooming");
   setTimeout(after, 4000);
