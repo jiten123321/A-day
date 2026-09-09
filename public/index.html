@@ -688,6 +688,62 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
   padding:26px;transition:opacity .7s;
 }
 .gate.gone{opacity:0;pointer-events:none}
+
+/* two roses, on the way in */
+.gate.blooming{background:var(--night)}    /* nothing of the day showing through yet */
+.gate.blooming .gate-inner{opacity:0;transition:opacity .35s;pointer-events:none}
+.bloom{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;padding:26px;
+  animation:bloomGo .6s ease 3.4s forwards        /* gone before the gate is */
+}
+.bloomart{width:min(330px,74vw);height:auto;overflow:visible}
+.bloom-line{
+  font-family:var(--serif);font-style:italic;font-size:clamp(1.5rem,6vw,2.1rem);
+  color:var(--mango);margin:0;opacity:0;
+  animation:bloomSay .8s ease 1.5s forwards
+}
+.bloom .stem, .bloom .leaf, .bloom .petal, .bloom .core, .bloom .curl, .bloom .tie{
+  fill:none;stroke:var(--ink);stroke-width:2.3;
+  stroke-linecap:round;stroke-linejoin:round
+}
+.bloom .leaf{fill:var(--teal);opacity:.9}
+.bloom .petal{fill:var(--rose)}
+.bloom .core{fill:#B02F45}                 /* the centre sits deeper than the petals */
+.bloom .curl{stroke:#F7C9D1;stroke-width:2.2}
+.bloom .tie{stroke:var(--marigold);stroke-width:2.6;opacity:0;
+  animation:bloomLeaf .5s ease 1.1s forwards}
+.bloom .drift{fill:var(--rose);stroke:none;opacity:0}
+
+/* the stems draw themselves, then each head opens */
+.bloom .stem{stroke-dasharray:200;stroke-dashoffset:200;animation:bloomDraw .9s ease forwards}
+.bloom .two .stem{animation-delay:.18s}
+.bloom .leaf{opacity:0;animation:bloomLeaf .5s ease .55s forwards}
+.bloom .two .leaf{animation-delay:.72s}
+.bloom .head{transform-box:fill-box;transform-origin:center;transform:scale(0) rotate(-45deg);
+  animation:bloomOpen .8s cubic-bezier(.2,1.5,.4,1) .8s forwards}
+.bloom .two .head{animation-delay:1s}
+.bloom .drift{animation:bloomDrift 2.6s ease-in forwards}
+
+@keyframes bloomDraw{to{stroke-dashoffset:0}}
+@keyframes bloomLeaf{from{opacity:0;transform:translateY(4px)}to{opacity:.9;transform:none}}
+@keyframes bloomOpen{to{transform:scale(1) rotate(0)}}
+@keyframes bloomSay{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes bloomDrift{
+  0%{opacity:0;transform:translate(0,0) rotate(0)}
+  15%{opacity:.85}
+  100%{opacity:0;transform:translate(14px,120px) rotate(220deg)}
+}
+@keyframes bloomGo{to{opacity:0;transform:translateY(-14px)}}
+
+/* Held out just the same, without any of it moving. */
+@media (prefers-reduced-motion: reduce){
+  .bloom, .bloom *{animation:none!important}
+  .bloom .stem{stroke-dashoffset:0}
+  .bloom .head{transform:none}
+  .bloom .leaf, .bloom-line{opacity:1}
+  .bloom .drift{opacity:.5}
+}
 .gate-inner{width:min(420px,100%);text-align:left}
 .gate-eyebrow{color:var(--muted);font-size:.82rem;letter-spacing:.09em;margin:0 0 10px}
 .gate-inner h2{
@@ -1276,6 +1332,13 @@ input[type=text], .close, .open{
 const CFG = {
   her: "Ladoo",
   you: "Jitendra",
+
+  /* Other names either of you might actually type. Without these, typing a
+     real name instead of the one above lands you on the page as a stranger
+     — "someone else's day, but stay" — which is a cold thing to be told by
+     your own present. Case does not matter. */
+  herAlso: ["Isha"],
+  youAlso: ["Jiten"],
 
   // 15:00 quiz. answer = index of the correct option (0,1,2,3)
   quiz: [
@@ -6349,27 +6412,92 @@ function nameGate(){
   inp.addEventListener("keydown", e => { if(e.key === "Enter" && inp.value.trim()) enter(); });
   go.addEventListener("click", enter);
   setTimeout(() => inp.focus(), 350);
+  let going = false;                    // one press is one arrival
+
+  /* Either the name in CFG or anything else that person answers to. */
+  const isThem = (v, one, more) =>
+    [one].concat(more || []).some(n => n && n.toLowerCase() === v);
 
   function enter(){
     const v = inp.value.trim().replace(/</g,"").slice(0,24);
-    if(!v) return;
+    if(!v || going) return;
+    going = true;
     ME.name = v;
     CHIME.arm();            // inside a real click, which is what browsers want
     const low = v.toLowerCase();
-    if(low === CFG.her.toLowerCase()){ ME.side = "her"; ME.other = CFG.you; }
-    else if(low === CFG.you.toLowerCase()){ ME.side = "you"; ME.other = CFG.her; }
+    if(isThem(low, CFG.her, CFG.herAlso)){ ME.side = "her"; ME.other = CFG.you; }
+    else if(isThem(low, CFG.you, CFG.youAlso)){ ME.side = "you"; ME.other = CFG.her; }
     else { ME.side = "guest"; ME.other = CFG.her; }
     try { localStorage.setItem("sameSunName", v); } catch(_){}
     onKnown();
-    gate.classList.add("gone");
-    setTimeout(() => gate.remove(), 800);
-    SYNC.connect();
+    SYNC.connect();         // the roses are four seconds of connecting time
+
+    const open = () => {
+      gate.classList.add("gone");
+      setTimeout(() => { if(gate.parentNode) gate.remove(); }, 800);
+    };
+    if(ME.side === "her") roses(gate, open); else open();
   }
 
   try {
     const saved = localStorage.getItem("sameSunName");
     if(saved){ inp.value = saved; check(); }
   } catch(_){}
+}
+
+/* Two roses, given rather than shown: they arrive, they are held out for a
+   moment, and they are gone in four seconds whether or not anybody presses
+   anything. Nothing here waits for her — the day is already opening behind
+   them. */
+function roses(gate, after){
+  const bloom = el("div","bloom");
+  /* a few petals letting go, from the roses themselves */
+  let petals = "";
+  [[108,104],[210,118]].forEach((at, r) => {
+    for(let i = 0; i < 3; i++){
+      const x = at[0] + (Math.random()*40 - 20), y = at[1] + (Math.random()*26 - 13);
+      petals += '<g transform="translate(' + x.toFixed(0) + ' ' + y.toFixed(0)
+              + ') rotate(' + (Math.random()*360).toFixed(0) + ')">'
+              + '<path class="drift" d="M0 0 c6-5 13 0 10 7 c-3 7-13 6-15-1 c-1-4 1-5 5-6z"'
+              + ' style="animation-delay:' + (1.5 + r*.25 + Math.random()*1.1).toFixed(2) + 's"/></g>';
+    }
+  });
+  /* Five petals around a spiral centre — the way anybody draws a rose when
+     asked to, and the only way it still reads as one at this size. */
+  const head = () => {
+    let out = '<g class="head">';
+    for(let a = 0; a < 5; a++){
+      out += '<path class="petal" transform="rotate(' + (a * 72 - 90) + ')"'
+           + ' d="M0 0 C-13-7-21-21-13-31 C-4-41 13-38 18-26 C22-15 12-4 0 0z"/>';
+    }
+    out += '<circle class="core" r="13"/>'
+         + '<path class="curl" d="M0-8 C6-8 9-2 6 3 C2 9-7 7-8 0 C-10-9-1-15 7-12"/>'
+         + '</g>';
+    return out;
+  };
+
+  bloom.innerHTML =
+      '<svg class="bloomart" viewBox="62 56 200 226" role="img" aria-label="Two roses">'
+    + '<g class="rose one">'
+    +   '<path class="stem" d="M163 268 C 150 220 128 176 112 132"/>'
+    +   '<path class="leaf" d="M143 212 C 120 208 106 190 108 174 C 128 178 140 194 143 212z"/>'
+    +   '<path class="leaf" d="M152 236 C 174 228 184 210 180 195 C 162 200 152 218 152 236z"/>'
+    +   '<g transform="translate(108 104)">' + head() + '</g>'
+    + '</g>'
+    + '<g class="rose two">'
+    +   '<path class="stem" d="M163 268 C 176 224 198 186 210 146"/>'
+    +   '<path class="leaf" d="M186 214 C 208 208 220 191 217 176 C 199 181 187 197 186 214z"/>'
+    +   '<g transform="translate(210 118)">' + head() + '</g>'
+    + '</g>'
+    + '<path class="tie" d="M150 244 C 158 240 170 240 178 245"/>'
+    + '<path class="tie" d="M152 253 C 159 249 170 249 177 254"/>'
+    + '<g class="petals">' + petals + '</g>'
+    + '</svg>'
+    /* Her name, not whatever she typed to get in — the one he calls her. */
+    + '<p class="bloom-line">For you, ' + esc(CFG.her) + '.</p>';
+  gate.appendChild(bloom);
+  gate.classList.add("blooming");
+  setTimeout(after, 4000);
 }
 
 function onKnown(){
