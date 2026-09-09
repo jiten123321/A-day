@@ -618,8 +618,10 @@ useful question is whether the player **moved** since the last look.
   can fix that: a browser will not begin sound on its own, so it asks for one
   press of play on that side.
 - Not moving, and playing — it has run out. That is Spotify's thirty-second
-  sample, all it gives a browser that is not signed in, and no amount of
-  dragging will carry it further.
+  sample, all the embed gives without Premium signed in on that side, and no
+  amount of dragging will carry it further. The message says so, and points at
+  the way round it that does not need Premium: the same song as a YouTube link
+  in the watch party, which plays in full on both sides.
 
 Our own nudge is not the player moving. Counting it as movement reset the
 stall count every time a correction landed, which kept a dead player looking

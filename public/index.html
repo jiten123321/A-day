@@ -3228,8 +3228,10 @@ ACTS.song = b => {
           ? "Nothing is playing on this side yet. A browser won't start sound on its own — "
             + "press play in the player once and it will fall into step."
           : "This side has stopped at " + Math.round(pos) + " seconds. That is Spotify's sample, "
-            + "which is all it gives a browser that isn't signed in — sign in to Spotify <b>here</b> "
-            + "for the whole song.");
+            + "which is all the embed gives without <b>Premium signed in on this side</b> — signing in "
+            + "here plays the whole song. Without Premium there is no way round it from a web page: "
+            + "put the song on as a YouTube link in the watch party instead, which plays in full for "
+            + "both of you.");
         return;
       }
       if(moved && slip.innerHTML) warn("");          // it caught up; take it back
