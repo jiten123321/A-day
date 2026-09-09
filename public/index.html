@@ -5567,6 +5567,144 @@ function moleGame(host, gbind, gevery, gclean){
 
 
 /* =======================================================================
+   A PERSON, drawn once. Four cabinets needed people in them and the first
+   pass gave every one of them a rounded box with a ball on top, which is a
+   place-holder rather than a character.
+
+   This is a jointed figure: a head that faces where it is going, shoulders,
+   arms that bend at the elbow, legs that bend at the knee, hands and feet.
+   Every part is placed by an angle, so a punch, a climb, a walk and a fall
+   are the same drawing with different numbers — and the far arm and leg are
+   drawn first, in a darker shade, so the body reads as having two sides.
+
+   Everything is drawn facing right and flipped by the canvas, which keeps
+   the pose tables readable: out in front is always zero degrees.
+   ======================================================================= */
+const FIG = {
+  ink: "#243350",
+
+  /* a shade of a colour for the limbs on the far side of the body */
+  far(hex){
+    const n = parseInt(hex.slice(1), 16);
+    const m = v => Math.max(0, Math.round(v * 0.72));
+    return "#" + [m(n >> 16 & 255), m(n >> 8 & 255), m(n & 255)]
+      .map(v => v.toString(16).padStart(2, "0")).join("");
+  },
+
+  /* one limb: upper segment out of (x,y) at a1, lower at a2, ending in a
+     hand or a foot */
+  limb(ctx, x, y, a1, a2, l1, l2, w, col, endR, endCol){
+    const D = Math.PI / 180;
+    const ex = x + Math.cos(a1*D) * l1, ey = y + Math.sin(a1*D) * l1;
+    const hx = ex + Math.cos(a2*D) * l2, hy = ey + Math.sin(a2*D) * l2;
+    ctx.strokeStyle = FIG.ink; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.lineWidth = w + 1.6;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.lineTo(hx,hy); ctx.stroke();
+    ctx.strokeStyle = col; ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.lineTo(hx,hy); ctx.stroke();
+    if(endR){
+      ctx.fillStyle = endCol || col; ctx.strokeStyle = FIG.ink; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(hx, hy, endR, 0, 7); ctx.fill(); ctx.stroke();
+    }
+    return [hx, hy];
+  },
+
+  /* o: x, y (the ground under the feet), face, h, shirt, trews, skin, hair,
+        pose {fa, ba, fl, bl} as [upper, lower] degrees, tilt, down */
+  draw(ctx, o){
+    const h = o.h || 46, f = (o.face || 1) < 0 ? -1 : 1;
+    const skin = o.skin || "#E8B98C", shirt = o.shirt || "#DE8C0E";
+    const trews = o.trews || "#3B4A6B", hair = o.hair || "#3A2416";
+    const x = o.x, y = o.y, p = o.pose || {};
+    const hipY = y - h*0.46, shoY = y - h*0.76, headY = y - h*0.90;
+    const hr = h*0.125;
+    const armT = h*0.21, armF = h*0.19, legT = h*0.26, legS = h*0.23;
+
+    ctx.save();
+    if(o.shadow !== false){
+      ctx.fillStyle = "rgba(36,51,80,.16)";
+      ctx.beginPath(); ctx.ellipse(x, y, h*0.26, h*0.055, 0, 0, 7); ctx.fill();
+    }
+    ctx.translate(x, y); ctx.scale(f, 1); ctx.translate(-x, -y);
+    if(o.tilt){ ctx.translate(x, hipY); ctx.rotate(o.tilt * Math.PI/180); ctx.translate(-x, -hipY); }
+    ctx.globalAlpha = o.fade || 1;
+
+    /* the far side of the body, first and darker */
+    FIG.limb(ctx, x - h*0.05, shoY, (p.ba||[100,80])[0], (p.ba||[100,80])[1],
+             armT, armF, h*0.072, FIG.far(shirt), h*0.052, FIG.far(skin));
+    FIG.limb(ctx, x - h*0.05, hipY, (p.bl||[86,90])[0], (p.bl||[86,90])[1],
+             legT, legS, h*0.082, FIG.far(trews), h*0.058, "#2A1D12");
+
+    /* neck */
+    ctx.strokeStyle = FIG.ink; ctx.lineWidth = h*0.075 + 1.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x + h*0.015, shoY - h*0.02); ctx.lineTo(x + h*0.02, headY + hr*0.6); ctx.stroke();
+    ctx.strokeStyle = skin; ctx.lineWidth = h*0.075;
+    ctx.beginPath(); ctx.moveTo(x + h*0.015, shoY - h*0.02); ctx.lineTo(x + h*0.02, headY + hr*0.6); ctx.stroke();
+
+    /* trunk: shoulders wider than the waist */
+    ctx.fillStyle = shirt; ctx.strokeStyle = FIG.ink; ctx.lineWidth = Math.max(1.3, h*0.036);
+    ctx.beginPath();
+    ctx.moveTo(x - h*0.145, shoY + h*0.02);
+    ctx.quadraticCurveTo(x, shoY - h*0.07, x + h*0.145, shoY + h*0.02);
+    ctx.quadraticCurveTo(x + h*0.13, hipY - h*0.06, x + h*0.105, hipY + h*0.01);
+    ctx.lineTo(x - h*0.105, hipY + h*0.01);
+    ctx.quadraticCurveTo(x - h*0.13, hipY - h*0.06, x - h*0.145, shoY + h*0.02);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    /* a belt, so the legs start somewhere */
+    ctx.strokeStyle = "rgba(36,51,80,.35)"; ctx.lineWidth = Math.max(1, h*0.03);
+    ctx.beginPath(); ctx.moveTo(x - h*0.10, hipY - h*0.01); ctx.lineTo(x + h*0.10, hipY - h*0.01); ctx.stroke();
+
+    /* the near side */
+    FIG.limb(ctx, x + h*0.05, hipY, (p.fl||[94,88])[0], (p.fl||[94,88])[1],
+             legT, legS, h*0.088, trews, h*0.062, "#2A1D12");
+    FIG.limb(ctx, x + h*0.05, shoY, (p.fa||[92,72])[0], (p.fa||[92,72])[1],
+             armT, armF, h*0.078, shirt, h*0.056, skin);
+
+    /* head, turned the way it is going */
+    ctx.fillStyle = skin; ctx.strokeStyle = FIG.ink; ctx.lineWidth = Math.max(1.3, h*0.036);
+    ctx.beginPath(); ctx.arc(x + h*0.02, headY, hr, 0, 7); ctx.fill(); ctx.stroke();
+    /* Hair as a cap across the top and a tuft down the back. The first
+       version closed its path across the face and filled the lot, which
+       left every one of them looking away from you. */
+    const hx = x + h*0.02;
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.arc(hx, headY, hr*1.04, Math.PI*0.80, Math.PI*1.90);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(hx - hr*0.80, headY - hr*0.35);
+    ctx.quadraticCurveTo(hx - hr*1.35, headY + hr*0.85, hx - hr*0.45, headY + hr*0.80);
+    ctx.lineTo(hx - hr*0.25, headY - hr*0.15);
+    ctx.closePath(); ctx.fill();
+    if(!o.down){
+      ctx.fillStyle = FIG.ink;
+      ctx.beginPath(); ctx.arc(hx + hr*0.42, headY - hr*0.10, Math.max(0.9, hr*0.17), 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(36,51,80,.5)"; ctx.lineWidth = Math.max(0.9, h*0.016);
+      ctx.beginPath();
+      ctx.moveTo(hx + hr*0.20, headY + hr*0.48); ctx.lineTo(hx + hr*0.62, headY + hr*0.42);
+      ctx.stroke();
+    } else {                                       /* out cold: crosses for eyes */
+      ctx.strokeStyle = FIG.ink; ctx.lineWidth = Math.max(1, hr*0.2);
+      const e = hr*0.22, ex2 = hx + hr*0.40;
+      ctx.beginPath();
+      ctx.moveTo(ex2 - e, headY - e); ctx.lineTo(ex2 + e, headY + e);
+      ctx.moveTo(ex2 + e, headY - e); ctx.lineTo(ex2 - e, headY + e);
+      ctx.stroke();
+    }
+    ctx.restore();
+  },
+
+  /* legs that swing while walking, and hang while standing */
+  walk(t, on){
+    const s = on ? Math.sin(t * 9) : 0, c = on ? Math.cos(t * 9) : 0;
+    return { fl: [94 + s*26, 88 + Math.max(0, c)*22],
+             bl: [86 - s*26, 92 + Math.max(0, -c)*22],
+             fa: [92 - s*20, 72 - s*10],
+             ba: [100 + s*20, 80 + s*10] };
+  }
+};
+
+/* =======================================================================
    FOUR MORE CABINETS, in the shape of four arcade machines everybody
    knows. They are not those machines: the names, the characters and the
    artwork of Double Dragon, Donkey Kong, Contra and Street Fighter II all
@@ -5691,45 +5829,27 @@ function fightGame(host, gbind, gevery, gclean){
     net.say(w);
   };
 
+  /* one pose table, read off the state the fighter is in */
+  /* fists up, feet apart — a fighter standing like one rather than
+     waiting for a bus */
+  const POSE = {
+    idle:  { fa:[14,-38],  ba:[26,-54],  fl:[78,86],  bl:[106,96] },
+    block: { fa:[-18,-72], ba:[-6,-80],  fl:[84,88],  bl:[102,94] },
+    punch: { fa:[2,0],     ba:[20,-70],  fl:[74,88],  bl:[110,96] },
+    kick:  { fa:[140,168], ba:[110,150], fl:[4,0],    bl:[96,92] },
+    hurt:  { fa:[-70,-30], ba:[-50,-20], fl:[100,80], bl:[70,102] }
+  };
   const body = (ctx, f, side) => {
-    const c = side === "her" ? "#DE8C0E" : "#17796C";
-    const dark = side === "her" ? "#8A5407" : "#0C4A41";
-    const x = f.x, y = f.y, up = f.st === "hurt" ? 4 : 0;
-    ctx.save(); ctx.translate(x, y + up);
-    ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
-    /* legs */
-    const stride = f.st === "walk" ? 8 : 4;
-    ctx.beginPath(); ctx.moveTo(0,-26); ctx.lineTo(-stride, 0); ctx.moveTo(0,-26); ctx.lineTo(stride, 0); ctx.stroke();
-    /* body */
-    ctx.fillStyle = c;
-    ARC.round(ctx, -11, -52, 22, 28, 7);
-    /* arms, drawn from the shoulder OUT — short ones sat inside the torso
-       and read as a chevron printed on his shirt */
-    ctx.strokeStyle = dark; ctx.lineWidth = 5;
-    ctx.beginPath();
-    if(f.st === "block"){
-      ctx.moveTo(f.face*8,-48); ctx.lineTo(f.face*20,-56);
-      ctx.moveTo(f.face*8,-40); ctx.lineTo(f.face*20,-46);
-    } else if(f.st === "punch"){
-      ctx.moveTo(f.face*6,-46); ctx.lineTo(f.face*44,-46);
-      ctx.moveTo(-f.face*6,-46); ctx.lineTo(-f.face*18,-34);
-    } else if(f.st === "kick"){
-      ctx.moveTo(-f.face*6,-46); ctx.lineTo(-f.face*22,-34);
-      ctx.moveTo(f.face*6,-46); ctx.lineTo(f.face*14,-30);
-    } else {
-      ctx.moveTo(-f.face*8,-46); ctx.lineTo(-f.face*20,-30);
-      ctx.moveTo(f.face*8,-46); ctx.lineTo(f.face*18,-32);
-    }
-    ctx.stroke();
-    if(f.st === "kick"){                              // a leg out in front
-      ctx.beginPath(); ctx.moveTo(0,-26); ctx.lineTo(f.face*50,-30); ctx.stroke();
-    }
-    /* head */
-    ctx.fillStyle = c; ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(f.face*2, -62, 10, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#243350";
-    ctx.beginPath(); ctx.arc(f.face*6, -64, 1.8, 0, 7); ctx.fill();
-    ctx.restore();
+    const t = performance.now() / 1000 + (side === "her" ? 0 : 0.4);
+    const pose = f.st === "walk" ? FIG.walk(t, true) : (POSE[f.st] || POSE.idle);
+    FIG.draw(ctx, {
+      x: f.x, y: f.y, face: f.face, h: 62,
+      shirt: side === "her" ? "#DE8C0E" : "#17796C",
+      trews: side === "her" ? "#7A4A6B" : "#2B4A6B",
+      hair:  side === "her" ? "#3A2416" : "#241A12",
+      pose, tilt: f.st === "hurt" ? -10 : (f.y < FLOOR - 2 ? -4 : 0),
+      down: f.hp <= 0
+    });
   };
 
   const draw = () => {
@@ -5827,6 +5947,7 @@ function kongGame(host, gbind, gevery, gclean){
     if(!me) return;
     SYNC.ev("kong.live", { s: mySide(), n: me.n, l: me.lives, dead: me.dead,
       x: Math.round(me.x), y: Math.round(me.y), i: me.i,
+      climb: !!me.climb, face: me.face || 1, moving: !!me.moving,
       b: me.barrels.map(b => [Math.round(b.x), Math.round(b.y)]) });
   };
   gev("kong.live", m => { if(m && m.s !== mySide()) them = m; });
@@ -5857,8 +5978,9 @@ function kongGame(host, gbind, gevery, gclean){
       if(me.y <= topY){ me.y = topY; me.i += 1; me.climb = false; me.up = Math.max(me.up, me.i); }
       if(me.y >= botY){ me.y = botY; me.climb = false; }
     } else {
-      if(k.left)  me.x = Math.max(10, me.x - 74 * dt);
-      if(k.right) me.x = Math.min(W - 10, me.x + 74 * dt);
+      me.moving = !!(k.left || k.right);
+      if(k.left){  me.x = Math.max(10, me.x - 74 * dt); me.face = -1; }
+      if(k.right){ me.x = Math.min(W - 10, me.x + 74 * dt); me.face = 1; }
       me.y = yOn(me.i)(me.x);
       if(k.up && atLadder){ me.climb = true; me.x = lx; }
       if(k.down && atDown){ me.climb = true; me.x = lxDown; me.i -= 1; me.y = yOn(me.i + 1)(me.x); me.i += 0; }
@@ -5927,19 +6049,21 @@ function kongGame(host, gbind, gevery, gclean){
       ctx.fillStyle = "#8A5407"; ctx.beginPath(); ctx.arc(x, y - 6, 6, 0, 7); ctx.fill();
       ctx.strokeStyle = "#4A3117"; ctx.lineWidth = 1.6; ctx.stroke();
     });
-    ctx.save(); ctx.translate(st.x, st.y);
-    ctx.fillStyle = st.dead ? "#9AA3B4" : "#CF3E57";
-    ARC.round(ctx, -6, -18, 12, 13, 3);
-    ctx.beginPath(); ctx.arc(0, -22, 5.5, 0, 7); ctx.fill();
-    ctx.strokeStyle = "#243350"; ctx.lineWidth = 1.8; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(-4,2); ctx.moveTo(0,-5); ctx.lineTo(4,2); ctx.stroke();
-    ctx.restore();
+    const t = performance.now() / 1000;
+    const pose = st.climb
+      ? { fa:[-70,-84], ba:[-104,-92], fl:[110,60], bl:[70,110] }   /* hands up the rungs */
+      : FIG.walk(t, !!st.moving);
+    FIG.draw(ctx, { x: st.x, y: st.y, face: st.face || 1, h: 30,
+                    shirt: st.dead ? "#9AA3B4" : "#CF3E57",
+                    trews: st.dead ? "#7C8598" : "#2B4A6B", hair: "#2A1D12",
+                    pose, down: !!st.dead, shadow: !st.climb });
     ctx.fillStyle = "rgba(36,51,80,.6)"; ctx.font = "11px system-ui, sans-serif";
     ctx.fillText("♥".repeat(Math.max(0, st.l === undefined ? 3 : st.l)), 8, 16);
   };
 
   const draw = () => {
     drawOne(mineUI.s, me && { x:me.x, y:me.y, l:me.lives, dead:me.dead,
+                              climb: me.climb, face: me.face || 1, moving: me.moving,
                               b: me.barrels.map(b => [b.x, b.y]) });
     drawOne(themUI.s, them);
     mineUI.sc.textContent = me ? me.n + (me.dead ? " — done" : "") : "–";
@@ -6073,15 +6197,23 @@ function gunGame(host, gbind, gevery, gclean){
     net.say(w);
   };
 
-  const man = (ctx, p, side) => {
+  const man = (ctx, p, side, k) => {
     if(p.hp <= 0) return;
-    ctx.save(); ctx.translate(p.x, p.y);
-    ctx.fillStyle = side === "her" ? "#DE8C0E" : "#17796C";
-    ARC.round(ctx, -8, -26, 16, 20, 5);
-    ctx.beginPath(); ctx.arc(0, -32, 7, 0, 7); ctx.fill();
-    ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.2; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(0,-6); ctx.lineTo(-5,0); ctx.moveTo(0,-6); ctx.lineTo(5,0);
-    ctx.moveTo(0,-22); ctx.lineTo(p.face * 16, -22); ctx.stroke();
+    const t = performance.now() / 1000 + (side === "her" ? 0 : 0.3);
+    const moving = !!(k && (k.left || k.right));
+    const pose = Object.assign({}, FIG.walk(t, moving && p.y >= FLOOR - 1));
+    pose.fa = [0, 0];                              // the arm that holds it, level
+    if(p.y < FLOOR - 2){ pose.fl = [70, 110]; pose.bl = [100, 78]; }
+    FIG.draw(ctx, {
+      x: p.x, y: p.y, face: p.face, h: 44,
+      shirt: side === "her" ? "#DE8C0E" : "#17796C",
+      trews: "#2B3A5B", hair: side === "her" ? "#3A2416" : "#241A12",
+      pose
+    });
+    /* what is in the hand */
+    ctx.save(); ctx.translate(p.x, p.y); ctx.scale(p.face, 1);
+    ctx.fillStyle = "#3B4657"; ctx.strokeStyle = FIG.ink; ctx.lineWidth = 1.2;
+    ctx.fillRect(8, -35, 20, 4); ctx.strokeRect(8, -35, 20, 4);
     ctx.restore();
   };
 
@@ -6091,18 +6223,18 @@ function gunGame(host, gbind, gevery, gclean){
     ctx.fillStyle = "#D6E3D4"; ctx.fillRect(0, FLOOR, W, H - FLOOR);
     ctx.strokeStyle = "rgba(36,51,80,.22)"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(0, FLOOR); ctx.lineTo(W, FLOOR); ctx.stroke();
-    (w.foes || []).forEach(f => {
-      ctx.save(); ctx.translate(f.x, f.y);
-      ctx.fillStyle = "#7A4A6B";
-      ARC.round(ctx, -8, -24, 16, 18, 4);
-      ctx.beginPath(); ctx.arc(0, -29, 6, 0, 7); ctx.fill();
-      ctx.restore();
+    (w.foes || []).forEach((f, i) => {
+      const t = performance.now() / 1000 + i * 0.6;
+      const pose = Object.assign({}, FIG.walk(t, true));
+      pose.fa = [0, 0];
+      FIG.draw(ctx, { x: f.x, y: f.y, face: f.v < 0 ? -1 : 1, h: 42,
+                      shirt: "#7A4A6B", trews: "#3B3A55", hair: "#241A12", pose });
     });
     ctx.fillStyle = "#B4700D";
     (w.ours || []).forEach(b => ctx.fillRect(b.x - 4, b.y - 2, 8, 4));
     ctx.fillStyle = "#CF3E57";
     (w.theirs || []).forEach(b => ctx.fillRect(b.x - 4, b.y - 2, 8, 4));
-    man(ctx, w.her, "her"); man(ctx, w.you, "you");
+    man(ctx, w.her, "her", net.held.her); man(ctx, w.you, "you", net.held.you);
     if(w.over){
       ctx.fillStyle = "rgba(250,244,228,.72)"; ctx.fillRect(0,0,W,H);
       ctx.fillStyle = w.over === "clear" ? "#17796C" : "#CF3E57";
@@ -6205,7 +6337,8 @@ function brawlGame(host, gbind, gevery, gclean){
         w.spawn = Math.max(0.4, 1.3 - w.wave * 0.1);
         const side = Math.random() < 0.5 ? -18 : W + 18;
         w.foes.push({ x: side, z: TOPZ + Math.random() * (BOTZ - TOPZ),
-                      hp: 1 + (w.wave > 3 ? 1 : 0), sw: 0, hurt: 0 });
+                      hp: 1 + (w.wave > 3 ? 1 : 0), sw: 0, hurt: 0,
+                      face: side < 0 ? 1 : -1 });
       }
 
       w.foes.forEach(f => {
@@ -6214,6 +6347,7 @@ function brawlGame(host, gbind, gevery, gclean){
           .sort((a, b2) => Math.hypot(a.x-f.x, a.z-f.z) - Math.hypot(b2.x-f.x, b2.z-f.z))[0];
         if(!p) return;
         const gap = p.x - f.x, dz = p.z - f.z;
+        if(gap) f.face = gap > 0 ? 1 : -1;
         if(Math.abs(gap) > 26) f.x += Math.sign(gap) * (36 + w.wave * 3) * dt;
         if(Math.abs(dz) > 4) f.z += Math.sign(dz) * 44 * dt;
         f.sw -= dt;
@@ -6234,24 +6368,19 @@ function brawlGame(host, gbind, gevery, gclean){
     net.say(w);
   };
 
-  const fig = (ctx, p, fill, swing) => {
-    ctx.save(); ctx.translate(p.x, p.z);
-    const scale = 0.78 + (p.z - TOPZ) / (BOTZ - TOPZ) * 0.34;   // further up the street is smaller
-    ctx.scale(scale, scale);
-    ctx.globalAlpha = p.hurt > 0 ? 0.55 : 1;
-    ctx.fillStyle = "rgba(36,51,80,.14)";
-    ctx.beginPath(); ctx.ellipse(0, 2, 12, 4, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = fill;
-    ARC.round(ctx, -9, -30, 18, 24, 5);
-    ctx.beginPath(); ctx.arc(0, -36, 7.5, 0, 7); ctx.fill();
-    ctx.strokeStyle = "#243350"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(0,-6); ctx.lineTo(-5,0); ctx.moveTo(0,-6); ctx.lineTo(5,0);
-    if(swing > 0){ ctx.moveTo(0,-24); ctx.lineTo(p.face * 26, -26); }
-    else { ctx.moveTo(0,-24); ctx.lineTo(p.face * 10, -14); }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.restore();
+  const fig = (ctx, p, fill, swing, moving, seed) => {
+    const t = performance.now() / 1000 + (seed || 0);
+    const pose = Object.assign({}, FIG.walk(t, !!moving));
+    if(swing > 0){ pose.fa = [-6, -2]; pose.ba = [128, 150]; }
+    else if(p.hurt > 0){ pose.fa = [70, 24]; pose.ba = [96, 40]; }
+    /* further up the street is further away, so smaller */
+    const near = (p.z - TOPZ) / (BOTZ - TOPZ);
+    FIG.draw(ctx, {
+      x: p.x, y: p.z, face: p.face || 1, h: 40 + near * 16,
+      shirt: fill, trews: "#3B3A55", hair: "#2A1D12",
+      pose, fade: p.hurt > 0 ? 0.6 : 1, down: p.hp <= 0,
+      tilt: p.hurt > 0 ? -8 : 0
+    });
   };
 
   const draw = () => {
@@ -6260,16 +6389,25 @@ function brawlGame(host, gbind, gevery, gclean){
     ctx.fillStyle = "#DCCFAF"; ctx.fillRect(0, TOPZ - 26, W, H - (TOPZ - 26));
     ctx.strokeStyle = "rgba(36,51,80,.18)"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(0, TOPZ - 26); ctx.lineTo(W, TOPZ - 26); ctx.stroke();
-    for(let x = 18; x < W - 20; x += 58){                // shutters along the back
-      ctx.fillStyle = "rgba(36,51,80,.10)";
-      ctx.fillRect(x, TOPZ - 62, 32, 40);
+    /* shutters along the back, kept above the pavement line rather than
+       straddling it and floating */
+    for(let x = 16; x < W - 22; x += 56){
+      ctx.fillStyle = "rgba(36,51,80,.13)";
+      ctx.fillRect(x, TOPZ - 74, 34, 44);
+      ctx.strokeStyle = "rgba(36,51,80,.22)"; ctx.lineWidth = 1.4;
+      ctx.strokeRect(x, TOPZ - 74, 34, 44);
+      ctx.beginPath();
+      for(let y = TOPZ - 68; y < TOPZ - 30; y += 7){ ctx.moveTo(x + 2, y); ctx.lineTo(x + 32, y); }
+      ctx.stroke();
     }
     const all = (w.foes || []).map(f => ({ f, z: f.z, kind: "foe" }))
       .concat([{ f: w.her, z: w.her.z, kind: "her" }, { f: w.you, z: w.you.z, kind: "you" }])
       .sort((a, b2) => a.z - b2.z);                      // nearer the front, drawn later
-    all.forEach(o => {
-      if(o.kind === "foe"){ if(o.f.hp > 0) fig(ctx, o.f, "#7A4A6B", o.f.sw > 0.9 ? 1 : 0); }
-      else if(o.f.hp > 0) fig(ctx, o.f, o.kind === "her" ? "#DE8C0E" : "#17796C", o.f.sw);
+    all.forEach((o, i) => {
+      const k = o.kind === "foe" ? null : (net.held[o.kind] || {});
+      const moving = k ? !!(k.left || k.right || k.up || k.down) : o.f.hurt <= 0;
+      if(o.kind === "foe"){ if(o.f.hp > 0) fig(ctx, o.f, "#7A4A6B", o.f.sw > 0.9 ? 1 : 0, moving, i * 0.7); }
+      else if(o.f.hp > 0) fig(ctx, o.f, o.kind === "her" ? "#DE8C0E" : "#17796C", o.f.sw, moving, o.kind === "her" ? 0 : 0.4);
     });
     if(w.over){
       ctx.fillStyle = "rgba(250,244,228,.72)"; ctx.fillRect(0,0,W,H);
