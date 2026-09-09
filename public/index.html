@@ -454,17 +454,27 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .moles .hole.hers{background:rgba(228,179,60,.4)}
 .moles .hole.yours{background:rgba(126,208,195,.45)}
 
-button[data-bi]::before{
-  content:"";display:inline-block;width:15px;height:15px;flex:0 0 auto;
-  margin-right:8px;vertical-align:-2px;opacity:.9;
-  background:currentColor;                       /* so it follows the label */
-  -webkit-mask:var(--bi) center/contain no-repeat;
-          mask:var(--bi) center/contain no-repeat;
+/* The mark lives in ::after, never ::before — ::before on every button is the
+   hand-drawn border, absolutely positioned with the wobble filter on it, and
+   the real border is forced transparent underneath. Taking ::before for the
+   icon left the ghost buttons with no outline at all and dropped the mark
+   outside the pill, where the border used to be.
+
+   Flex order pulls it in front of the label. Guarded, because without masking
+   the background line paints a solid block instead of an icon. */
+@supports ((-webkit-mask-image: url("")) or (mask-image: url(""))){
+  button[data-bi]{ display:inline-flex;align-items:center;justify-content:center;gap:8px }
+  button[data-bi]::after{
+    content:"";order:-1;width:15px;height:15px;flex:0 0 auto;opacity:.9;
+    background:currentColor;                     /* so it follows the label */
+    -webkit-mask:var(--bi) center/contain no-repeat;
+            mask:var(--bi) center/contain no-repeat;
+  }
+  .chat-tools button[data-bi], .cbtns button[data-bi]{ gap:5px }
+  .chat-tools button[data-bi]::after, .cbtns button[data-bi]::after{ width:13px;height:13px }
+  .open[data-bi]{ gap:7px }
+  .open[data-bi]::after{ width:14px;height:14px }
 }
-.chat-tools button[data-bi]::before, .cbtns button[data-bi]::before{
-  width:13px;height:13px;margin-right:5px
-}
-.open[data-bi]::before{width:14px;height:14px;margin-right:7px}
 
 /* the record shop */
 .spot{margin:16px 0 6px}
@@ -3187,13 +3197,13 @@ ACTS.song = b => {
      moment to bite, the player keeps reporting where it used to be, so the
      next tick seeks again — a sawtooth you can hear. Nudge, then leave it
      alone long enough to settle. */
-  let settle = 0, nudges = 0;
+  let settle = 0, still = 0, lastPos = -1;
   const syncSp = () => {
     const id = SYNC.get("sp.id", "");
     if(!id) return;
     if(!ctrl){ build(id); return; }
     if(on !== id){
-      on = id; nudges = 0; warn("");
+      on = id; still = 0; lastPos = -1; warn("");
       settle = SYNC.now() + 4000;                    // a fresh track needs loading
       try { ctrl.loadUri("spotify:track:" + id); } catch(_){}
       return;
@@ -3204,17 +3214,34 @@ ACTS.song = b => {
     try {
       if(going && paused) ctrl.play();
       if(!going && !paused) ctrl.pause();
-      const off = pos - want;
-      if(SYNC.now() > settle && Math.abs(off) > 3){
-        ctrl.seek(Math.max(0, want + 0.4));          // a beat of lead for the seek itself
+
+      /* Whether it MOVED since the last look is the useful question. Falling
+         behind while playing is drift, and worth a nudge. Not moving at all
+         is one of two things, and they need opposite answers — so say which
+         rather than dragging at something that cannot go anywhere. */
+      const moved = Math.abs(pos - lastPos) > 0.15;
+      lastPos = pos;
+      still = (going && !moved) ? still + 1 : 0;
+
+      if(going && still >= 4){
+        warn(paused
+          ? "Nothing is playing on this side yet. A browser won't start sound on its own — "
+            + "press play in the player once and it will fall into step."
+          : "This side has stopped at " + Math.round(pos) + " seconds. That is Spotify's sample, "
+            + "which is all it gives a browser that isn't signed in — sign in to Spotify <b>here</b> "
+            + "for the whole song.");
+        return;
+      }
+      if(moved && slip.innerHTML) warn("");          // it caught up; take it back
+
+      if(SYNC.now() > settle && Math.abs(pos - want) > 3){
+        const to = Math.max(0, want + 0.4);          // a beat of lead for the seek itself
+        ctrl.seek(to);
         settle = SYNC.now() + 6000;
-        /* Falling behind again and again is almost never the network. It is
-           this browser being handed Spotify's thirty-second sample, which
-           cannot follow a whole song however often we drag it. */
-        if(off < 0 && ++nudges >= 3)
-          warn("This side keeps falling behind. If you are not signed in to Spotify in <b>this</b> browser, "
-             + "it is only being given the thirty-second sample — which can't follow a whole song. "
-             + "Sign in here and press play again.");
+        /* Our own nudge is not the player moving. Counting it as movement
+           reset the stall count every time and kept a dead player looking
+           merely late. */
+        lastPos = to;
       }
     } catch(_){}
   };

@@ -95,6 +95,18 @@ text changes, because setting `textContent` takes the whole child with it.
 `MutationObserver` catches buttons as new activities open. Add a button
 anywhere and it gets its icon without anyone remembering to ask.
 
+**The mark lives in `::after`, never `::before`.** Every button, card, input
+and tile on this page draws its hand-drawn outline with an absolutely
+positioned `::before` carrying a wobble filter, and the real border is forced
+transparent underneath. Taking `::before` for the icon left the ghost buttons
+with no outline at all — invisible on the paper — and dropped the mark
+outside the pill, where the border used to be. Flex `order` pulls the
+`::after` in front of the label instead.
+
+The rule is also guarded by `@supports`: without masking, that `background`
+line paints a solid block in the text colour rather than an icon. No mask,
+no mark.
+
 **The mark is painted, not parented.** It began as a child `<span>`, which
 looked identical and was quietly wrong: whack-a-mole rewrites its label
 eleven times a second, and every `textContent` assignment threw the child
@@ -598,10 +610,20 @@ tick seeks again — a stutter you can hear. It now nudges at most once every
 six seconds, only past three seconds of drift, with a beat of lead for the
 seek itself, and it leaves a freshly loaded track alone for four seconds.
 
-Falling behind again and again is almost never the network. It is that
-browser being handed Spotify's thirty-second sample, which cannot follow a
-whole song however often it is dragged forward. After three corrections in
-the same direction the panel says so, rather than tugging at it forever.
+Falling behind is not one problem, and the two need opposite answers, so the
+useful question is whether the player **moved** since the last look.
+
+- Moving but late — drift. Nudge it and say nothing.
+- Not moving, and paused — the browser is refusing to start. Nothing here
+  can fix that: a browser will not begin sound on its own, so it asks for one
+  press of play on that side.
+- Not moving, and playing — it has run out. That is Spotify's thirty-second
+  sample, all it gives a browser that is not signed in, and no amount of
+  dragging will carry it further.
+
+Our own nudge is not the player moving. Counting it as movement reset the
+stall count every time a correction landed, which kept a dead player looking
+merely late — so a seek sets the last-seen position to where it was aimed.
 
 **Not verified here.** `api.spotify.com`, `accounts.spotify.com` and
 `open.spotify.com` are all unreachable from the sandbox this was built in, so
