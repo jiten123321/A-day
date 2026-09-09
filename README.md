@@ -169,6 +169,49 @@ find out they disagree — the server has one of them stored, but neither
 learns which. Anything that needs two tabs to agree has to be written so they
 never race for the same key.
 
+### Whack-a-mole, out of the ground
+
+It began as a mouse emoji sliding up inside a flat grey circle, which is a
+diagram of whack-a-mole rather than the thing itself. It is now nine mounds of
+earth with holes dug into them, and the mole comes up out of one.
+
+**The realism is entirely drawing order**, repeated everywhere else it is
+needed:
+
+1. the mound, then the dark pit inside it;
+2. the mole;
+3. the front of the mound, painted over the mole;
+4. its paws, painted over that.
+
+So it emerges from behind the earth and grips the rim, instead of sliding
+across a circle. Two things had to be got right for that to hold:
+
+The occluder is **fill only, no stroke**. A closed path draws its own straight
+closing edge, and stroking it laid a hard line across the middle of every
+mound — nine mushrooms rather than nine holes.
+
+The clip that keeps a resting mole underground sits on a **parent group that
+does not move**. Put on the mole itself, it travels with the mole's own
+transform and clips nothing at all: every mole sat parked below its mound in
+plain sight. There is a test that reads the paint order and checks the clip's
+owner is still.
+
+**What it plays like now.** It gets harder as the thirty seconds run down —
+sooner, and gone quicker, so the last ten seconds are the ones worth winning.
+Roughly one in nine is golden, worth three and gone sooner still. A hit
+squashes the mole, crosses its eyes, throws up dirt, flashes a ring in the
+colour of whoever got there and knocks — a short burst of noise through a low
+band, so it lands like wood on wood rather than ringing like a message.
+
+**Whacking bare earth costs you a third of a second.** Without that, the
+winning strategy is to hammer all nine holes as fast as your hand allows,
+which is not a game. The stun is held by the same side that runs the round, so
+it cannot be shrugged off by the tab that did the flailing.
+
+On a desktop the pointer becomes a mallet that swings where it lands. Only
+where there is a real pointer to replace: `(hover:hover) and (pointer:fine)`,
+so a phone keeps its own tap.
+
 **Two things that bit, both worth keeping in mind.**
 
 Grid movement was written as "if you are within 0.06 of a cell centre, you may
