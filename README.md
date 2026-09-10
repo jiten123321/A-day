@@ -476,8 +476,12 @@ the page. Every existing rule therefore keeps meaning what it meant.
 The gate asks who is there before anything else, so the day knows which side of
 it you are on. **Two doors, not a form.** There are only two people this was
 made for, and neither of them should have to type their own name into their own
-present. One door each, with their initial on it and their side of the day
-underneath; one press and you are in.
+present. An initial and a name each, and one press is the whole of it.
+
+Nothing else is on the gate. There was a line under each name saying whose side
+it was, and a *Neither of us?* link under both, and neither survived: two names
+and two circles need no caption, and a door with a word under it is a door you
+read before you press. What is left is the two of them and the question.
 
 The doors say `CFG.herDoor` and `CFG.youDoor` — the names they actually answer
 to, rather than the pet names the rest of the site uses. Whichever door is
@@ -486,12 +490,13 @@ typed name land you in exactly the same chair.
 
 **Whoever came through last time wears a tag.** The remembered name marks its
 own door rather than filling a field, so the usual door is the easy one without
-anybody having to read anything.
+anybody having to read anything. The tag is in the door's `aria-label` too,
+because that label replaces everything inside the button.
 
-**A quiet third way.** *Neither of us?* opens the old text field, for anybody
-who was sent the link. It is a link rather than a box because a form shown to
-everybody is a form the two of them have to walk past every time. A guest who
-has been here before finds it already open and already filled in.
+**The name box is still in the page, just not on show.** Anybody who is neither
+of them can still be let in through it, and a guest who has been here before
+finds it open and filled in on their way back. There is no longer a link to it
+from the gate — the two doors are the gate now.
 
 The names themselves come from `CFG.her` and `CFG.you` — and from `CFG.herAlso`
 and `CFG.youAlso`, which is the list of other things either of you might
@@ -994,9 +999,8 @@ Everyone on the same URL is in the same room. The default room is `same-sun`;
 `?r=anything` makes a separate one. Send the other person the exact link.
 
 Which door you press matters: it takes that side of the two-sided activities
-(whose turn it is, whose four dishes, whose drawing pad). Typing `Ladoo`,
-`Isha`, `Jitendra` or `Jiten` through *Neither of us?* does the same thing. Any
-other name joins as a guest and shares the second seat.
+(whose turn it is, whose four dishes, whose drawing pad). Any other name — set
+through the hidden name box — joins as a guest and shares the second seat.
 
 ## Running it locally
 
