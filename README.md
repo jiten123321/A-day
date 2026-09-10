@@ -474,7 +474,26 @@ the page. Every existing rule therefore keeps meaning what it meant.
 ## The way in
 
 The gate asks who is there before anything else, so the day knows which side of
-it you are on. Names come from `CFG.her` and `CFG.you` — and from `CFG.herAlso`
+it you are on. **Two doors, not a form.** There are only two people this was
+made for, and neither of them should have to type their own name into their own
+present. One door each, with their initial on it and their side of the day
+underneath; one press and you are in.
+
+The doors say `CFG.herDoor` and `CFG.youDoor` — the names they actually answer
+to, rather than the pet names the rest of the site uses. Whichever door is
+pressed sets a name, and the name is what the room broadcasts, so a door and a
+typed name land you in exactly the same chair.
+
+**Whoever came through last time wears a tag.** The remembered name marks its
+own door rather than filling a field, so the usual door is the easy one without
+anybody having to read anything.
+
+**A quiet third way.** *Neither of us?* opens the old text field, for anybody
+who was sent the link. It is a link rather than a box because a form shown to
+everybody is a form the two of them have to walk past every time. A guest who
+has been here before finds it already open and already filled in.
+
+The names themselves come from `CFG.her` and `CFG.you` — and from `CFG.herAlso`
 and `CFG.youAlso`, which is the list of other things either of you might
 actually type. Without those, typing a real name instead of the pet name in
 `CFG` lands you on the page as a stranger — *someone else's day, but stay* —
@@ -974,9 +993,10 @@ right and the answer still does not come, the box will say what Google said.
 Everyone on the same URL is in the same room. The default room is `same-sun`;
 `?r=anything` makes a separate one. Send the other person the exact link.
 
-Names matter: typing `Ladoo` or `Jitendra` at the gate takes that side of the
-two-sided activities (whose turn it is, whose four dishes, whose drawing pad).
-Any other name joins as a guest and shares the second seat.
+Which door you press matters: it takes that side of the two-sided activities
+(whose turn it is, whose four dishes, whose drawing pad). Typing `Ladoo`,
+`Isha`, `Jitendra` or `Jiten` through *Neither of us?* does the same thing. Any
+other name joins as a guest and shares the second seat.
 
 ## Running it locally
 

@@ -969,6 +969,45 @@ input[type=text]::placeholder{color:rgba(36,51,80,.35)}
 .gate-inner input{margin-bottom:16px;padding:14px 18px;font-size:1.05rem}
 .gate-inner .btn{width:100%;padding:14px}
 .gate-inner .btn[disabled]{opacity:.35}
+
+/* Two doors. Neither of them types their own name into their own present. */
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 4px}
+.door{
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;
+  background:var(--indigo);color:var(--ink);
+  border:2px solid var(--line);border-radius:20px;
+  padding:20px 10px 15px;cursor:pointer;font:inherit;text-align:center;
+  transition:transform .14s,border-color .18s,background .18s;
+}
+.door:hover, .door:focus-visible{transform:translateY(-3px);background:var(--indigo-2)}
+#doorHer:hover, #doorHer:focus-visible{border-color:var(--rose)}
+#doorYou:hover, #doorYou:focus-visible{border-color:var(--teal)}
+.door:active{transform:translateY(-1px) scale(.99)}
+.door-mark{
+  width:54px;height:54px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--serif);font-size:2rem;line-height:1;color:#FAF4E4;
+}
+#doorHer .door-mark{background:var(--rose)}
+#doorYou .door-mark{background:var(--teal)}
+.door-name{font-size:1.2rem;font-weight:600;line-height:1.1}
+.door-sub{color:var(--muted);font-size:.8rem;line-height:1.2}
+/* Whoever came through this door last time, so the usual one is the easy one. */
+.door-back{
+  position:absolute;top:-9px;right:10px;display:none;
+  background:var(--marigold);color:#12203F;
+  font-size:.66rem;letter-spacing:.05em;padding:2px 8px;border-radius:999px;
+}
+.door.back .door-back{display:block}
+.door.back{border-color:var(--marigold)}
+
+.gate-else{margin:14px 0 0;text-align:center}
+.linky{
+  background:none;border:none;padding:4px 6px;color:var(--muted);
+  font:inherit;font-size:.86rem;text-decoration:underline;
+  text-underline-offset:3px;cursor:pointer;
+}
+.linky:hover{color:var(--mango)}
+.gate-form{margin-top:16px}
 .hello{color:var(--mango)}
 
 @media (max-width:640px){
@@ -1396,8 +1435,25 @@ input[type=text], .close, .open{
     <p class="gate-eyebrow">before anything else</p>
     <h2>Who's there?</h2>
     <p class="gate-line">So the day knows which side of it you're on.</p>
-    <input type="text" id="gateName" placeholder="your name" autocomplete="off" spellcheck="false">
-    <button class="btn" id="gateGo" disabled>Start the day</button>
+    <div class="doors">
+      <button class="door" id="doorHer" type="button">
+        <span class="door-mark"></span>
+        <strong class="door-name"></strong>
+        <span class="door-sub">her side of it</span>
+        <span class="door-back">last time</span>
+      </button>
+      <button class="door" id="doorYou" type="button">
+        <span class="door-mark"></span>
+        <strong class="door-name"></strong>
+        <span class="door-sub">his side of it</span>
+        <span class="door-back">last time</span>
+      </button>
+    </div>
+    <p class="gate-else"><button type="button" class="linky" id="gateElse">Neither of us?</button></p>
+    <div class="gate-form" id="gateForm" hidden>
+      <input type="text" id="gateName" placeholder="your name" autocomplete="off" spellcheck="false">
+      <button class="btn" id="gateGo" disabled>Start the day</button>
+    </div>
   </div>
 </div>
 
@@ -1554,6 +1610,12 @@ const CFG = {
      your own present. Case does not matter. */
   herAlso: ["Isha"],
   youAlso: ["Jiten"],
+
+  /* What the two doors on the way in say. Neither of you should have to
+     type a name into your own present. The seating still accepts every name
+     above, so a door and a typed name land you in the same chair. */
+  herDoor: "Isha",
+  youDoor: "Jiten",
 
   // 15:00 quiz. answer = index of the correct option (0,1,2,3)
   quiz: [
@@ -8004,15 +8066,35 @@ ACTS.dare = b => {
 /* ---- who is here ---- */
 function nameGate(){
   const gate = $("#gate"), inp = $("#gateName"), go = $("#gateGo");
+  const form = $("#gateForm"), other = $("#gateElse");
+  const doors = { her: $("#doorHer"), you: $("#doorYou") };
+
+  /* The two doors say the names they answer to, out of CFG. */
+  const label = side => (side === "her" ? CFG.herDoor || CFG.her : CFG.youDoor || CFG.you);
+  ["her","you"].forEach(side => {
+    const d = doors[side], name = label(side);
+    d.querySelector(".door-name").textContent = name;
+    d.querySelector(".door-mark").textContent = (name[0] || "?").toUpperCase();
+    d.setAttribute("aria-label", "Start the day as " + name);
+    d.addEventListener("click", () => enter(name));
+  });
+
+  /* Anybody who is neither of them can still get in, they just have to say
+     so. Two doors and a quiet third way is kinder than a form for everyone. */
+  other.addEventListener("click", () => {
+    form.hidden = false;
+    other.parentNode.hidden = true;
+    inp.focus();
+  });
+
   const check = () => go.disabled = !inp.value.trim();
   inp.addEventListener("input", check);
-  inp.addEventListener("keydown", e => { if(e.key === "Enter" && inp.value.trim()) enter(); });
-  go.addEventListener("click", enter);
-  setTimeout(() => inp.focus(), 350);
+  inp.addEventListener("keydown", e => { if(e.key === "Enter" && inp.value.trim()) enter(inp.value); });
+  go.addEventListener("click", () => enter(inp.value));
   let going = false;                    // one press is one arrival
 
-  function enter(){
-    const v = inp.value.trim().replace(/</g,"").slice(0,24);
+  function enter(raw){
+    const v = String(raw || "").trim().replace(/</g,"").slice(0,24);
     if(!v || going) return;
     going = true;
     ME.name = v;
@@ -8031,9 +8113,23 @@ function nameGate(){
     if(ME.side === "her") roses(gate, open); else open();
   }
 
+  /* Whoever came through last time gets a tag on their door. A name that is
+     neither of theirs opens the third way already filled in, so a guest who
+     has been here before is one press from back in as well. */
   try {
     const saved = localStorage.getItem("sameSunName");
-    if(saved){ inp.value = saved; check(); }
+    const mark = side => {
+      const d = doors[side];
+      d.classList.add("back");
+      /* the aria-label replaces the whole button, tag included, so say it */
+      d.setAttribute("aria-label", "Start the day as " + label(side) + " — you, last time");
+    };
+    if(saved && isHer(saved)) mark("her");
+    else if(saved && isYou(saved)) mark("you");
+    else if(saved){
+      form.hidden = false; other.parentNode.hidden = true;
+      inp.value = saved; check();
+    }
   } catch(_){}
 }
 
