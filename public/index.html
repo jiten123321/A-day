@@ -2531,6 +2531,18 @@ const note = (b, txt) => b.appendChild(el("p","note",txt));
    to it, so both screens always agree. Guests share the second seat. */
 const ACTS = {};
 
+/* Either the name in CFG or anything else that person answers to. The gate
+   and the seating have to agree about this. They used not to: the gate let
+   him in as himself for typing "Jiten", and then the seating, which only ever
+   compared against CFG.you, did not recognise the name and handed him the
+   first free chair — which is hers. He spent the fight playing a woman. */
+const answersTo = (name, one, more) => {
+  const v = (name || "").trim().toLowerCase();
+  return !!v && [one].concat(more || []).some(n => n && n.trim().toLowerCase() === v);
+};
+const isHer = name => answersTo(name, CFG.her, CFG.herAlso);
+const isYou = name => answersTo(name, CFG.you, CFG.youAlso);
+
 /* ---- who is sitting where ----
    Seats come from the room's peer list, worked out identically on every
    screen, rather than from the name you typed. Two people who both type the
@@ -2538,9 +2550,8 @@ const ACTS = {};
    every turn-based game deadlocks with nobody able to move. */
 function seats(){
   const peers = SYNC.peers.slice().sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-  const low = x => (x || "").trim().toLowerCase();
-  let h = peers.find(p => low(p.name) === low(CFG.her));
-  let y = peers.find(p => p !== h && low(p.name) === low(CFG.you));
+  let h = peers.find(p => isHer(p.name));
+  let y = peers.find(p => p !== h && isYou(p.name));
   const rest = peers.filter(p => p !== h && p !== y);
   if(!h) h = rest.shift();
   if(!y) y = rest.shift();
@@ -2563,6 +2574,16 @@ const alone   = () => SYNC.peers.filter(p => p.id !== SYNC.id).length === 0;
 const canPlay = side => alone() || (seated() && side === mySide());
 const canAct  = () => alone() || seated();
 const nameOf  = s => { const seat = seatOf(s); return seat ? seat.name : (s === "her" ? CFG.her : CFG.you); };
+
+/* The little figure follows the person in the chair, not the name of the
+   chair. Seat him on her side — a guest, a spare tab — and he is still drawn
+   as himself. Nobody recognisable in it, and the seat's own default stands. */
+const femaleAt = side => {
+  const seat = seatOf(side);
+  if(seat && isYou(seat.name)) return false;
+  if(seat && isHer(seat.name)) return true;
+  return side === "her";
+};
 const ensure    = (k, make) => { let v = SYNC.get(k, null); if(v === null){ v = make(); SYNC.set(k, v); } return v; };
 
 /* --- 10:00 coffee --- */
@@ -5874,7 +5895,7 @@ function fightGame(host, gbind, gevery, gclean){
       shirt: side === "her" ? "#DE8C0E" : "#17796C",
       trews: side === "her" ? "#7A4A6B" : "#2B4A6B",
       hair:  side === "her" ? "#3A2416" : "#241A12",
-      she: side === "her",
+      she: femaleAt(side),
       pose, tilt: f.st === "hurt" ? -10 : (f.y < FLOOR - 2 ? -4 : 0),
       down: f.hp <= 0
     });
@@ -6084,7 +6105,7 @@ function kongGame(host, gbind, gevery, gclean){
     FIG.draw(ctx, { x: st.x, y: st.y, face: st.face || 1, h: 30,
                     shirt: st.dead ? "#9AA3B4" : (side === "her" ? "#DE8C0E" : "#CF3E57"),
                     trews: st.dead ? "#7C8598" : "#2B4A6B", hair: "#2A1D12",
-                    she: side === "her",
+                    she: femaleAt(side),
                     pose, down: !!st.dead, shadow: !st.climb });
     ctx.fillStyle = "rgba(36,51,80,.6)"; ctx.font = "11px system-ui, sans-serif";
     ctx.fillText("♥".repeat(Math.max(0, st.l === undefined ? 3 : st.l)), 8, 16);
@@ -6237,7 +6258,7 @@ function gunGame(host, gbind, gevery, gclean){
       x: p.x, y: p.y, face: p.face, h: 44,
       shirt: side === "her" ? "#DE8C0E" : "#17796C",
       trews: "#2B3A5B", hair: side === "her" ? "#3A2416" : "#241A12",
-      she: side === "her", pose
+      she: femaleAt(side), pose
     });
     /* what is in the hand */
     ctx.save(); ctx.translate(p.x, p.y); ctx.scale(p.face, 1);
@@ -7990,19 +8011,14 @@ function nameGate(){
   setTimeout(() => inp.focus(), 350);
   let going = false;                    // one press is one arrival
 
-  /* Either the name in CFG or anything else that person answers to. */
-  const isThem = (v, one, more) =>
-    [one].concat(more || []).some(n => n && n.toLowerCase() === v);
-
   function enter(){
     const v = inp.value.trim().replace(/</g,"").slice(0,24);
     if(!v || going) return;
     going = true;
     ME.name = v;
     CHIME.arm();            // inside a real click, which is what browsers want
-    const low = v.toLowerCase();
-    if(isThem(low, CFG.her, CFG.herAlso)){ ME.side = "her"; ME.other = CFG.you; }
-    else if(isThem(low, CFG.you, CFG.youAlso)){ ME.side = "you"; ME.other = CFG.her; }
+    if(isHer(v)){ ME.side = "her"; ME.other = CFG.you; }
+    else if(isYou(v)){ ME.side = "you"; ME.other = CFG.her; }
     else { ME.side = "guest"; ME.other = CFG.her; }
     try { localStorage.setItem("sameSunName", v); } catch(_){}
     onKnown();

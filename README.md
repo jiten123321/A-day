@@ -424,13 +424,28 @@ The two-player games need one person in each seat. Seats are worked out from
 the room's peer list — identically on every screen, so nobody has to agree
 about it — with the names in `CFG` used only as a preference:
 
-- If someone typed the name in `CFG.her`, they take that seat; likewise
-  `CFG.you`.
+- If someone typed the name in `CFG.her` **or any of `CFG.herAlso`**, they take
+  that seat; likewise `CFG.you` and `CFG.youAlso`.
 - Anyone else fills the remaining seats in a stable order.
 
 That matters because the seat used to come from the name alone, which meant two
 people who both typed the same name — or neither of the two names — landed in
 the *same* seat, and every turn-based game deadlocked with nobody able to move.
+
+**The gate and the seating have to agree about who you are.** They used not
+to. The gate matched the aliases, so typing "Jiten" let him in as himself; the
+seating compared against `CFG.you` only, did not recognise the name, and handed
+him the first free chair — which is hers. He opened Best of three and found
+himself playing a woman. There is one `answersTo` now, and `isHer`/`isYou` on
+top of it, and both the gate and `seats()` call it. The alias list is no longer
+a thing you can honour in one place and forget in the other.
+
+**The figure follows the person, not the chair.** `femaleAt(side)` asks who is
+actually sitting in the seat before it decides. A seat with him in it draws a
+man wherever that seat happens to be; a seat with nobody recognisable in it
+falls back to the seat's own default, so a guest on her side is still drawn as
+her side. The four `FIG` games used to read `side === "her"` straight off the
+slot, which is only right for as long as the seating is.
 
 Labels show whoever is actually sitting there, not the configured names.
 
