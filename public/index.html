@@ -5635,24 +5635,43 @@ const FIG = {
     FIG.limb(ctx, x - h*0.05, hipY, (p.bl||[86,90])[0], (p.bl||[86,90])[1],
              legT, legS, h*0.082, FIG.far(trews), h*0.058, "#2A1D12");
 
+    /* Her hair falls behind her shoulders, so it goes on before the body
+       does — drawn after the trunk it would sit on top of her shirt. */
+    if(o.she){
+      const bx = x + h*0.02, by = y - h*0.90, br = h*0.125;
+      ctx.fillStyle = hair;
+      ctx.beginPath();
+      ctx.moveTo(bx - br*1.00, by - br*0.30);
+      ctx.quadraticCurveTo(bx - br*1.70, by + br*2.20, bx - br*0.60, by + br*3.00);
+      ctx.quadraticCurveTo(bx + br*0.10, by + br*3.20, bx + br*0.55, by + br*2.80);
+      ctx.quadraticCurveTo(bx + br*1.20, by + br*1.10, bx + br*0.88, by - br*0.35);
+      ctx.closePath(); ctx.fill();
+    }
+
     /* neck */
     ctx.strokeStyle = FIG.ink; ctx.lineWidth = h*0.075 + 1.4; ctx.lineCap = "round";
     ctx.beginPath(); ctx.moveTo(x + h*0.015, shoY - h*0.02); ctx.lineTo(x + h*0.02, headY + hr*0.6); ctx.stroke();
     ctx.strokeStyle = skin; ctx.lineWidth = h*0.075;
     ctx.beginPath(); ctx.moveTo(x + h*0.015, shoY - h*0.02); ctx.lineTo(x + h*0.02, headY + hr*0.6); ctx.stroke();
 
-    /* trunk: shoulders wider than the waist */
+    /* Trunk. Two silhouettes rather than one: his shoulders are the widest
+       part of him and he goes more or less straight down; hers are
+       narrower, come in at the waist and go back out at the hip. */
+    const sw = o.she ? 0.122 : 0.145;        // half the shoulders
+    const ww = o.she ? 0.082 : 0.112;        // half the waist
+    const hw = o.she ? 0.118 : 0.105;        // half the hips
+    const waistY = hipY - h*0.11;
     ctx.fillStyle = shirt; ctx.strokeStyle = FIG.ink; ctx.lineWidth = Math.max(1.3, h*0.036);
     ctx.beginPath();
-    ctx.moveTo(x - h*0.145, shoY + h*0.02);
-    ctx.quadraticCurveTo(x, shoY - h*0.07, x + h*0.145, shoY + h*0.02);
-    ctx.quadraticCurveTo(x + h*0.13, hipY - h*0.06, x + h*0.105, hipY + h*0.01);
-    ctx.lineTo(x - h*0.105, hipY + h*0.01);
-    ctx.quadraticCurveTo(x - h*0.13, hipY - h*0.06, x - h*0.145, shoY + h*0.02);
+    ctx.moveTo(x - h*sw, shoY + h*0.02);
+    ctx.quadraticCurveTo(x, shoY - h*0.07, x + h*sw, shoY + h*0.02);
+    ctx.quadraticCurveTo(x + h*ww, waistY, x + h*hw, hipY + h*0.01);
+    ctx.lineTo(x - h*hw, hipY + h*0.01);
+    ctx.quadraticCurveTo(x - h*ww, waistY, x - h*sw, shoY + h*0.02);
     ctx.closePath(); ctx.fill(); ctx.stroke();
     /* a belt, so the legs start somewhere */
     ctx.strokeStyle = "rgba(36,51,80,.35)"; ctx.lineWidth = Math.max(1, h*0.03);
-    ctx.beginPath(); ctx.moveTo(x - h*0.10, hipY - h*0.01); ctx.lineTo(x + h*0.10, hipY - h*0.01); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - h*hw*0.95, hipY - h*0.01); ctx.lineTo(x + h*hw*0.95, hipY - h*0.01); ctx.stroke();
 
     /* the near side */
     FIG.limb(ctx, x + h*0.05, hipY, (p.fl||[94,88])[0], (p.fl||[94,88])[1],
@@ -5676,6 +5695,14 @@ const FIG = {
     ctx.quadraticCurveTo(hx - hr*1.35, headY + hr*0.85, hx - hr*0.45, headY + hr*0.80);
     ctx.lineTo(hx - hr*0.25, headY - hr*0.15);
     ctx.closePath(); ctx.fill();
+    if(o.she){                                    /* a fringe swept across */
+      ctx.beginPath();
+      ctx.moveTo(hx - hr*0.95, headY - hr*0.20);
+      ctx.quadraticCurveTo(hx - hr*0.10, headY - hr*1.15, hx + hr*0.98, headY - hr*0.30);
+      ctx.quadraticCurveTo(hx + hr*0.55, headY - hr*0.55, hx + hr*0.10, headY - hr*0.42);
+      ctx.quadraticCurveTo(hx - hr*0.45, headY - hr*0.30, hx - hr*0.95, headY - hr*0.20);
+      ctx.closePath(); ctx.fill();
+    }
     if(!o.down){
       ctx.fillStyle = FIG.ink;
       ctx.beginPath(); ctx.arc(hx + hr*0.42, headY - hr*0.10, Math.max(0.9, hr*0.17), 0, 7); ctx.fill();
@@ -5847,6 +5874,7 @@ function fightGame(host, gbind, gevery, gclean){
       shirt: side === "her" ? "#DE8C0E" : "#17796C",
       trews: side === "her" ? "#7A4A6B" : "#2B4A6B",
       hair:  side === "her" ? "#3A2416" : "#241A12",
+      she: side === "her",
       pose, tilt: f.st === "hurt" ? -10 : (f.y < FLOOR - 2 ? -4 : 0),
       down: f.hp <= 0
     });
@@ -6023,7 +6051,7 @@ function kongGame(host, gbind, gevery, gclean){
     me.n = Math.max(me.n, me.up * 40 + Math.round(me.t * 2));
   };
 
-  const drawOne = (s, st) => {
+  const drawOne = (s, st, side) => {
     const ctx = s.ctx;
     ctx.fillStyle = "#F3EAD3"; ctx.fillRect(0,0,W,H);
     ctx.strokeStyle = "#B07A3A"; ctx.lineWidth = 5; ctx.lineCap = "round";
@@ -6054,8 +6082,9 @@ function kongGame(host, gbind, gevery, gclean){
       ? { fa:[-70,-84], ba:[-104,-92], fl:[110,60], bl:[70,110] }   /* hands up the rungs */
       : FIG.walk(t, !!st.moving);
     FIG.draw(ctx, { x: st.x, y: st.y, face: st.face || 1, h: 30,
-                    shirt: st.dead ? "#9AA3B4" : "#CF3E57",
+                    shirt: st.dead ? "#9AA3B4" : (side === "her" ? "#DE8C0E" : "#CF3E57"),
                     trews: st.dead ? "#7C8598" : "#2B4A6B", hair: "#2A1D12",
+                    she: side === "her",
                     pose, down: !!st.dead, shadow: !st.climb });
     ctx.fillStyle = "rgba(36,51,80,.6)"; ctx.font = "11px system-ui, sans-serif";
     ctx.fillText("♥".repeat(Math.max(0, st.l === undefined ? 3 : st.l)), 8, 16);
@@ -6064,8 +6093,8 @@ function kongGame(host, gbind, gevery, gclean){
   const draw = () => {
     drawOne(mineUI.s, me && { x:me.x, y:me.y, l:me.lives, dead:me.dead,
                               climb: me.climb, face: me.face || 1, moving: me.moving,
-                              b: me.barrels.map(b => [b.x, b.y]) });
-    drawOne(themUI.s, them);
+                              b: me.barrels.map(b => [b.x, b.y]) }, mySide());
+    drawOne(themUI.s, them, theirSide());
     mineUI.sc.textContent = me ? me.n + (me.dead ? " — done" : "") : "–";
     themUI.sc.textContent = them ? them.n + (them.dead ? " — done" : "") : "–";
   };
@@ -6208,7 +6237,7 @@ function gunGame(host, gbind, gevery, gclean){
       x: p.x, y: p.y, face: p.face, h: 44,
       shirt: side === "her" ? "#DE8C0E" : "#17796C",
       trews: "#2B3A5B", hair: side === "her" ? "#3A2416" : "#241A12",
-      pose
+      she: side === "her", pose
     });
     /* what is in the hand */
     ctx.save(); ctx.translate(p.x, p.y); ctx.scale(p.face, 1);
@@ -6228,7 +6257,8 @@ function gunGame(host, gbind, gevery, gclean){
       const pose = Object.assign({}, FIG.walk(t, true));
       pose.fa = [0, 0];
       FIG.draw(ctx, { x: f.x, y: f.y, face: f.v < 0 ? -1 : 1, h: 42,
-                      shirt: "#7A4A6B", trews: "#3B3A55", hair: "#241A12", pose });
+                      shirt: "#7A4A6B", trews: "#3B3A55", hair: "#241A12",
+                      she: i % 3 === 1, pose });
     });
     ctx.fillStyle = "#B4700D";
     (w.ours || []).forEach(b => ctx.fillRect(b.x - 4, b.y - 2, 8, 4));
@@ -6368,7 +6398,7 @@ function brawlGame(host, gbind, gevery, gclean){
     net.say(w);
   };
 
-  const fig = (ctx, p, fill, swing, moving, seed) => {
+  const fig = (ctx, p, fill, swing, moving, seed, she) => {
     const t = performance.now() / 1000 + (seed || 0);
     const pose = Object.assign({}, FIG.walk(t, !!moving));
     if(swing > 0){ pose.fa = [-6, -2]; pose.ba = [128, 150]; }
@@ -6377,7 +6407,7 @@ function brawlGame(host, gbind, gevery, gclean){
     const near = (p.z - TOPZ) / (BOTZ - TOPZ);
     FIG.draw(ctx, {
       x: p.x, y: p.z, face: p.face || 1, h: 40 + near * 16,
-      shirt: fill, trews: "#3B3A55", hair: "#2A1D12",
+      shirt: fill, trews: "#3B3A55", hair: "#2A1D12", she: !!she,
       pose, fade: p.hurt > 0 ? 0.6 : 1, down: p.hp <= 0,
       tilt: p.hurt > 0 ? -8 : 0
     });
@@ -6406,8 +6436,9 @@ function brawlGame(host, gbind, gevery, gclean){
     all.forEach((o, i) => {
       const k = o.kind === "foe" ? null : (net.held[o.kind] || {});
       const moving = k ? !!(k.left || k.right || k.up || k.down) : o.f.hurt <= 0;
-      if(o.kind === "foe"){ if(o.f.hp > 0) fig(ctx, o.f, "#7A4A6B", o.f.sw > 0.9 ? 1 : 0, moving, i * 0.7); }
-      else if(o.f.hp > 0) fig(ctx, o.f, o.kind === "her" ? "#DE8C0E" : "#17796C", o.f.sw, moving, o.kind === "her" ? 0 : 0.4);
+      if(o.kind === "foe"){ if(o.f.hp > 0) fig(ctx, o.f, "#7A4A6B", o.f.sw > 0.9 ? 1 : 0, moving, i * 0.7, i % 3 === 1); }
+      else if(o.f.hp > 0) fig(ctx, o.f, o.kind === "her" ? "#DE8C0E" : "#17796C", o.f.sw, moving,
+                              o.kind === "her" ? 0 : 0.4, o.kind === "her");
     });
     if(w.over){
       ctx.fillStyle = "rgba(250,244,228,.72)"; ctx.fillRect(0,0,W,H);
