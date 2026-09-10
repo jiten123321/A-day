@@ -233,6 +233,14 @@ you; it is a cap arc plus a tuft down the back now. And the guard had the
 fists above the head rather than at the chin, which is a surrender rather than
 a stance.
 
+**Two silhouettes, not one.** The first pass drew everybody the same way,
+which made the whole arcade two men. `she` gives the figure narrower
+shoulders, a waist that comes in and hips that go back out, a fringe swept
+across, and long hair — and that hair is drawn *before* the body, because hair
+falls behind shoulders. Everything else is shared: the same limbs, the same
+pose tables, the same walk. Her side of every one of the four is hers now, and
+the crowd in the street and on the line is not all men either.
+
 **The world goes out twenty times a second, not sixty.** It is posted from
 inside the frame loop, so without a throttle that is sixty messages a second
 down one socket for a game nobody can see moving that fast. Pong has always
