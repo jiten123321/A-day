@@ -214,6 +214,25 @@ which is written once in `ARC.crew`: each side posts what it is holding down,
 one side runs the world and posts the world back. Written out three times it
 would have been three chances to get the echo rules wrong.
 
+**And the people in them are drawn once too.** The first pass gave every one of
+them a rounded box with a ball on top, which is a place-holder rather than a
+character. `FIG.draw` is a jointed figure: a head that faces where it is going,
+a neck, shoulders wider than the waist, arms that bend at the elbow, legs that
+bend at the knee, hands and feet. Every part is placed by an angle, so a punch,
+a guard, a climb, a walk and a fall are the same drawing with different numbers
+— and the far arm and leg are drawn first, in a darker shade of the same
+colour, so the body reads as having two sides.
+
+Everything is drawn facing right and flipped by the canvas, which keeps the
+pose tables readable: **out in front is always zero degrees.** A fighter's
+whole vocabulary is five lines of them.
+
+Two things it took two goes to get right. The hair closed its path across the
+face and filled the lot, so every one of them stood there looking away from
+you; it is a cap arc plus a tuft down the back now. And the guard had the
+fists above the head rather than at the chin, which is a surrender rather than
+a stance.
+
 **The world goes out twenty times a second, not sixty.** It is posted from
 inside the frame loop, so without a throttle that is sixty messages a second
 down one socket for a game nobody can see moving that fast. Pong has always
