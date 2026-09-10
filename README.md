@@ -247,7 +247,9 @@ down one socket for a game nobody can see moving that fast. Pong has always
 used twenty; so do these.
 
 **Best of three** is the fight. Punch is short and quick, kick is longer and
-slower, block takes a third of what a face takes. A swing lands once, at the
+slower, block takes a third of what a face takes. **Space throws the punch**,
+the same key that fires and swings in the other two — one hand on the arrows,
+one thumb on the bar, and nothing to remember. A swing lands once, at the
 moment it is fully out, rather than every frame it overlaps. Three rounds of
 forty-five seconds; whoever has more health when the clock runs out takes the
 round.
