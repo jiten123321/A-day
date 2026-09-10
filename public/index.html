@@ -8118,8 +8118,14 @@ function nameGate(){
      has been here before is one press from back in as well. */
   try {
     const saved = localStorage.getItem("sameSunName");
-    if(saved && isHer(saved)) doors.her.classList.add("back");
-    else if(saved && isYou(saved)) doors.you.classList.add("back");
+    const mark = side => {
+      const d = doors[side];
+      d.classList.add("back");
+      /* the aria-label replaces the whole button, tag included, so say it */
+      d.setAttribute("aria-label", "Start the day as " + label(side) + " — you, last time");
+    };
+    if(saved && isHer(saved)) mark("her");
+    else if(saved && isYou(saved)) mark("you");
     else if(saved){
       form.hidden = false; other.parentNode.hidden = true;
       inp.value = saved; check();
